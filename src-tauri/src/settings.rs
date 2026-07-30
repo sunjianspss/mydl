@@ -1,0 +1,135 @@
+//! 持久化设置。存成 JSON，放在 Tauri 的应用配置目录里。
+//!
+//! 以后 RSS 订阅规则、完成后自动化动作都往这个结构里加字段即可 ——
+//! `#[serde(default)]` 保证旧的配置文件读得进来。
+
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq, Debug)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Settings {
+    /// 用户选定的下载目录。None 表示跟随系统默认下载文件夹。
+    pub download_dir: Option<String>,
+}
+
+pub struct SettingsStore {
+    path: PathBuf,
+    current: Mutex<Settings>,
+}
+
+impl SettingsStore {
+    /// 读不出来就用默认值继续，绝不因为配置文件坏了就起不来。
+    pub fn load(path: PathBuf) -> Self {
+        let current = match read_settings(&path) {
+            Ok(s) => s,
+            Err(e) => {
+                // 文件不存在是正常情况（首次启动），不值得报警。
+                if path.exists() {
+                    tracing::warn!("读取设置失败，改用默认值：{e:#}");
+                }
+                Settings::default()
+            }
+        };
+
+        Self {
+            path,
+            current: Mutex::new(current),
+        }
+    }
+
+    pub fn get(&self) -> Settings {
+        self.current.lock().unwrap().clone()
+    }
+
+    pub fn set_download_dir(&self, dir: Option<String>) -> Result<()> {
+        let mut guard = self.current.lock().unwrap();
+        guard.download_dir = dir;
+        write_settings(&self.path, &guard)
+    }
+}
+
+fn read_settings(path: &Path) -> Result<Settings> {
+    let raw = std::fs::read_to_string(path)
+        .with_context(|| format!("无法读取 {}", path.display()))?;
+    serde_json::from_str(&raw).with_context(|| format!("{} 不是合法的设置文件", path.display()))
+}
+
+/// 先写临时文件再 rename，避免写到一半崩了留下半个损坏的配置。
+fn write_settings(path: &Path, settings: &Settings) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("无法创建配置目录 {}", parent.display()))?;
+    }
+
+    let tmp = path.with_extension("json.tmp");
+    let json = serde_json::to_string_pretty(settings).context("序列化设置失败")?;
+    std::fs::write(&tmp, json).with_context(|| format!("无法写入 {}", tmp.display()))?;
+    std::fs::rename(&tmp, path).with_context(|| format!("无法替换 {}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tmp_path(tag: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "mydl-settings-{}-{tag}.json",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn missing_file_yields_defaults() {
+        let p = tmp_path("missing");
+        let _ = std::fs::remove_file(&p);
+        assert_eq!(SettingsStore::load(p).get(), Settings::default());
+    }
+
+    #[test]
+    fn survives_restart() {
+        let p = tmp_path("roundtrip");
+        let _ = std::fs::remove_file(&p);
+
+        let store = SettingsStore::load(p.clone());
+        store
+            .set_download_dir(Some("/tmp/我的下载".into()))
+            .unwrap();
+
+        // 模拟重启：重新从磁盘读。
+        let reloaded = SettingsStore::load(p.clone());
+        assert_eq!(reloaded.get().download_dir.as_deref(), Some("/tmp/我的下载"));
+
+        // 恢复默认也要落盘。
+        reloaded.set_download_dir(None).unwrap();
+        assert_eq!(SettingsStore::load(p.clone()).get().download_dir, None);
+
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn corrupt_file_falls_back_to_defaults() {
+        let p = tmp_path("corrupt");
+        std::fs::write(&p, b"{ this is not json").unwrap();
+
+        // 关键：坏配置不能让 App 起不来。
+        assert_eq!(SettingsStore::load(p.clone()).get(), Settings::default());
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn unknown_fields_are_tolerated() {
+        // 以后加了字段又回退版本时，旧版本不该直接崩。
+        let p = tmp_path("future");
+        std::fs::write(&p, br#"{"downloadDir":"/tmp/x","rssFeeds":["a"]}"#).unwrap();
+
+        assert_eq!(
+            SettingsStore::load(p.clone()).get().download_dir.as_deref(),
+            Some("/tmp/x")
+        );
+        let _ = std::fs::remove_file(&p);
+    }
+}

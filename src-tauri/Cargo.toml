@@ -32,6 +32,7 @@ tokio-util = { version = "0.7", features = ["io"] }
 rand = "0.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tauri-plugin-single-instance = "2"
 
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]

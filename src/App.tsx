@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
-import type { TorrentView } from "./types";
+import type { Settings, TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
 import FileList from "./FileList";
 import "./App.css";
@@ -39,6 +39,10 @@ export default function App() {
 
   useEffect(() => {
     invoke<string>("default_download_dir").then(setDefaultDir).catch(() => {});
+    // 上次选的目录存在 Rust 侧，重启后要读回来，否则会静悄悄地下到别处去。
+    invoke<Settings>("get_settings")
+      .then((s) => setOutputFolder(s.downloadDir))
+      .catch(() => {});
     refresh();
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -76,7 +80,17 @@ export default function App() {
 
   async function pickOutputFolder() {
     const picked = await open({ directory: true, multiple: false });
-    if (typeof picked === "string") setOutputFolder(picked);
+    if (typeof picked === "string") await changeOutputFolder(picked);
+  }
+
+  /// 先落盘再改界面，免得显示的和实际存的不一致。
+  async function changeOutputFolder(dir: string | null) {
+    try {
+      await invoke("set_download_dir", { dir });
+      setOutputFolder(dir);
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   const totalDown = torrents.reduce((sum, t) => sum + t.downloadSpeedBps, 0);
@@ -112,7 +126,7 @@ export default function App() {
             下载到：{outputFolder ?? (defaultDir || "…")}
           </button>
           {outputFolder && (
-            <button type="button" className="link" onClick={() => setOutputFolder(null)}>
+            <button type="button" className="link" onClick={() => changeOutputFolder(null)}>
               恢复默认
             </button>
           )}

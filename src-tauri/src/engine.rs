@@ -161,6 +161,11 @@ impl Engine {
         // 子目录拼好。探测返回的 torrent_bytes 可以直接复用，磁力链不用重解析。
         let (add, output_folder) = match &output_folder {
             None => (self.make_add_torrent(uri)?, None),
+            // 和会话默认目录一致时不用自己拼：librqbit 会正确建子目录，
+            // 顺便省掉一次探测。
+            Some(dir) if Path::new(dir) == self.download_dir => {
+                (self.make_add_torrent(uri)?, None)
+            }
             Some(dir) => {
                 let probe = self.probe(uri).await?;
                 let folder = match subfolder_for(&probe.info)? {

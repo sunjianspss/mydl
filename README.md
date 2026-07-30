@@ -42,8 +42,13 @@ src/                     React 界面
 src-tauri/src/
 ├── engine.rs            librqbit 会话的封装，不含 Tauri 类型
 ├── stream_server.rs     本地 HTTP 流媒体服务（Range 支持）
+├── settings.rs          持久化设置（JSON，原子写）
 └── lib.rs               Tauri 命令 + 应用入口
 ```
+
+设置存在 `~/Library/Application Support/com.sun.mydl/settings.json`。
+以后 RSS 规则、自动化动作往 `Settings` 里加字段即可 —— `#[serde(default)]`
+保证旧配置文件读得进来。
 
 `engine.rs` 刻意不依赖 Tauri，以后要加 CLI 或换界面时可以直接复用。
 
@@ -78,6 +83,12 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
   打开走 `open -a`。要支持别的平台得换实现。
 - **暂停中的任务不能起播。** 暂停状态不会有新数据进来，播放器只会卡住，
   所以按钮直接禁用，后端也会明确报错。
+- **只能跑一个实例。** BT 会话独占监听端口（DHT 持久化还会把端口钉死），
+  两份一起跑既起不来也会互相写坏 session。第二次启动改成把已有窗口拉到前面。
+  注意 `tauri dev` 重建时偶尔会留下孤儿进程，占着 4240 / 50522，
+  下次启动就会被单实例挡掉 —— 用 `pkill -f target/debug/mydl` 清掉即可。
+- **启动失败弹对话框而不是崩溃。** setup 钩子里把错误往上抛的话 Tauri 会
+  `panic!`，用户看到的是系统的「意外退出」报告，完全看不出原因。
 
 ## 路线图
 

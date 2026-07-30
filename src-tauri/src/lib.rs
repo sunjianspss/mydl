@@ -1,4 +1,5 @@
 pub mod engine;
+pub mod settings;
 pub mod stream_server;
 
 use std::path::{Path, PathBuf};
@@ -6,6 +7,7 @@ use std::process::Command;
 use std::sync::Arc;
 
 use engine::{Engine, FileView, TorrentId, TorrentView};
+use settings::{Settings, SettingsStore};
 use stream_server::StreamServer;
 use tauri::{Manager, State};
 
@@ -47,9 +49,23 @@ async fn delete_torrent(
     engine.delete(id, delete_files).await.map_err(err)
 }
 
+/// 当前实际生效的下载目录（会话默认值）。
 #[tauri::command]
 fn default_download_dir(engine: State<'_, Arc<Engine>>) -> String {
     engine.download_dir().to_string_lossy().into_owned()
+}
+
+#[tauri::command]
+fn get_settings(store: State<'_, SettingsStore>) -> Settings {
+    store.get()
+}
+
+/// `dir` 传 null 表示恢复成系统默认下载文件夹。
+///
+/// 立即对之后添加的任务生效；下次启动时会直接作为会话默认目录。
+#[tauri::command]
+fn set_download_dir(store: State<'_, SettingsStore>, dir: Option<String>) -> Result<(), String> {
+    store.set_download_dir(dir).map_err(err)
 }
 
 /// 返回磁盘路径，前端交给 opener 插件在访达里显示。
@@ -124,6 +140,63 @@ fn dirs_home() -> PathBuf {
         .unwrap_or_else(|| Path::new("/").to_path_buf())
 }
 
+fn init_app(app: &tauri::App) -> anyhow::Result<()> {
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."));
+    let store = SettingsStore::load(config_dir.join("settings.json"));
+
+    // 用户选过目录就直接拿它当会话默认目录 —— 这样常规添加走的是
+    // librqbit 自己那条路径，不需要额外探测种子。
+    let download_dir = store
+        .get()
+        .download_dir
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            app.path()
+                .download_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+        });
+
+    tracing::info!(
+        "下载目录：{}（{}）",
+        download_dir.display(),
+        if store.get().download_dir.is_some() {
+            "来自设置"
+        } else {
+            "系统默认"
+        }
+    );
+
+    // Session 启动包含读取持久化状态和绑定监听端口，必须在窗口出现前完成，
+    // 否则前端第一次 list_torrents 会拿不到 State。
+    let (engine, server) = tauri::async_runtime::block_on(async {
+        let engine = Arc::new(Engine::new(download_dir, None).await?);
+        let server = StreamServer::start(engine.clone()).await?;
+        Ok::<_, anyhow::Error>((engine, server))
+    })?;
+
+    app.manage(engine);
+    app.manage(server);
+    app.manage(store);
+    Ok(())
+}
+
+/// 启动失败时给出一句人话再退出，而不是让 Tauri panic 成 SIGABRT。
+fn fatal(app: &tauri::App, message: &str) -> ! {
+    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+
+    tracing::error!("启动失败：{message}");
+    app.dialog()
+        .message(message)
+        .kind(MessageDialogKind::Error)
+        .title("mydl 无法启动")
+        .blocking_show();
+
+    std::process::exit(1);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt()
@@ -134,24 +207,23 @@ pub fn run() {
         .init();
 
     tauri::Builder::default()
+        // 必须第一个注册。BT 会话独占监听端口和持久化状态，跑两份既起不来
+        // 也会互相写坏 session；第二次启动改成把已有窗口拉到前面。
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let download_dir = app
-                .path()
-                .download_dir()
-                .unwrap_or_else(|_| PathBuf::from("."));
-
-            // Session 启动包含读取持久化状态和绑定监听端口，必须在窗口出现前完成，
-            // 否则前端第一次 list_torrents 会拿不到 State。
-            let (engine, server) = tauri::async_runtime::block_on(async {
-                let engine = Arc::new(Engine::new(download_dir, None).await?);
-                let server = StreamServer::start(engine.clone()).await?;
-                Ok::<_, anyhow::Error>((engine, server))
-            })?;
-
-            app.manage(engine);
-            app.manage(server);
+            // 不能把错误往上抛：Tauri 会直接 panic!，用户看到的是系统的
+            // 「意外退出」崩溃报告，完全看不出发生了什么。
+            if let Err(e) = init_app(app) {
+                fatal(app, &format!("{e:#}"));
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -161,6 +233,8 @@ pub fn run() {
             resume_torrent,
             delete_torrent,
             default_download_dir,
+            get_settings,
+            set_download_dir,
             reveal_path,
             list_files,
             stream_url,

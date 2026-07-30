@@ -17,6 +17,12 @@ export interface TorrentView {
   eta: string | null;
 }
 
+/** 对应 settings.rs 的 Settings。 */
+export interface Settings {
+  /** null 表示跟随系统默认下载文件夹。 */
+  downloadDir: string | null;
+}
+
 /** 对应 engine.rs 的 FileView。 */
 export interface FileView {
   index: number;
