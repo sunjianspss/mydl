@@ -33,6 +33,7 @@ rand = "0.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-single-instance = "2"
+tracing-appender = "0.2"
 
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]

@@ -20,6 +20,22 @@ pnpm tauri dev          # 开发模式，热重载
 pnpm tauri build        # 打包出 .app / .dmg
 ```
 
+`pnpm tauri dev` 编出来的二进制前端指向 vite 开发服务器，**不能脱离
+`tauri dev` 单独运行**（会白屏）。要独立运行的版本得用 `tauri build`。
+
+产物在 `src-tauri/target/release/bundle/`。安装：
+
+```bash
+ditto src-tauri/target/release/bundle/macos/mydl.app /Applications/mydl.app
+```
+
+## 日志
+
+写在 `~/Library/Logs/mydl/mydl.<日期>.log`，按天轮转、保留 7 天。
+界面右上角「日志」按钮直接在访达里打开该目录。
+
+打包后 stdout 没人接，所以文件日志是唯一的排查手段。
+
 `cargo test` 跑不联网的部分：Range 解析单元测试，以及子目录回归测试（本地现造
 种子，1 秒跑完）。两个联网冒烟测试会真的下载几 MB，默认被 `#[ignore]` 跳过：
 
@@ -89,6 +105,10 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
   下次启动就会被单实例挡掉 —— 用 `pkill -f target/debug/mydl` 清掉即可。
 - **启动失败弹对话框而不是崩溃。** setup 钩子里把错误往上抛的话 Tauri 会
   `panic!`，用户看到的是系统的「意外退出」报告，完全看不出原因。
+- **日志两层都要关 ANSI。** span 字段的格式化结果按 field-formatter 类型
+  缓存在 span extensions 里，终端层和文件层共用 `DefaultFields` 就共用同一份
+  缓存 —— 只在文件层 `with_ansi(false)` 无效，终端层先写进去的带色版本会被
+  直接复用，日志文件里全是 `^[[3m` 之类的乱码。
 
 ## 路线图
 

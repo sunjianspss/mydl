@@ -131,6 +131,16 @@ export default function App() {
             </button>
           )}
           <span className="spacer" />
+          <button
+            type="button"
+            className="link"
+            title="出问题时把日志目录翻出来"
+            onClick={() =>
+              run(async () => revealItemInDir(await invoke<string>("log_dir")))
+            }
+          >
+            日志
+          </button>
           <span className="totals">
             ↓ {formatSpeed(totalDown)}　↑ {formatSpeed(totalUp)}
           </span>

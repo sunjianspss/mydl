@@ -97,6 +97,15 @@ fn stream_url(
     Ok(server.url_for(id, file_id, &file.name))
 }
 
+/// 日志目录，给界面上的「日志」入口用 —— 打包版看不到 stdout。
+#[tauri::command]
+fn log_dir() -> String {
+    dirs_home()
+        .join("Library/Logs/mydl")
+        .to_string_lossy()
+        .into_owned()
+}
+
 /// macOS 上常见的播放器。只返回真正装了的，界面按这个渲染按钮。
 const KNOWN_PLAYERS: &[&str] = &["IINA", "VLC", "mpv", "QuickTime Player"];
 
@@ -183,6 +192,52 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// 日志同时写终端和文件。打包后 stdout 没人接，出了问题只能靠文件日志查。
+///
+/// 返回的 guard 必须活到进程结束，否则非阻塞写线程会被提前关掉、丢日志。
+fn init_logging() -> Option<tracing_appender::non_blocking::WorkerGuard> {
+    use tracing_appender::rolling::{Builder, Rotation};
+    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+    let log_dir = dirs_home().join("Library/Logs/mydl");
+
+    // 日志坏了也不能影响 App 启动，所以每一步失败都只是退化成「只打终端」。
+    let (file_layer, guard) = match std::fs::create_dir_all(&log_dir).ok().and_then(|_| {
+        Builder::new()
+            .rotation(Rotation::DAILY)
+            .filename_prefix("mydl")
+            .filename_suffix("log")
+            // 留一周，免得无限长大。
+            .max_log_files(7)
+            .build(&log_dir)
+            .ok()
+    }) {
+        Some(appender) => {
+            let (writer, guard) = tracing_appender::non_blocking(appender);
+            (Some(fmt::layer().with_ansi(false).with_writer(writer)), Some(guard))
+        }
+        None => {
+            eprintln!("警告：无法写入日志目录 {}，只输出到终端", log_dir.display());
+            (None, None)
+        }
+    };
+
+    // 两层都关掉 ANSI。span 字段的格式化结果按 field-formatter 类型缓存在
+    // span extensions 里，两层共用 DefaultFields 就会共用同一份缓存 ——
+    // 只在文件层 with_ansi(false) 没用，终端层先写进去的带色版本会被直接复用。
+    // 打包版没有终端，dev 模式 stdout 也基本都重定向到文件，颜色没有价值。
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info,librqbit=info".into()))
+        .with(fmt::layer().with_ansi(false))
+        .with(file_layer)
+        .init();
+
+    if guard.is_some() {
+        tracing::info!("日志目录：{}", log_dir.display());
+    }
+    guard
+}
+
 /// 启动失败时给出一句人话再退出，而不是让 Tauri panic 成 SIGABRT。
 fn fatal(app: &tauri::App, message: &str) -> ! {
     use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
@@ -199,12 +254,8 @@ fn fatal(app: &tauri::App, message: &str) -> ! {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,librqbit=info".into()),
-        )
-        .init();
+    // 必须绑在变量上活到 run() 返回：guard 一 drop，缓冲的日志就没了。
+    let _log_guard = init_logging();
 
     tauri::Builder::default()
         // 必须第一个注册。BT 会话独占监听端口和持久化状态，跑两份既起不来
@@ -240,6 +291,7 @@ pub fn run() {
             stream_url,
             available_players,
             open_in_player,
+            log_dir,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
