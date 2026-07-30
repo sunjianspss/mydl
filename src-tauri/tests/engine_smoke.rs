@@ -208,3 +208,54 @@ async fn single_file_torrent_has_no_subfolder() {
     let _ = std::fs::remove_dir_all(&tmp);
     outcome.unwrap_or_else(|e| panic!("{e}"));
 }
+
+/// 回归测试：加一条永远解析不出来的磁力链，必须超时报错，不能无限挂住。
+///
+/// librqbit 解析磁力链元信息时没有超时（session.rs 的
+/// read_metainfo_from_peer_receiver），命令永不返回，界面就跟着卡死。
+/// Engine::add 现在自己套了一层超时。
+///
+/// 这里把超时行为本身跑一遍：用一个随机 info-hash，DHT 里必然找不到源。
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "需要外网，且必须等满 Engine 的添加超时"]
+async fn dead_magnet_times_out_instead_of_hanging() {
+    let tmp = std::env::temp_dir().join(format!("mydl-deadmagnet-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+
+    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")))
+        .await
+        .expect("创建 Engine 失败");
+
+    // 随机 40 位十六进制 info-hash：不可能对应任何真实种子。
+    let dead = format!("magnet:?xt=urn:btih:{:040x}", rand_hash());
+
+    let started = Instant::now();
+    let err = engine
+        .add(&dead, None)
+        .await
+        .expect_err("死磁力链不该添加成功");
+    let elapsed = started.elapsed();
+
+    engine.shutdown().await;
+    let _ = std::fs::remove_dir_all(&tmp);
+
+    let msg = format!("{err:#}");
+    assert!(msg.contains("超时"), "错误信息该说明是超时，实际：{msg}");
+    assert!(
+        msg.contains("没有 tracker") || msg.contains("不带 tracker"),
+        "裸磁力链该提示缺 tracker，实际：{msg}"
+    );
+    // 必须真的在超时附近返回，而不是立刻失败（那说明走了别的错误路径）。
+    assert!(
+        elapsed >= Duration::from_secs(100),
+        "返回太快（{elapsed:?}），可能没走到超时逻辑"
+    );
+    eprintln!("OK: {elapsed:?} 后超时返回 — {msg}");
+}
+
+/// 造一个随机 info-hash，避免误中真实种子。
+fn rand_hash() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let n = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    (n.as_nanos()) ^ (std::process::id() as u128) << 64
+}

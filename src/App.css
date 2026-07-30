@@ -126,6 +126,11 @@ button.link:hover {
   font-variant-numeric: tabular-nums;
 }
 
+.adding-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
 .error-banner {
   padding: 6px 10px;
   margin-top: 8px;

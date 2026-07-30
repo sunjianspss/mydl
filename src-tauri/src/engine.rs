@@ -26,6 +26,11 @@ const BYTES_PER_MIB: f64 = 1024.0 * 1024.0;
 /// 起播前等待任务初始化的上限。校验已有文件可能要点时间，但不能无限等。
 const INIT_WAIT: Duration = Duration::from_secs(30);
 
+/// 添加任务的上限。librqbit 解析磁力链元信息时没有超时
+/// （`session.rs` 的 `read_metainfo_from_peer_receiver`），冷门磁力链会一直挂着，
+/// 命令永不返回，界面就跟着卡死。
+const ADD_TIMEOUT: Duration = Duration::from_secs(120);
+
 pub struct Engine {
     session: Arc<Session>,
     download_dir: PathBuf,
@@ -98,6 +103,26 @@ fn subfolder_for(info: &TorrentMetaV1Info<ByteBufOwned>) -> Result<Option<PathBu
     Ok(Some(pb))
 }
 
+/// 超时原因对磁力链和普通种子完全不同，分开说清楚，别让用户干猜。
+fn add_timeout_message(uri: &str) -> String {
+    let secs = ADD_TIMEOUT.as_secs();
+    if uri.starts_with("magnet:") {
+        let has_tracker = uri.contains("&tr=") || uri.contains("?tr=");
+        let hint = if has_tracker {
+            "tracker 和 DHT 都没找到能提供元信息的源"
+        } else {
+            "这条磁力链不带 tracker，只能靠 DHT 找源"
+        };
+        format!(
+            "解析磁力链超时（{secs} 秒）。添加磁力链必须先从其他 peer 拿到文件列表，\
+             但{hint} —— 通常说明这个资源已经没人做种了。\
+             如果能拿到对应的 .torrent 文件，用「打开种子…」可以直接添加。"
+        )
+    } else {
+        format!("添加超时（{secs} 秒）。种子地址可能打不开，或者网络有问题。")
+    }
+}
+
 fn is_playable(name: &str) -> bool {
     name.rsplit('.')
         .next()
@@ -154,6 +179,21 @@ impl Engine {
         if uri.is_empty() {
             bail!("请输入磁力链、种子地址或本地种子文件路径");
         }
+
+        // 之前这里什么都不记，任务卡住时日志里连「试过添加」都看不出来。
+        tracing::info!(uri = %uri, "添加任务");
+
+        // 超时后 future 被 drop，librqbit 那边的解析也随之取消。
+        match tokio::time::timeout(ADD_TIMEOUT, self.add_inner(uri, output_folder)).await {
+            Ok(r) => r,
+            Err(_) => {
+                tracing::warn!(uri = %uri, "添加超时");
+                bail!("{}", add_timeout_message(uri))
+            }
+        }
+    }
+
+    async fn add_inner(&self, uri: &str, output_folder: Option<String>) -> Result<TorrentId> {
 
         // 指定了自定义目录时，librqbit 会原样使用它、跳过自动建子目录的逻辑
         // （session.rs 里 `(Some(o), None) => PathBuf::from(o)`），多文件种子

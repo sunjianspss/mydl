@@ -22,7 +22,9 @@ export default function App() {
   const [uri, setUri] = useState("");
   const [outputFolder, setOutputFolder] = useState<string | null>(null);
   const [defaultDir, setDefaultDir] = useState("");
-  const [busy, setBusy] = useState(false);
+  // 只给添加流程用。磁力链要先解析元信息，可能要等几十秒，不能因此把
+  // 整个工具栏锁死 —— 之前一个卡住的操作会让界面看起来像死了。
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 哪一行正处于「确认删除」状态。用行内确认而不是系统弹窗，避免阻塞 webview。
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
@@ -50,25 +52,30 @@ export default function App() {
 
   const run = useCallback(
     async (action: () => Promise<unknown>) => {
-      setBusy(true);
       setError(null);
       try {
         await action();
         await refresh();
       } catch (e) {
         setError(String(e));
-      } finally {
-        setBusy(false);
       }
     },
     [refresh],
   );
 
-  const addTorrent = (value: string) =>
-    run(async () => {
+  async function addTorrent(value: string) {
+    setAdding(true);
+    setError(null);
+    try {
       await invoke("add_torrent", { uri: value, outputFolder });
       setUri("");
-    });
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setAdding(false);
+    }
+  }
 
   async function pickTorrentFile() {
     const picked = await open({
@@ -113,13 +120,19 @@ export default function App() {
             onChange={(e) => setUri(e.target.value)}
             spellCheck={false}
           />
-          <button type="submit" disabled={busy || !uri.trim()}>
-            添加
+          <button type="submit" disabled={adding || !uri.trim()}>
+            {adding ? "解析中…" : "添加"}
           </button>
-          <button type="button" onClick={pickTorrentFile} disabled={busy}>
+          <button type="button" onClick={pickTorrentFile} disabled={adding}>
             打开种子…
           </button>
         </form>
+
+        {adding && (
+          <p className="adding-hint">
+            正在解析…磁力链需要先从其他 peer 拿到文件列表，最多等 2 分钟。
+          </p>
+        )}
 
         <div className="meta-row">
           <button type="button" className="link" onClick={pickOutputFolder}>
