@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use librqbit::{
@@ -12,6 +13,7 @@ use librqbit::{
     SessionPersistenceConfig,
 };
 use serde::Serialize;
+use tokio::io::{AsyncRead, AsyncSeek};
 
 /// librqbit 把 `TorrentId` 和 `ManagedTorrentHandle` 定义在私有模块里、
 /// 没在 crate 根重新导出，所以这里按其真实定义重建别名。
@@ -20,6 +22,9 @@ type TorrentHandle = Arc<ManagedTorrent>;
 
 /// librqbit 的 `Speed.mbps` 实际是 MiB/s，不是兆比特。统一在这里换算成字节/秒。
 const BYTES_PER_MIB: f64 = 1024.0 * 1024.0;
+
+/// 起播前等待任务初始化的上限。校验已有文件可能要点时间，但不能无限等。
+const INIT_WAIT: Duration = Duration::from_secs(30);
 
 pub struct Engine {
     session: Arc<Session>,
@@ -48,6 +53,32 @@ pub struct TorrentView {
     pub peers_live: usize,
     /// 已格式化的剩余时间，库里只暴露了 Display。
     pub eta: Option<String>,
+}
+
+/// 种子内的单个文件。
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FileView {
+    pub index: usize,
+    /// 种子内的相对路径。
+    pub name: String,
+    pub len: u64,
+    pub downloaded: u64,
+    /// 是否是能边下边播的媒体格式。
+    pub playable: bool,
+}
+
+/// 能拿去边下边播的容器格式。列表之外的（压缩包、镜像等）播放没有意义。
+const PLAYABLE_EXTS: &[&str] = &[
+    "mp4", "m4v", "mkv", "webm", "avi", "mov", "ts", "m2ts", "flv", "wmv", "mp3", "m4a", "aac",
+    "flac", "wav", "ogg", "opus",
+];
+
+fn is_playable(name: &str) -> bool {
+    name.rsplit('.')
+        .next()
+        .map(|e| PLAYABLE_EXTS.contains(&e.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
 }
 
 impl Engine {
@@ -180,6 +211,62 @@ impl Engine {
             }
         }
         Ok(base)
+    }
+
+    /// 种子内的文件列表。磁力链还没解析出元信息时返回空列表，而不是报错 ——
+    /// 界面会在下一次轮询里自然拿到。
+    pub fn files(&self, id: TorrentId) -> Result<Vec<FileView>> {
+        let handle = self.handle(id)?;
+        let progress = handle.stats().file_progress;
+
+        let infos = match handle.with_metadata(|m| m.file_infos.clone()) {
+            Ok(infos) => infos,
+            Err(_) => return Ok(Vec::new()),
+        };
+
+        Ok(infos
+            .into_iter()
+            .enumerate()
+            .map(|(index, info)| {
+                let name = info.relative_filename.to_string_lossy().into_owned();
+                FileView {
+                    playable: is_playable(&name),
+                    index,
+                    len: info.len,
+                    downloaded: progress.get(index).copied().unwrap_or(0),
+                    name,
+                }
+            })
+            .collect())
+    }
+
+    /// 打开一路边下边播的流。librqbit 会把这个文件的分片提到最高优先级。
+    ///
+    /// 返回类型写成 `impl Trait` 是因为 librqbit 的 `FileStream` 定义在私有模块里、
+    /// 没在 crate 根导出，外部根本命名不了。文件长度从 [`Self::files`] 拿。
+    pub async fn open_stream(
+        &self,
+        id: TorrentId,
+        file_id: usize,
+    ) -> Result<impl AsyncRead + AsyncSeek + Send + Unpin + 'static> {
+        let handle = self.handle(id)?;
+
+        // 元信息解析完之后、存储初始化完成之前，任务还是 initializing 状态，
+        // 这时候 stream() 会直接失败。等它就绪 —— 但不能无限等，否则用户一点播放
+        // 播放器就永远挂在那里。
+        tokio::time::timeout(INIT_WAIT, handle.wait_until_initialized())
+            .await
+            .with_context(|| format!("等待任务 {id} 初始化超过 {}s", INIT_WAIT.as_secs()))?
+            .with_context(|| format!("任务 {id} 初始化失败"))?;
+
+        // 暂停状态下不会有新数据进来，播放器只会卡住，不如直接说清楚。
+        if handle.is_paused() {
+            bail!("任务已暂停，继续下载后才能播放");
+        }
+
+        handle
+            .stream(file_id)
+            .with_context(|| format!("无法打开任务 {id} 的文件 {file_id}"))
     }
 
     pub async fn shutdown(&self) {

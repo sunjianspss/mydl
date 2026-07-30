@@ -26,9 +26,16 @@ serde_json = "1"
 librqbit = "8.1.1"
 anyhow = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "time", "sync"] }
+# 本地流媒体服务：把 FileStream 包成带 Range 支持的 HTTP 端点
+axum = "0.8"
+tokio-util = { version = "0.7", features = ["io"] }
+rand = "0.9"
+tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+# 只用来打本地 http，TLS 由依赖树里已有的 reqwest 特性统一决定
+reqwest = { version = "0.12", default-features = false }
 

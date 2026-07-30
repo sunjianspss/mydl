@@ -238,3 +238,70 @@ button.link:hover {
   margin: 8px 0 0;
   color: var(--danger);
 }
+
+/* ---------- 展开的文件列表 ---------- */
+
+.disclosure {
+  width: 20px;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+}
+
+.disclosure:hover {
+  color: var(--accent);
+  border: none;
+}
+
+.files {
+  padding: 0;
+  margin: 10px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.files-hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.file {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0 6px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.file:last-child {
+  border-bottom: none;
+}
+
+.file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-pct {
+  margin-left: 2px;
+}
+
+.file-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.file-actions button {
+  padding: 2px 8px;
+  font-size: 12px;
+}

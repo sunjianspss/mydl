@@ -16,3 +16,12 @@ export interface TorrentView {
   peersLive: number;
   eta: string | null;
 }
+
+/** 对应 engine.rs 的 FileView。 */
+export interface FileView {
+  index: number;
+  name: string;
+  len: number;
+  downloaded: number;
+  playable: boolean;
+}

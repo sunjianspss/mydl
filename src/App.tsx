@@ -5,6 +5,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import type { TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
+import FileList from "./FileList";
 import "./App.css";
 
 const POLL_INTERVAL_MS = 1000;
@@ -25,6 +26,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   // 哪一行正处于「确认删除」状态。用行内确认而不是系统弹窗，避免阻塞 webview。
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
+  // 展开了文件列表的任务。
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [players, setPlayers] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -36,6 +40,7 @@ export default function App() {
 
   useEffect(() => {
     invoke<string>("default_download_dir").then(setDefaultDir).catch(() => {});
+    invoke<string[]>("available_players").then(setPlayers).catch(() => {});
     refresh();
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -134,6 +139,10 @@ export default function App() {
           <TorrentRow
             key={t.id}
             torrent={t}
+            players={players}
+            expanded={expanded === t.id}
+            onToggleExpand={() => setExpanded(expanded === t.id ? null : t.id)}
+            onError={setError}
             confirming={confirmingDelete === t.id}
             onConfirmDelete={() => setConfirmingDelete(t.id)}
             onCancelDelete={() => setConfirmingDelete(null)}
@@ -160,6 +169,10 @@ export default function App() {
 
 interface RowProps {
   torrent: TorrentView;
+  players: string[];
+  expanded: boolean;
+  onToggleExpand: () => void;
+  onError: (message: string) => void;
   confirming: boolean;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
@@ -171,6 +184,10 @@ interface RowProps {
 
 function TorrentRow({
   torrent: t,
+  players,
+  expanded,
+  onToggleExpand,
+  onError,
   confirming,
   onConfirmDelete,
   onCancelDelete,
@@ -185,6 +202,9 @@ function TorrentRow({
   return (
     <article className={`row state-${t.state}`}>
       <div className="row-head">
+        <button className="disclosure" onClick={onToggleExpand} title="展开文件列表">
+          {expanded ? "▾" : "▸"}
+        </button>
         <span className="name" title={t.infoHash}>
           {t.name}
         </span>
@@ -228,6 +248,15 @@ function TorrentRow({
       </div>
 
       {t.error && <p className="row-error">{t.error}</p>}
+
+      {expanded && (
+        <FileList
+          torrentId={t.id}
+          players={players}
+          streamable={t.state === "live"}
+          onError={onError}
+        />
+      )}
     </article>
   );
 }
