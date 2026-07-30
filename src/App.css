@@ -227,6 +227,53 @@ button.primary:disabled {
   opacity: 0.5;
 }
 
+/* ---------- 设置对话框 ---------- */
+
+.settings-dialog {
+  width: min(560px, 100%);
+}
+
+.setting {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 0;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting input[type="checkbox"] {
+  flex: none;
+  margin: 2px 0 0;
+  cursor: pointer;
+}
+
+.setting b {
+  display: block;
+  font-weight: 600;
+}
+
+.setting em {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-style: normal;
+}
+
+.setting-sub {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0 0 26px;
+}
+
+.setting-sub .path {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .adding-hint {
   margin: 8px 0 0;
   color: var(--muted);

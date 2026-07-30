@@ -9,11 +9,35 @@ use std::sync::Mutex;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     /// 用户选定的下载目录。None 表示跟随系统默认下载文件夹。
     pub download_dir: Option<String>,
+
+    /// 下载完成时发系统通知。
+    pub notify_on_complete: bool,
+
+    /// 完成后把内容移动到这个目录。None 表示不移动。
+    ///
+    /// 移动之后 librqbit 就找不到文件了，所以会顺带把任务从列表移除
+    /// （文件保留）——也就是不再做种。
+    pub move_to: Option<String>,
+
+    /// 完成后解压内容里的 .zip。原压缩包保留。
+    pub extract_archives: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            download_dir: None,
+            // 通知是无害的，默认开；会动文件的两项默认关。
+            notify_on_complete: true,
+            move_to: None,
+            extract_archives: false,
+        }
+    }
 }
 
 pub struct SettingsStore {
@@ -48,6 +72,15 @@ impl SettingsStore {
     pub fn set_download_dir(&self, dir: Option<String>) -> Result<()> {
         let mut guard = self.current.lock().unwrap();
         guard.download_dir = dir;
+        write_settings(&self.path, &guard)
+    }
+
+    /// 整份替换。下载目录只在启动时读，所以这里不允许改它 ——
+    /// 改了界面会显示新目录、实际却还写在旧目录，比不给改更糟。
+    pub fn update(&self, mut next: Settings) -> Result<()> {
+        let mut guard = self.current.lock().unwrap();
+        next.download_dir = guard.download_dir.clone();
+        *guard = next;
         write_settings(&self.path, &guard)
     }
 }

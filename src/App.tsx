@@ -7,6 +7,7 @@ import type { Settings, TorrentPreview, TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
 import FileList from "./FileList";
 import AddDialog from "./AddDialog";
+import SettingsDialog from "./SettingsDialog";
 import "./App.css";
 
 const POLL_INTERVAL_MS = 1000;
@@ -29,6 +30,8 @@ export default function App() {
   // 解析出来待确认的种子；null 表示没有对话框。
   const [preview, setPreview] = useState<TorrentPreview | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 哪一行正处于「确认删除」状态。用行内确认而不是系统弹窗，避免阻塞 webview。
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
@@ -47,7 +50,10 @@ export default function App() {
     invoke<string>("default_download_dir").then(setDefaultDir).catch(() => {});
     // 上次选的目录存在 Rust 侧，重启后要读回来，否则会静悄悄地下到别处去。
     invoke<Settings>("get_settings")
-      .then((s) => setOutputFolder(s.downloadDir))
+      .then((s) => {
+        setSettings(s);
+        setOutputFolder(s.downloadDir);
+      })
       .catch(() => {});
     refresh();
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
@@ -155,6 +161,15 @@ export default function App() {
           </p>
         )}
 
+        {showSettings && settings && (
+          <SettingsDialog
+            initial={settings}
+            onSaved={setSettings}
+            onClose={() => setShowSettings(false)}
+            onError={setError}
+          />
+        )}
+
         {preview && (
           <AddDialog
             preview={preview}
@@ -175,6 +190,11 @@ export default function App() {
             </button>
           )}
           <span className="spacer" />
+          {settings && (
+            <button type="button" className="link" onClick={() => setShowSettings(true)}>
+              完成后处理
+            </button>
+          )}
           <button
             type="button"
             className="link"

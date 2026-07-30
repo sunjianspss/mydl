@@ -39,6 +39,12 @@ export interface TorrentPreview {
 export interface Settings {
   /** null 表示跟随系统默认下载文件夹。 */
   downloadDir: string | null;
+  /** 下载完成时发系统通知。 */
+  notifyOnComplete: boolean;
+  /** 完成后移动到这个目录；null 表示不移动。移动后会停止做种。 */
+  moveTo: string | null;
+  /** 完成后解压内容里的 .zip。 */
+  extractArchives: boolean;
 }
 
 /** 对应 engine.rs 的 FileView。 */

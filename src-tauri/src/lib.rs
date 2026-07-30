@@ -1,3 +1,4 @@
+pub mod automation;
 pub mod engine;
 pub mod settings;
 pub mod stream_server;
@@ -70,7 +71,7 @@ fn default_download_dir(engine: State<'_, Arc<Engine>>) -> String {
 }
 
 #[tauri::command]
-fn get_settings(store: State<'_, SettingsStore>) -> Settings {
+fn get_settings(store: State<'_, Arc<SettingsStore>>) -> Settings {
     store.get()
 }
 
@@ -78,8 +79,14 @@ fn get_settings(store: State<'_, SettingsStore>) -> Settings {
 ///
 /// 立即对之后添加的任务生效；下次启动时会直接作为会话默认目录。
 #[tauri::command]
-fn set_download_dir(store: State<'_, SettingsStore>, dir: Option<String>) -> Result<(), String> {
+fn set_download_dir(store: State<'_, Arc<SettingsStore>>, dir: Option<String>) -> Result<(), String> {
     store.set_download_dir(dir).map_err(err)
+}
+
+/// 整份保存设置。下载目录不走这里 —— 它只在启动时读，见 `SettingsStore::update`。
+#[tauri::command]
+fn save_settings(store: State<'_, Arc<SettingsStore>>, settings: Settings) -> Result<(), String> {
+    store.update(settings).map_err(err)
 }
 
 /// 返回磁盘路径，前端交给 opener 插件在访达里显示。
@@ -178,7 +185,7 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
         .path()
         .app_config_dir()
         .unwrap_or_else(|_| PathBuf::from("."));
-    let store = SettingsStore::load(config_dir.join("settings.json"));
+    let store = Arc::new(SettingsStore::load(config_dir.join("settings.json")));
 
     // 用户选过目录就直接拿它当会话默认目录 —— 这样常规添加走的是
     // librqbit 自己那条路径，不需要额外探测种子。
@@ -209,6 +216,8 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
         let server = StreamServer::start(engine.clone()).await?;
         Ok::<_, anyhow::Error>((engine, server))
     })?;
+
+    automation::spawn(app.handle().clone(), engine.clone(), store.clone());
 
     app.manage(engine);
     app.manage(server);
@@ -293,6 +302,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             // 不能把错误往上抛：Tauri 会直接 panic!，用户看到的是系统的
             // 「意外退出」崩溃报告，完全看不出发生了什么。
@@ -311,6 +321,7 @@ pub fn run() {
             default_download_dir,
             get_settings,
             set_download_dir,
+            save_settings,
             reveal_path,
             list_files,
             set_only_files,

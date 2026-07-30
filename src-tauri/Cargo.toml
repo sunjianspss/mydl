@@ -34,10 +34,13 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-single-instance = "2"
 tracing-appender = "0.2"
+tauri-plugin-notification = "2"
+zip = "8.6.0"
 
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 # 只用来打本地 http，TLS 由依赖树里已有的 reqwest 特性统一决定
 reqwest = { version = "0.12", default-features = false }
+zip = "8.6.0"
 
