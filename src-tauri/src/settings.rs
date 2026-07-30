@@ -39,6 +39,9 @@ pub struct Settings {
     /// tracker 能多一条路。代价是你的 IP 会被上报给这些 tracker，所有任务
     /// 都会 —— 所以默认关闭。改了要重启 App 才生效（会话创建时才读）。
     pub use_public_trackers: bool,
+
+    /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
+    pub prevent_sleep_while_downloading: bool,
 }
 
 /// 几个长期在运行的开放 tracker。开启后对所有任务生效。
@@ -92,6 +95,8 @@ impl Default for Settings {
             rss_feeds: Vec::new(),
             rss_interval_minutes: 30,
             use_public_trackers: false,
+            // 下载中不休眠是下载工具的常规行为，默认开。
+            prevent_sleep_while_downloading: true,
         }
     }
 }

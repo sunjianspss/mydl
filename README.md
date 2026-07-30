@@ -44,6 +44,19 @@ pnpm tauri build        # 打包出 .app / .dmg
 ditto src-tauri/target/release/bundle/macos/mydl.app /Applications/mydl.app
 ```
 
+## 下载期间不休眠
+
+默认开启。`keep_awake.rs` 每 15 秒看一次有没有「正在下载」的任务，有就拉起
+一个 `caffeinate -i -m -s` 子进程，没有就杀掉。**做种不算** —— 没道理为了
+给别人上传就让电脑整夜不睡。
+
+用 `caffeinate` 而不是直接调 IOKit：少一层 FFI，而且 `pmset -g assertions`
+里能看到是谁在阻止休眠。参数里带 `-w <自己的 pid>`，万一 App 被强杀、
+来不及 kill 子进程，caffeinate 也会跟着退出，不会留个进程让电脑永远睡不着。
+
+**合盖仍然会睡**，这是系统行为，任何软件都拦不住。想挂整夜别合盖。
+接电源时 `-s` 才有效；用电池时靠 `-i`，电量耗尽照样会睡。
+
 ## 磁力链下不动时怎么查
 
 三个诊断工具，都是 `#[ignore]`，手动跑：

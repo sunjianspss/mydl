@@ -51,6 +51,21 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.preventSleepWhileDownloading}
+            onChange={(e) => patch({ preventSleepWhileDownloading: e.target.checked })}
+          />
+          <span>
+            <b>下载期间不让电脑休眠</b>
+            <em>
+              只在有任务<b>正在下载</b>时生效，下完自动解除；单纯做种不会阻止休眠。
+              合盖仍然会睡 —— 想挂整夜的话别合盖。
+            </em>
+          </span>
+        </label>
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.usePublicTrackers}
             onChange={(e) => patch({ usePublicTrackers: e.target.checked })}
           />

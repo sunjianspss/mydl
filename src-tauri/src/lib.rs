@@ -1,5 +1,6 @@
 pub mod automation;
 pub mod engine;
+pub mod keep_awake;
 pub mod rss;
 pub mod settings;
 pub mod stream_server;
@@ -239,6 +240,7 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
 
     automation::spawn(app.handle().clone(), engine.clone(), store.clone());
     rss::spawn(engine.clone(), store.clone(), seen.clone());
+    keep_awake::spawn(engine.clone(), store.clone());
 
     app.manage(engine);
     app.manage(server);

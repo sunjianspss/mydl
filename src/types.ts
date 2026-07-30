@@ -49,6 +49,8 @@ export interface Settings {
   rssIntervalMinutes: number;
   /** 给所有任务补充公共 tracker。改了要重启 App 才生效。 */
   usePublicTrackers: boolean;
+  /** 有任务在下载时阻止电脑休眠。 */
+  preventSleepWhileDownloading: boolean;
 }
 
 /** 对应 settings.rs 的 RssFeed。 */
