@@ -3,9 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
-import type { Settings, TorrentView } from "./types";
+import type { Settings, TorrentPreview, TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
 import FileList from "./FileList";
+import AddDialog from "./AddDialog";
 import "./App.css";
 
 const POLL_INTERVAL_MS = 1000;
@@ -25,6 +26,9 @@ export default function App() {
   // 只给添加流程用。磁力链要先解析元信息，可能要等几十秒，不能因此把
   // 整个工具栏锁死 —— 之前一个卡住的操作会让界面看起来像死了。
   const [adding, setAdding] = useState(false);
+  // 解析出来待确认的种子；null 表示没有对话框。
+  const [preview, setPreview] = useState<TorrentPreview | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 哪一行正处于「确认删除」状态。用行内确认而不是系统弹窗，避免阻塞 webview。
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
@@ -63,17 +67,34 @@ export default function App() {
     [refresh],
   );
 
+  /// 先解析出文件列表让用户勾选，确认后才真正加入会话。
+  /// 预览时拿到的 torrent_bytes 会被后端缓存，确认时直接复用，
+  /// 所以磁力链只解析这一次。
   async function addTorrent(value: string) {
     setAdding(true);
     setError(null);
     try {
-      await invoke("add_torrent", { uri: value, outputFolder });
+      setPreview(await invoke<TorrentPreview>("preview_torrent", { uri: value }));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function confirmAdd(files: number[]) {
+    if (!preview) return;
+    setConfirming(true);
+    setError(null);
+    try {
+      await invoke("add_previewed", { token: preview.token, files, outputFolder });
+      setPreview(null);
       setUri("");
       await refresh();
     } catch (e) {
       setError(String(e));
     } finally {
-      setAdding(false);
+      setConfirming(false);
     }
   }
 
@@ -132,6 +153,16 @@ export default function App() {
           <p className="adding-hint">
             正在解析…磁力链需要先从其他 peer 拿到文件列表，最多等 2 分钟。
           </p>
+        )}
+
+        {preview && (
+          <AddDialog
+            preview={preview}
+            targetDir={outputFolder ?? defaultDir}
+            busy={confirming}
+            onConfirm={confirmAdd}
+            onCancel={() => setPreview(null)}
+          />
         )}
 
         <div className="meta-row">

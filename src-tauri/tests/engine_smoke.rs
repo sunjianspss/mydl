@@ -322,3 +322,65 @@ async fn deselected_files_are_excluded() {
     assert!(empty.is_err(), "空选择必须被拒绝");
     eprintln!("OK: 总大小 {total_before} -> {total_after}");
 }
+
+/// 预览 → 勾选 → 确认：只有勾选的文件会落到磁盘，且预览缓存用完即失效。
+#[tokio::test(flavor = "multi_thread")]
+async fn preview_then_add_only_selected() {
+    let tmp = std::env::temp_dir().join(format!("mydl-preview-{}", std::process::id()));
+    let content = tmp.join("content");
+    let custom_dir = tmp.join("我选的目录");
+    std::fs::create_dir_all(&content).unwrap();
+    std::fs::create_dir_all(&custom_dir).unwrap();
+    std::fs::write(content.join("keep.bin"), vec![1u8; 40 * 1024]).unwrap();
+    std::fs::write(content.join("skip.bin"), vec![2u8; 80 * 1024]).unwrap();
+
+    let torrent = make_local_torrent(&tmp, &content, "预览测试").await;
+    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")))
+        .await
+        .expect("创建 Engine 失败");
+
+    // 预览不该把任务加进列表。
+    let preview = engine
+        .preview(&torrent.to_string_lossy())
+        .await
+        .expect("预览失败");
+    assert_eq!(preview.files.len(), 2, "预览该列出两个文件");
+    assert_eq!(preview.name, "预览测试");
+    assert!(!preview.already_added);
+    assert!(engine.list().is_empty(), "预览阶段不该有任务被加入");
+
+    let keep = preview
+        .files
+        .iter()
+        .find(|f| f.name.contains("keep"))
+        .unwrap()
+        .index;
+
+    let id = engine
+        .add_previewed(
+            &preview.token,
+            vec![keep],
+            Some(custom_dir.to_string_lossy().into_owned()),
+        )
+        .await
+        .expect("确认添加失败");
+
+    // 多文件种子仍然要收进子目录。
+    let subdir = custom_dir.join("预览测试");
+    wait_for(&subdir, &custom_dir).await;
+
+    let files = engine.files(id).expect("读文件列表失败");
+    let selected: Vec<_> = files.iter().filter(|f| f.selected).collect();
+
+    // 同一个 token 不能重复使用。
+    let reuse = engine
+        .add_previewed(&preview.token, vec![keep], None)
+        .await;
+
+    engine.shutdown().await;
+    let _ = std::fs::remove_dir_all(&tmp);
+
+    assert_eq!(selected.len(), 1, "应该只选中一个文件");
+    assert!(selected[0].name.contains("keep"), "选中的该是 keep.bin");
+    assert!(reuse.is_err(), "预览 token 用完就该失效");
+}

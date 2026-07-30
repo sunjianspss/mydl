@@ -17,6 +17,24 @@ export interface TorrentView {
   eta: string | null;
 }
 
+/** 对应 engine.rs 的 PreviewFile。 */
+export interface PreviewFile {
+  index: number;
+  name: string;
+  len: number;
+  playable: boolean;
+}
+
+/** 对应 engine.rs 的 TorrentPreview。 */
+export interface TorrentPreview {
+  token: string;
+  name: string;
+  infoHash: string;
+  totalBytes: number;
+  files: PreviewFile[];
+  alreadyAdded: boolean;
+}
+
 /** 对应 settings.rs 的 Settings。 */
 export interface Settings {
   /** null 表示跟随系统默认下载文件夹。 */

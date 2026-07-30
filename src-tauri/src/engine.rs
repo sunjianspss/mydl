@@ -37,7 +37,43 @@ pub struct Engine {
     /// 每个任务的自定义输出目录。librqbit 把它存在 `pub(crate)` 字段里读不到，
     /// 所以本进程自己记一份。重启后恢复的任务查不到，回退到默认目录。
     output_folders: Mutex<HashMap<TorrentId, PathBuf>>,
+    /// 预览过、但还没确认添加的种子。留着 torrent_bytes 是为了确认时不用
+    /// 重新解析一遍 —— 磁力链解析一次可能要几十秒。
+    previews: Mutex<HashMap<String, CachedPreview>>,
 }
+
+struct CachedPreview {
+    torrent_bytes: Vec<u8>,
+    /// 预览时就算好，确认时直接用。
+    subfolder: Option<PathBuf>,
+}
+
+/// 预览里的单个文件。
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewFile {
+    pub index: usize,
+    pub name: String,
+    pub len: u64,
+    pub playable: bool,
+}
+
+/// 添加前的种子内容预览。
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TorrentPreview {
+    /// 确认添加时带回来，用来取回缓存的 torrent_bytes。
+    pub token: String,
+    pub name: String,
+    pub info_hash: String,
+    pub total_bytes: u64,
+    pub files: Vec<PreviewFile>,
+    /// 这个种子已经在任务列表里了。
+    pub already_added: bool,
+}
+
+/// 最多缓存几份未确认的预览。预览是临时的，超了直接整个清掉最省事。
+const MAX_PREVIEWS: usize = 8;
 
 /// 单个任务在界面上需要的全部信息。
 #[derive(Serialize, Clone)]
@@ -165,6 +201,7 @@ impl Engine {
             session,
             download_dir,
             output_folders: Mutex::new(HashMap::new()),
+            previews: Mutex::new(HashMap::new()),
         })
     }
 
@@ -248,6 +285,128 @@ impl Engine {
                 .insert(id, PathBuf::from(folder));
         }
 
+        Ok(id)
+    }
+
+    /// 解析种子但**不加入会话**，返回文件列表供用户勾选。
+    ///
+    /// torrent_bytes 会被缓存起来，[`Self::add_previewed`] 直接复用，
+    /// 所以磁力链只解析这一次。
+    pub async fn preview(&self, uri: &str) -> Result<TorrentPreview> {
+        let uri = uri.trim();
+        if uri.is_empty() {
+            bail!("请输入磁力链、种子地址或本地种子文件路径");
+        }
+
+        tracing::info!(uri = %uri, "预览种子");
+
+        let probe = match tokio::time::timeout(ADD_TIMEOUT, self.probe(uri)).await {
+            Ok(r) => r?,
+            Err(_) => {
+                tracing::warn!(uri = %uri, "预览超时");
+                bail!("{}", add_timeout_message(uri))
+            }
+        };
+
+        let files: Vec<PreviewFile> = probe
+            .info
+            .iter_file_details()?
+            .enumerate()
+            .map(|(index, fd)| {
+                let name = fd.filename.to_pathbuf()?.to_string_lossy().into_owned();
+                Ok(PreviewFile {
+                    index,
+                    playable: is_playable(&name),
+                    name,
+                    len: fd.len,
+                })
+            })
+            .collect::<Result<_>>()?;
+
+        let info_hash = probe.info_hash.as_string();
+        let already_added = self.session.get(probe.info_hash.into()).is_some();
+
+        let token = format!("{:032x}", rand::random::<u128>());
+        {
+            let mut cache = self.previews.lock().unwrap();
+            if cache.len() >= MAX_PREVIEWS {
+                cache.clear();
+            }
+            cache.insert(
+                token.clone(),
+                CachedPreview {
+                    torrent_bytes: probe.torrent_bytes.to_vec(),
+                    subfolder: subfolder_for(&probe.info)?,
+                },
+            );
+        }
+
+        Ok(TorrentPreview {
+            token,
+            name: probe
+                .info
+                .name
+                .as_ref()
+                .map(|n| String::from_utf8_lossy(n).into_owned())
+                .filter(|n| !n.is_empty())
+                .unwrap_or_else(|| info_hash.clone()),
+            info_hash,
+            total_bytes: files.iter().map(|f| f.len).sum(),
+            files,
+            already_added,
+        })
+    }
+
+    /// 确认添加之前预览过的种子，只下 `only_files` 里的文件。
+    pub async fn add_previewed(
+        &self,
+        token: &str,
+        only_files: Vec<usize>,
+        output_folder: Option<String>,
+    ) -> Result<TorrentId> {
+        if only_files.is_empty() {
+            bail!("至少要选一个文件");
+        }
+
+        let cached = self
+            .previews
+            .lock()
+            .unwrap()
+            .remove(token)
+            .context("这份预览已失效，请重新添加")?;
+
+        let folder = match &output_folder {
+            None => None,
+            // 和会话默认目录一致时交给 librqbit 自己建子目录。
+            Some(dir) if Path::new(dir) == self.download_dir => None,
+            Some(dir) => Some(match &cached.subfolder {
+                Some(sub) => PathBuf::from(dir).join(sub),
+                None => PathBuf::from(dir),
+            }),
+        };
+
+        let resp = self
+            .session
+            .add_torrent(
+                AddTorrent::from_bytes(cached.torrent_bytes),
+                Some(AddTorrentOptions {
+                    overwrite: true,
+                    output_folder: folder.as_ref().map(|f| f.to_string_lossy().into_owned()),
+                    only_files: Some(only_files),
+                    ..Default::default()
+                }),
+            )
+            .await
+            .context("添加任务失败")?;
+
+        let id = match resp {
+            AddTorrentResponse::Added(id, _) | AddTorrentResponse::AlreadyManaged(id, _) => id,
+            AddTorrentResponse::ListOnly(_) => bail!("任务未被加入会话"),
+        };
+
+        if let Some(folder) = folder {
+            self.output_folders.lock().unwrap().insert(id, folder);
+        }
         Ok(id)
     }
 

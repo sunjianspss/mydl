@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
-use engine::{Engine, FileView, TorrentId, TorrentView};
+use engine::{Engine, FileView, TorrentId, TorrentPreview, TorrentView};
 use settings::{Settings, SettingsStore};
 use stream_server::StreamServer;
 use tauri::{Manager, State};
@@ -16,13 +16,27 @@ fn err(e: anyhow::Error) -> String {
     format!("{e:#}")
 }
 
+/// 解析种子但不加入会话，让用户先看看里面有什么。
 #[tauri::command]
-async fn add_torrent(
+async fn preview_torrent(
     engine: State<'_, Arc<Engine>>,
     uri: String,
+) -> Result<TorrentPreview, String> {
+    engine.preview(&uri).await.map_err(err)
+}
+
+/// 确认添加预览过的种子，只下勾选的文件。
+#[tauri::command]
+async fn add_previewed(
+    engine: State<'_, Arc<Engine>>,
+    token: String,
+    files: Vec<usize>,
     output_folder: Option<String>,
 ) -> Result<TorrentId, String> {
-    engine.add(&uri, output_folder).await.map_err(err)
+    engine
+        .add_previewed(&token, files, output_folder)
+        .await
+        .map_err(err)
 }
 
 #[tauri::command]
@@ -288,7 +302,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            add_torrent,
+            preview_torrent,
+            add_previewed,
             list_torrents,
             pause_torrent,
             resume_torrent,
