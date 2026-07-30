@@ -128,6 +128,17 @@ async fn serve(
     }
 
     let length = end - start + 1;
+
+    // 播放器的行为只能从这里观察：起播、拖进度、反复重连都长得不一样。
+    tracing::info!(
+        torrent = torrent_id,
+        file = file_id,
+        name = %file.name,
+        range = %format!("{start}-{end}/{total}"),
+        status = status.as_u16(),
+        "流请求"
+    );
+
     let body = Body::from_stream(ReaderStream::new(stream.take(length)));
 
     let mut resp = Response::builder()
@@ -194,10 +205,14 @@ fn mime_for(name: &str) -> &'static str {
         "ts" | "m2ts" => "video/mp2t",
         "flv" => "video/x-flv",
         "wmv" => "video/x-ms-wmv",
+        "ogv" => "video/ogg",
+        "mpg" | "mpeg" | "m2v" => "video/mpeg",
+        "3gp" => "video/3gpp",
         "mp3" => "audio/mpeg",
         "m4a" | "aac" => "audio/mp4",
         "flac" => "audio/flac",
         "wav" => "audio/wav",
+        "wma" => "audio/x-ms-wma",
         "ogg" | "opus" => "audio/ogg",
         "srt" => "application/x-subrip",
         "ass" | "ssa" => "text/x-ssa",

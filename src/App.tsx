@@ -28,7 +28,6 @@ export default function App() {
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
   // 展开了文件列表的任务。
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [players, setPlayers] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -40,7 +39,6 @@ export default function App() {
 
   useEffect(() => {
     invoke<string>("default_download_dir").then(setDefaultDir).catch(() => {});
-    invoke<string[]>("available_players").then(setPlayers).catch(() => {});
     refresh();
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -139,7 +137,6 @@ export default function App() {
           <TorrentRow
             key={t.id}
             torrent={t}
-            players={players}
             expanded={expanded === t.id}
             onToggleExpand={() => setExpanded(expanded === t.id ? null : t.id)}
             onError={setError}
@@ -169,7 +166,6 @@ export default function App() {
 
 interface RowProps {
   torrent: TorrentView;
-  players: string[];
   expanded: boolean;
   onToggleExpand: () => void;
   onError: (message: string) => void;
@@ -184,7 +180,6 @@ interface RowProps {
 
 function TorrentRow({
   torrent: t,
-  players,
   expanded,
   onToggleExpand,
   onError,
@@ -201,10 +196,21 @@ function TorrentRow({
 
   return (
     <article className={`row state-${t.state}`}>
-      <div className="row-head">
-        <button className="disclosure" onClick={onToggleExpand} title="展开文件列表">
-          {expanded ? "▾" : "▸"}
-        </button>
+      {/* 整行可点：光靠那个小三角太难发现。 */}
+      <div
+        className="row-head"
+        role="button"
+        tabIndex={0}
+        title={expanded ? "收起文件列表" : "展开文件列表"}
+        onClick={onToggleExpand}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggleExpand();
+          }
+        }}
+      >
+        <span className="disclosure">{expanded ? "▾" : "▸"}</span>
         <span className="name" title={t.infoHash}>
           {t.name}
         </span>
@@ -250,12 +256,7 @@ function TorrentRow({
       {t.error && <p className="row-error">{t.error}</p>}
 
       {expanded && (
-        <FileList
-          torrentId={t.id}
-          players={players}
-          streamable={t.state === "live"}
-          onError={onError}
-        />
+        <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
       )}
     </article>
   );

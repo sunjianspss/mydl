@@ -161,6 +161,19 @@ button.link:hover {
   display: flex;
   gap: 10px;
   align-items: center;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.row-head:hover {
+  background: var(--track);
+}
+
+.row-head:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .name {
@@ -242,16 +255,9 @@ button.link:hover {
 /* ---------- 展开的文件列表 ---------- */
 
 .disclosure {
-  width: 20px;
-  padding: 0;
+  width: 12px;
   color: var(--muted);
-  background: none;
-  border: none;
-}
-
-.disclosure:hover {
-  color: var(--accent);
-  border: none;
+  user-select: none;
 }
 
 .files {

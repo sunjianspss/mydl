@@ -8,15 +8,21 @@ const POLL_INTERVAL_MS = 2000;
 
 interface Props {
   torrentId: number;
-  players: string[];
   /** 任务不在下载中时不能起播：暂停状态没有新数据，播放器只会卡住。 */
   streamable: boolean;
   onError: (message: string) => void;
 }
 
-export default function FileList({ torrentId, players, streamable, onError }: Props) {
+export default function FileList({ torrentId, streamable, onError }: Props) {
   const [files, setFiles] = useState<FileView[] | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  // 每次展开都重查一遍已装播放器。放在启动时查过一次就不管的话，
+  // 之后新装的播放器要重启 App 才认得出来。
+  const [players, setPlayers] = useState<string[]>([]);
+
+  useEffect(() => {
+    invoke<string[]>("available_players").then(setPlayers).catch(() => {});
+  }, []);
 
   const refresh = useCallback(async () => {
     try {

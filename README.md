@@ -20,12 +20,12 @@ pnpm tauri dev          # 开发模式，热重载
 pnpm tauri build        # 打包出 .app / .dmg
 ```
 
-单元测试（Range 解析等）跟着 `cargo test` 跑。两个冒烟测试会真的连网下载几 MB
-Ubuntu 官方镜像，默认被 `#[ignore]` 跳过：
+`cargo test` 跑不联网的部分：Range 解析单元测试，以及子目录回归测试（本地现造
+种子，1 秒跑完）。两个联网冒烟测试会真的下载几 MB，默认被 `#[ignore]` 跳过：
 
 ```bash
 cd src-tauri
-cargo test                                          # 单元测试
+cargo test                                                # 不联网
 cargo test --test engine_smoke -- --ignored --nocapture   # 真实下载
 cargo test --test stream_smoke -- --ignored --nocapture   # 边下边播 + Range
 ```
@@ -67,6 +67,11 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - **任务目录记录不持久化。** librqbit 把每个任务的输出目录存在 `pub(crate)`
   字段里读不到，所以 Engine 自己在内存里记了一份。重启后恢复的任务查不到记录，
   「在访达中显示」会退回默认下载目录。
+- **自定义目录要多解析一次种子。** librqbit 只在使用会话默认目录时才自动建
+  子目录（`session.rs` 里 `(Some(o), None) => PathBuf::from(o)` 把自定义目录
+  原样拿去用），多文件种子会把几十个文件直接倒进目标目录。`Engine::add` 先用
+  `list_only` 探一次拿到种子名和文件数，自己补上这一层。探测返回的
+  `torrent_bytes` 会复用，所以磁力链不会重新解析元信息。
 - **界面用 1 秒轮询**而不是事件推送。任务量大时可以改成 Rust 侧 emit 事件。
 - **`Speed.mbps` 实际单位是 MiB/s**，不是兆比特。`engine.rs` 里统一换算成字节/秒了。
 - **播放器检测是硬编码 + macOS 专用**：按固定名字查 `/Applications` 等目录，

@@ -3,14 +3,14 @@
 //! 这一层刻意不含 UI 逻辑，也不含 Tauri 类型，方便以后换界面或加 CLI。
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use librqbit::{
-    AddTorrent, AddTorrentOptions, AddTorrentResponse, ManagedTorrent, Session, SessionOptions,
-    SessionPersistenceConfig,
+    AddTorrent, AddTorrentOptions, AddTorrentResponse, ByteBufOwned, ListOnlyResponse,
+    ManagedTorrent, Session, SessionOptions, SessionPersistenceConfig, TorrentMetaV1Info,
 };
 use serde::Serialize;
 use tokio::io::{AsyncRead, AsyncSeek};
@@ -70,9 +70,33 @@ pub struct FileView {
 
 /// 能拿去边下边播的容器格式。列表之外的（压缩包、镜像等）播放没有意义。
 const PLAYABLE_EXTS: &[&str] = &[
-    "mp4", "m4v", "mkv", "webm", "avi", "mov", "ts", "m2ts", "flv", "wmv", "mp3", "m4a", "aac",
-    "flac", "wav", "ogg", "opus",
+    "mp4", "m4v", "mkv", "webm", "avi", "mov", "ts", "m2ts", "flv", "wmv", "ogv", "mpg", "mpeg",
+    "m2v", "3gp", "mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "wma",
 ];
+
+/// 多文件种子该放进哪个子目录，单文件返回 None。
+///
+/// 这是在补 librqbit 的行为：它只在用默认下载目录时才做这件事。种子名是
+/// 外部输入，必须挡住 `../` 之类的路径穿越。
+fn subfolder_for(info: &TorrentMetaV1Info<ByteBufOwned>) -> Result<Option<PathBuf>> {
+    if info.iter_file_details()?.count() < 2 {
+        return Ok(None);
+    }
+
+    let name = match &info.name {
+        Some(n) => String::from_utf8_lossy(n).into_owned(),
+        None => return Ok(None),
+    };
+    if name.is_empty() {
+        return Ok(None);
+    }
+
+    let pb = PathBuf::from(&name);
+    if pb.components().any(|c| !matches!(c, Component::Normal(_))) {
+        bail!("种子名里有路径穿越：{name}");
+    }
+    Ok(Some(pb))
+}
 
 fn is_playable(name: &str) -> bool {
     name.rsplit('.')
@@ -82,17 +106,22 @@ fn is_playable(name: &str) -> bool {
 }
 
 impl Engine {
-    /// `state_dir` 为 None 时用 librqbit 的系统默认配置目录；测试传临时目录，
-    /// 免得跑测试把真实会话状态覆盖掉。
+    /// `state_dir` 为 None 时用 librqbit 的系统默认配置目录（正常运行）；
+    /// 传了目录就代表这是个隔离实例（测试），此时连 DHT 也不共用全局缓存 ——
+    /// 否则不但会污染真实的 DHT 路由表，还会因为持久化里记着固定端口而
+    /// 无法同时跑两个实例。
     pub async fn new(download_dir: PathBuf, state_dir: Option<PathBuf>) -> Result<Self> {
         std::fs::create_dir_all(&download_dir)
             .with_context(|| format!("无法创建下载目录 {}", download_dir.display()))?;
+
+        let isolated = state_dir.is_some();
 
         let session = Session::new_with_opts(
             download_dir.clone(),
             SessionOptions {
                 // 退出后把任务列表写盘，下次启动自动接着下。
                 persistence: Some(SessionPersistenceConfig::Json { folder: state_dir }),
+                disable_dht_persistence: isolated,
                 // 重启后跳过全量校验。
                 fastresume: true,
                 // 不设这个的话 librqbit 根本不监听 TCP，只能主动连出、收不到入站 peer，
@@ -126,14 +155,23 @@ impl Engine {
             bail!("请输入磁力链、种子地址或本地种子文件路径");
         }
 
-        let add = if uri.starts_with("magnet:")
-            || uri.starts_with("http://")
-            || uri.starts_with("https://")
-        {
-            AddTorrent::from_url(uri.to_owned())
-        } else {
-            AddTorrent::from_local_filename(uri)
-                .with_context(|| format!("无法读取种子文件 {uri}"))?
+        // 指定了自定义目录时，librqbit 会原样使用它、跳过自动建子目录的逻辑
+        // （session.rs 里 `(Some(o), None) => PathBuf::from(o)`），多文件种子
+        // 就会把几十个文件直接倒进目标目录。所以先探一次种子内容，自己把
+        // 子目录拼好。探测返回的 torrent_bytes 可以直接复用，磁力链不用重解析。
+        let (add, output_folder) = match &output_folder {
+            None => (self.make_add_torrent(uri)?, None),
+            Some(dir) => {
+                let probe = self.probe(uri).await?;
+                let folder = match subfolder_for(&probe.info)? {
+                    Some(sub) => PathBuf::from(dir).join(sub),
+                    None => PathBuf::from(dir),
+                };
+                (
+                    AddTorrent::from_bytes(probe.torrent_bytes),
+                    Some(folder.to_string_lossy().into_owned()),
+                )
+            }
         };
 
         let resp = self
@@ -164,6 +202,35 @@ impl Engine {
         }
 
         Ok(id)
+    }
+
+    fn make_add_torrent<'a>(&self, uri: &'a str) -> Result<AddTorrent<'a>> {
+        if uri.starts_with("magnet:") || uri.starts_with("http://") || uri.starts_with("https://") {
+            Ok(AddTorrent::from_url(uri.to_owned()))
+        } else {
+            AddTorrent::from_local_filename(uri)
+                .with_context(|| format!("无法读取种子文件 {uri}"))
+        }
+    }
+
+    /// 只解析种子、不加入会话，用来提前知道它有几个文件、叫什么名字。
+    async fn probe(&self, uri: &str) -> Result<ListOnlyResponse> {
+        let resp = self
+            .session
+            .add_torrent(
+                self.make_add_torrent(uri)?,
+                Some(AddTorrentOptions {
+                    list_only: true,
+                    ..Default::default()
+                }),
+            )
+            .await
+            .context("解析种子失败")?;
+
+        match resp {
+            AddTorrentResponse::ListOnly(r) => Ok(r),
+            _ => bail!("bug: list_only 却返回了非 ListOnly 结果"),
+        }
     }
 
     pub fn list(&self) -> Vec<TorrentView> {
