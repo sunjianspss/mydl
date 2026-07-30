@@ -36,6 +36,8 @@ tauri-plugin-single-instance = "2"
 tracing-appender = "0.2"
 tauri-plugin-notification = "2"
 zip = "8.6.0"
+feed-rs = "2.4.0"
+reqwest = { version = "0.12", features = ["default-tls"] }
 
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]

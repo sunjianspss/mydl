@@ -1,5 +1,6 @@
 pub mod automation;
 pub mod engine;
+pub mod rss;
 pub mod settings;
 pub mod stream_server;
 
@@ -128,6 +129,16 @@ fn stream_url(
     Ok(server.url_for(id, file_id, &file.name))
 }
 
+/// 立刻检查一遍所有启用的订阅，返回每条订阅的结果。
+#[tauri::command]
+async fn check_rss_now(
+    engine: State<'_, Arc<Engine>>,
+    store: State<'_, Arc<SettingsStore>>,
+    seen: State<'_, Arc<rss::SeenStore>>,
+) -> Result<Vec<rss::CheckReport>, String> {
+    Ok(rss::check_all(&engine, &store, &seen).await)
+}
+
 /// 日志目录，给界面上的「日志」入口用 —— 打包版看不到 stdout。
 #[tauri::command]
 fn log_dir() -> String {
@@ -217,11 +228,15 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
         Ok::<_, anyhow::Error>((engine, server))
     })?;
 
+    let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
+
     automation::spawn(app.handle().clone(), engine.clone(), store.clone());
+    rss::spawn(engine.clone(), store.clone(), seen.clone());
 
     app.manage(engine);
     app.manage(server);
     app.manage(store);
+    app.manage(seen);
     Ok(())
 }
 
@@ -322,6 +337,7 @@ pub fn run() {
             get_settings,
             set_download_dir,
             save_settings,
+            check_rss_now,
             reveal_path,
             list_files,
             set_only_files,

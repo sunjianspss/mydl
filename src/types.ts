@@ -45,6 +45,29 @@ export interface Settings {
   moveTo: string | null;
   /** 完成后解压内容里的 .zip。 */
   extractArchives: boolean;
+  rssFeeds: RssFeed[];
+  rssIntervalMinutes: number;
+}
+
+/** 对应 settings.rs 的 RssFeed。 */
+export interface RssFeed {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  /** 空格分隔，全部命中才算匹配。 */
+  include: string;
+  /** 空格分隔，命中任一即排除。 */
+  exclude: string;
+}
+
+/** 对应 rss.rs 的 CheckReport。 */
+export interface CheckReport {
+  feed: string;
+  total: number;
+  matched: number;
+  added: number;
+  errors: string[];
 }
 
 /** 对应 engine.rs 的 FileView。 */

@@ -227,6 +227,105 @@ button.primary:disabled {
   opacity: 0.5;
 }
 
+/* ---------- RSS 订阅对话框 ---------- */
+
+.rss-dialog {
+  width: min(820px, 100%);
+}
+
+.rss-list {
+  flex: 1;
+  min-height: 60px;
+  margin-top: 10px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.rss-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rss-off {
+  opacity: 0.5;
+}
+
+.rss-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rss-rules {
+  margin-top: 6px;
+  padding-left: 24px;
+}
+
+.rss-item input[type="text"],
+.rss-item input:not([type]) {
+  min-width: 0;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.rss-rules input {
+  flex: 1;
+}
+
+.rss-name {
+  flex: 0 0 140px;
+}
+
+.rss-url {
+  flex: 1;
+}
+
+.rss-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.rss-interval {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.rss-interval input {
+  width: 62px;
+  padding: 4px 6px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.rss-reports {
+  max-height: 120px;
+  padding: 8px 0 0;
+  margin: 8px 0 0;
+  overflow-y: auto;
+  color: var(--muted);
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.rss-reports li {
+  padding: 2px 0;
+}
+
+.rss-error {
+  color: var(--danger);
+}
+
 /* ---------- 设置对话框 ---------- */
 
 .settings-dialog {

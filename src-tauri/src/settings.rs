@@ -26,6 +26,43 @@ pub struct Settings {
 
     /// 完成后解压内容里的 .zip。原压缩包保留。
     pub extract_archives: bool,
+
+    /// RSS 订阅。
+    pub rss_feeds: Vec<RssFeed>,
+
+    /// 多久检查一次 RSS。
+    pub rss_interval_minutes: u64,
+}
+
+/// 一条 RSS 订阅及其过滤规则。
+///
+/// 过滤用空格分隔的关键词而不是正则：关键词写错了顶多不匹配，正则写错了
+/// 可能匹配到一切，对一个会自动开始下载的功能来说前者安全得多。
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[serde(default, rename_all = "camelCase")]
+pub struct RssFeed {
+    /// 稳定标识，用来记「这条订阅里哪些条目已经处理过」。
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub enabled: bool,
+    /// 全部命中才算匹配。空 = 不过滤。
+    pub include: String,
+    /// 命中任一即排除。
+    pub exclude: String,
+}
+
+impl Default for RssFeed {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            name: String::new(),
+            url: String::new(),
+            enabled: true,
+            include: String::new(),
+            exclude: String::new(),
+        }
+    }
 }
 
 impl Default for Settings {
@@ -36,6 +73,8 @@ impl Default for Settings {
             notify_on_complete: true,
             move_to: None,
             extract_archives: false,
+            rss_feeds: Vec::new(),
+            rss_interval_minutes: 30,
         }
     }
 }
@@ -155,14 +194,45 @@ mod tests {
 
     #[test]
     fn unknown_fields_are_tolerated() {
-        // 以后加了字段又回退版本时，旧版本不该直接崩。
+        // 新版本写了旧版本不认识的字段时，旧版本不该直接崩。
         let p = tmp_path("future");
-        std::fs::write(&p, br#"{"downloadDir":"/tmp/x","rssFeeds":["a"]}"#).unwrap();
+        std::fs::write(
+            &p,
+            br#"{"downloadDir":"/tmp/x","someFutureFeature":{"a":1}}"#,
+        )
+        .unwrap();
 
         assert_eq!(
             SettingsStore::load(p.clone()).get().download_dir.as_deref(),
             Some("/tmp/x")
         );
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn missing_fields_use_defaults() {
+        // 老版本写的配置文件没有新字段，读进来该用默认值而不是失败。
+        let p = tmp_path("old");
+        std::fs::write(&p, br#"{"downloadDir":"/tmp/x"}"#).unwrap();
+
+        let s = SettingsStore::load(p.clone()).get();
+        assert_eq!(s.download_dir.as_deref(), Some("/tmp/x"));
+        assert!(s.notify_on_complete, "通知默认该是开的");
+        assert!(s.rss_feeds.is_empty());
+        assert_eq!(s.rss_interval_minutes, 30);
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn malformed_known_field_resets_everything() {
+        // 已知字段类型不对会导致整份解析失败，于是所有设置都回到默认值 ——
+        // 包括下载目录。这是有意的取舍（宁可回默认也不要半份配置），
+        // 但值得用测试把这个行为钉住。
+        let p = tmp_path("malformed");
+        // rssFeeds 该是对象数组，这里给字符串数组。
+        std::fs::write(&p, br#"{"downloadDir":"/tmp/x","rssFeeds":["oops"]}"#).unwrap();
+
+        assert_eq!(SettingsStore::load(p.clone()).get(), Settings::default());
         let _ = std::fs::remove_file(&p);
     }
 }

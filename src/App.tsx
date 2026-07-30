@@ -8,6 +8,7 @@ import { formatBytes, formatSpeed, percent } from "./format";
 import FileList from "./FileList";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
+import RssDialog from "./RssDialog";
 import "./App.css";
 
 const POLL_INTERVAL_MS = 1000;
@@ -32,6 +33,7 @@ export default function App() {
   const [confirming, setConfirming] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showRss, setShowRss] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 哪一行正处于「确认删除」状态。用行内确认而不是系统弹窗，避免阻塞 webview。
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
@@ -161,6 +163,18 @@ export default function App() {
           </p>
         )}
 
+        {showRss && settings && (
+          <RssDialog
+            initial={settings}
+            onSaved={(s) => {
+              setSettings(s);
+              refresh();
+            }}
+            onClose={() => setShowRss(false)}
+            onError={setError}
+          />
+        )}
+
         {showSettings && settings && (
           <SettingsDialog
             initial={settings}
@@ -191,9 +205,16 @@ export default function App() {
           )}
           <span className="spacer" />
           {settings && (
-            <button type="button" className="link" onClick={() => setShowSettings(true)}>
-              完成后处理
-            </button>
+            <>
+              <button type="button" className="link" onClick={() => setShowRss(true)}>
+                RSS
+                {settings.rssFeeds.filter((f) => f.enabled).length > 0 &&
+                  ` (${settings.rssFeeds.filter((f) => f.enabled).length})`}
+              </button>
+              <button type="button" className="link" onClick={() => setShowSettings(true)}>
+                完成后处理
+              </button>
+            </>
           )}
           <button
             type="button"
