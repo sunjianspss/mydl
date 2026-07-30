@@ -82,6 +82,16 @@ fn list_files(engine: State<'_, Arc<Engine>>, id: TorrentId) -> Result<Vec<FileV
     engine.files(id).map_err(err)
 }
 
+/// 只下载 `files` 里的这些文件（按序号）。
+#[tauri::command]
+async fn set_only_files(
+    engine: State<'_, Arc<Engine>>,
+    id: TorrentId,
+    files: Vec<usize>,
+) -> Result<(), String> {
+    engine.set_only_files(id, files).await.map_err(err)
+}
+
 /// 边下边播用的本地 URL。可以直接丢给播放器，也可以复制到别处用。
 #[tauri::command]
 fn stream_url(
@@ -288,6 +298,7 @@ pub fn run() {
             set_download_dir,
             reveal_path,
             list_files,
+            set_only_files,
             stream_url,
             available_players,
             open_in_player,

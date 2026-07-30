@@ -2,7 +2,7 @@
 //!
 //! 这一层刻意不含 UI 逻辑，也不含 Tauri 类型，方便以后换界面或加 CLI。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -71,6 +71,8 @@ pub struct FileView {
     pub downloaded: u64,
     /// 是否是能边下边播的媒体格式。
     pub playable: bool,
+    /// 是否在下载范围内。未选中的文件不会被请求。
+    pub selected: bool,
 }
 
 /// 能拿去边下边播的容器格式。列表之外的（压缩包、镜像等）播放没有意义。
@@ -336,6 +338,9 @@ impl Engine {
             Err(_) => return Ok(Vec::new()),
         };
 
+        // None 表示没有做过筛选，也就是全选。
+        let only = handle.only_files();
+
         Ok(infos
             .into_iter()
             .enumerate()
@@ -343,6 +348,7 @@ impl Engine {
                 let name = info.relative_filename.to_string_lossy().into_owned();
                 FileView {
                     playable: is_playable(&name),
+                    selected: only.as_ref().is_none_or(|v| v.contains(&index)),
                     index,
                     len: info.len,
                     downloaded: progress.get(index).copied().unwrap_or(0),
@@ -350,6 +356,33 @@ impl Engine {
                 }
             })
             .collect())
+    }
+
+    /// 设置只下载哪些文件。未选中的文件不再被请求，但**已经下好的数据不会删** ——
+    /// librqbit 只改 chunk tracker，不动磁盘。
+    pub async fn set_only_files(&self, id: TorrentId, files: Vec<usize>) -> Result<()> {
+        if files.is_empty() {
+            bail!("至少要选一个文件；一个都不要的话请直接删除任务");
+        }
+
+        let handle = self.handle(id)?;
+        let total = self.files(id)?.len();
+        if let Some(bad) = files.iter().find(|i| **i >= total) {
+            bail!("文件序号 {bad} 超出范围（共 {total} 个）");
+        }
+
+        let selection: HashSet<usize> = files.into_iter().collect();
+        self.session
+            .update_only_files(&handle, &selection)
+            .await
+            // 初始化中改不了，librqbit 会直接报错，这里给句人话。
+            .with_context(|| {
+                if handle.stats().state.to_string() == "initializing" {
+                    "任务还在初始化，等它开始下载后再改".to_string()
+                } else {
+                    format!("无法修改任务 {id} 的文件选择")
+                }
+            })
     }
 
     /// 打开一路边下边播的流。librqbit 会把这个文件的分片提到最高优先级。

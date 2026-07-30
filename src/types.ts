@@ -30,4 +30,6 @@ export interface FileView {
   len: number;
   downloaded: number;
   playable: boolean;
+  /** 是否在下载范围内。未选中的文件不会被请求。 */
+  selected: boolean;
 }

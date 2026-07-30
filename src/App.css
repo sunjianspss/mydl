@@ -265,9 +265,28 @@ button.link:hover {
   user-select: none;
 }
 
+.files-panel {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.files-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0 6px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.files-toolbar button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
 .files {
   padding: 0;
-  margin: 10px 0 0;
+  margin: 0;
   list-style: none;
   border-top: 1px solid var(--border);
 }
@@ -281,8 +300,22 @@ button.link:hover {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 6px 0 6px 20px;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border);
+}
+
+.file input[type="checkbox"] {
+  flex: none;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* 跳过的文件压暗，但仍要能看清名字和大小。 */
+.file-skipped .file-name,
+.file-skipped .file-size {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
 }
 
 .file:last-child {

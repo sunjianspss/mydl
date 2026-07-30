@@ -259,3 +259,66 @@ fn rand_hash() -> u128 {
     let n = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
     (n.as_nanos()) ^ (std::process::id() as u128) << 64
 }
+
+/// 只下选中的文件：取消勾选后，该文件必须从「已选」里消失，
+/// 且任务的总大小要相应缩小（否则进度百分比会永远到不了 100%）。
+#[tokio::test(flavor = "multi_thread")]
+async fn deselected_files_are_excluded() {
+    let tmp = std::env::temp_dir().join(format!("mydl-onlyfiles-{}", std::process::id()));
+    let content = tmp.join("content");
+    std::fs::create_dir_all(&content).unwrap();
+    std::fs::write(content.join("keep.bin"), vec![1u8; 40 * 1024]).unwrap();
+    std::fs::write(content.join("skip.bin"), vec![2u8; 80 * 1024]).unwrap();
+
+    let torrent = make_local_torrent(&tmp, &content, "选择测试").await;
+    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")))
+        .await
+        .expect("创建 Engine 失败");
+
+    let id = engine
+        .add(&torrent.to_string_lossy(), None)
+        .await
+        .expect("添加种子失败");
+
+    // 等初始化结束 —— 初始化中 librqbit 不允许改选择。
+    let started = Instant::now();
+    while engine
+        .list()
+        .into_iter()
+        .find(|t| t.id == id)
+        .map(|t| t.state == "initializing")
+        .unwrap_or(true)
+    {
+        assert!(started.elapsed() < Duration::from_secs(30), "初始化一直没结束");
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+
+    let before = engine.files(id).expect("读文件列表失败");
+    assert_eq!(before.len(), 2);
+    assert!(before.iter().all(|f| f.selected), "默认应该全选");
+    let total_before = engine.list().into_iter().find(|t| t.id == id).unwrap().total_bytes;
+
+    // 只保留 keep.bin。
+    let keep = before.iter().find(|f| f.name.contains("keep")).unwrap().index;
+    engine.set_only_files(id, vec![keep]).await.expect("修改选择失败");
+
+    let after = engine.files(id).expect("读文件列表失败");
+    let total_after = engine.list().into_iter().find(|t| t.id == id).unwrap().total_bytes;
+
+    // 一个都不选必须被拒绝，否则任务会永远卡在 0%。
+    let empty = engine.set_only_files(id, vec![]).await;
+
+    engine.shutdown().await;
+    let _ = std::fs::remove_dir_all(&tmp);
+
+    for f in &after {
+        let want = f.name.contains("keep");
+        assert_eq!(f.selected, want, "{} 的选中状态不对", f.name);
+    }
+    assert!(
+        total_after < total_before,
+        "取消勾选后总大小该变小：{total_before} -> {total_after}"
+    );
+    assert!(empty.is_err(), "空选择必须被拒绝");
+    eprintln!("OK: 总大小 {total_before} -> {total_after}");
+}
