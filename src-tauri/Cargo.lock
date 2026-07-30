@@ -3114,6 +3114,7 @@ dependencies = [
  "anyhow",
  "axum",
  "feed-rs",
+ "futures",
  "librqbit",
  "rand",
  "reqwest 0.12.28",

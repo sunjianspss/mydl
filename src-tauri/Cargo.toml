@@ -45,4 +45,6 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 # 只用来打本地 http，TLS 由依赖树里已有的 reqwest 特性统一决定
 reqwest = { version = "0.12", default-features = false }
 zip = "8.6.0"
+futures = "0.3.33"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

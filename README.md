@@ -44,6 +44,33 @@ pnpm tauri build        # 打包出 .app / .dmg
 ditto src-tauri/target/release/bundle/macos/mydl.app /Applications/mydl.app
 ```
 
+## 磁力链下不动时怎么查
+
+三个诊断工具，都是 `#[ignore]`，手动跑：
+
+```bash
+cd src-tauri
+
+# 1. 磁力链路径本身通不通（拿 Debian 官方种子做对照）
+cargo test --test magnet_diag -- --ignored --nocapture
+
+# 2. DHT 里到底有没有这个 swarm 的 peer
+MYDL_PROBE_HASH=<40位十六进制> \
+  cargo test --test dht_probe -- --ignored --nocapture
+
+# 3. 连 peer 时具体发生了什么（peer 级 debug 日志）
+MYDL_PROBE_MAGNET='magnet:?xt=...' \
+  cargo test --test peer_debug -- --ignored --nocapture
+```
+
+判读方式：
+
+| 现象 | 说明 |
+|---|---|
+| 对照组也查不到 peer | DHT 本身有问题（网络、路由表） |
+| 对照几百个 peer、待查 0 个 | 这个 swarm 不在 DHT 里：私有种子（`private` 标志会禁用 DHT/PEX，必须用带 passkey 的 .torrent），或者真没人做种 |
+| 待查有几个 peer 但仍超时 | swarm 太瘦。`read_metainfo_from_peer_receiver` 用 `seen` 集合保证每个地址只试一次，如果只有两三个 peer 且都不给元信息，就没有别的可试了 —— 这种情况开公共 tracker 开关能多找到一些源 |
+
 ## 日志
 
 写在 `~/Library/Logs/mydl/mydl.<日期>.log`，按天轮转、保留 7 天。
