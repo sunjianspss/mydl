@@ -1,0 +1,3 @@
+# vite 依赖 esbuild 的 postinstall 落地平台二进制，pnpm 11 默认拦截构建脚本。
+allowBuilds:
+  esbuild: true

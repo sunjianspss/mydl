@@ -1,0 +1,240 @@
+:root {
+  --bg: #f5f5f7;
+  --panel: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #d6d6db;
+  --accent: #0a84ff;
+  --danger: #d7263d;
+  --track: #e5e5ea;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --panel: #2c2c2e;
+    --text: #f5f5f7;
+    --muted: #98989d;
+    --border: #3a3a3c;
+    --accent: #0a84ff;
+    --danger: #ff6961;
+    --track: #3a3a3c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+
+/* ---------- 顶部工具栏 ---------- */
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  padding: 12px 16px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.add-row {
+  display: flex;
+  gap: 8px;
+}
+
+.uri-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.uri-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+button {
+  padding: 6px 12px;
+  font: inherit;
+  color: var(--text);
+  white-space: nowrap;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.5;
+}
+
+button.danger:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+button.link {
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+}
+
+button.link:hover {
+  color: var(--accent);
+}
+
+.meta-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.totals {
+  font-variant-numeric: tabular-nums;
+}
+
+.error-banner {
+  padding: 6px 10px;
+  margin-top: 8px;
+  color: var(--danger);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-radius: 6px;
+}
+
+/* ---------- 任务列表 ---------- */
+
+.list {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+}
+
+.empty {
+  margin-top: 48px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.row {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.row-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--track);
+  border-radius: 10px;
+}
+
+.badge-live {
+  color: #fff;
+  background: var(--accent);
+}
+
+.badge-error {
+  color: #fff;
+  background: var(--danger);
+}
+
+.bar {
+  height: 6px;
+  margin: 9px 0 7px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: 3px;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease-out;
+}
+
+.state-paused .bar-fill {
+  background: var(--muted);
+}
+
+.state-error .bar-fill {
+  background: var(--danger);
+}
+
+.row-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-stats button {
+  padding: 3px 9px;
+  font-size: 12px;
+}
+
+.pct {
+  min-width: 44px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.confirm-label {
+  color: var(--danger);
+}
+
+.row-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+}
