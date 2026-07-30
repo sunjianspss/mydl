@@ -46,7 +46,23 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
   return (
     <div className="overlay" onClick={() => !saving && onClose()}>
       <div className="dialog settings-dialog" onClick={(e) => e.stopPropagation()}>
-        <h2 className="dialog-title">完成后自动处理</h2>
+        <h2 className="dialog-title">设置</h2>
+
+        <label className="setting">
+          <input
+            type="checkbox"
+            checked={draft.usePublicTrackers}
+            onChange={(e) => patch({ usePublicTrackers: e.target.checked })}
+          />
+          <span>
+            <b>为所有任务补充公共 tracker</b>
+            <em>
+              只有裸 info-hash 的磁力链不带 tracker，纯靠 DHT 找源；补上公共
+              tracker 能多一条路。代价是<b>你的 IP 会被上报给这几个 tracker</b>，
+              所有任务都会。改完<b>需要重启 App</b> 才生效。
+            </em>
+          </span>
+        </label>
 
         <label className="setting">
           <input

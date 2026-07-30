@@ -3,6 +3,21 @@
 一个 macOS 桌面 BT 下载器。Tauri 2 外壳 + React 界面，协议栈用
 [librqbit](https://github.com/ikatson/rqbit)（纯 Rust 实现）。
 
+## 为什么必须用 librqbit 9（uTP）
+
+**8.x 只支持 TCP**，连接 peer 走 `tokio::net::TcpStream`，依赖里没有任何
+uTP 实现。现代客户端默认走 uTP（UDP 上的传输协议，NAT 穿透好得多），
+家用宽带后面的做种者基本只能靠 uTP 连上。
+
+后果很具体：Debian/Ubuntu 官方种子由开着 TCP 端口的服务器做种，能连；
+而普通资源的做种者连不上，磁力链的元信息就永远拿不到，表现为
+「解析磁力链超时」。同一条链接在 qBittorrent 里却能下。
+
+9.0.0-rc.0 引入 `librqbit-utp`，`ListenerMode::TcpAndUtp` 同时监听两者。
+注意上游把默认值仍留在 `TcpOnly`，代码里写着
+`// TODO: once uTP is stable upgrade default to both` —— 我们是主动开启的，
+如果哪天 uTP 出问题，改回 `TcpOnly` 即可。
+
 ## 为什么是 librqbit
 
 BitTorrent 协议本身不难，难的是 DHT 健壮性、uTP、NAT 穿透和几百个并发连接的
@@ -114,6 +129,11 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
   所以不做预览、全部下载。需要挑文件的话在任务列表里展开改。
 - **已知字段格式不对会让整份设置回到默认值**（包括下载目录）。未知字段和
   缺失字段都能正常容忍，只有类型不匹配才会这样。宁可回默认也不要半份配置。
+- **用的是 9.0.0-rc.0，预发布版。** 为了 uTP 值得，但要有心理准备。
+- **v9 用固定监听端口取代了 8.x 的端口范围。** 隔离实例（测试）必须用
+  端口 0 让系统随机分配，否则并行跑测试会互相抢 4240。
+- **公共 tracker 开关要重启才生效**：`SessionOptions.trackers` 只在建会话时
+  读，而 v9 的 `AddTorrentOptions` 已经没有按任务设 tracker 的字段了。
 - **只能跑一个实例。** BT 会话独占监听端口（DHT 持久化还会把端口钉死），
   两份一起跑既起不来也会互相写坏 session。第二次启动改成把已有窗口拉到前面。
   注意 `tauri dev` 重建时偶尔会留下孤儿进程，占着 4240 / 50522，

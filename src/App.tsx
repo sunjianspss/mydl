@@ -212,7 +212,7 @@ export default function App() {
                   ` (${settings.rssFeeds.filter((f) => f.enabled).length})`}
               </button>
               <button type="button" className="link" onClick={() => setShowSettings(true)}>
-                完成后处理
+                设置
               </button>
             </>
           )}

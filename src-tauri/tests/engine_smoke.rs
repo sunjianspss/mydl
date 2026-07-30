@@ -32,7 +32,7 @@ async fn downloads_real_torrent() {
     let state = tmp.join("state");
     std::fs::create_dir_all(&state).unwrap();
 
-    let engine = Engine::new(downloads, Some(state))
+    let engine = Engine::new(downloads, Some(state), Vec::new())
         .await
         .expect("创建 Engine 失败");
 
@@ -97,8 +97,11 @@ async fn make_local_torrent(dir: &Path, content: &Path, name: &str) -> PathBuf {
         content,
         librqbit::CreateTorrentOptions {
             name: Some(name),
+            trackers: Vec::new(),
             piece_length: Some(16 * 1024),
         },
+        // v9 起要显式传 spawner，用来把哈希计算放到阻塞线程池。
+        &librqbit::spawn_utils::BlockingSpawner::new(1),
     )
     .await
     .expect("生成种子失败");
@@ -150,7 +153,7 @@ async fn multifile_torrent_gets_its_own_subfolder() {
     let torrent = make_local_torrent(&tmp, &content, LOCAL_TORRENT_NAME).await;
 
     // 会话默认目录故意设成别处，确保被测的是自定义目录这条路径。
-    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")))
+    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")), Vec::new())
         .await
         .expect("创建 Engine 失败");
 
@@ -186,7 +189,7 @@ async fn single_file_torrent_has_no_subfolder() {
 
     let torrent = make_local_torrent(&tmp, &content, "solo.bin").await;
 
-    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")))
+    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")), Vec::new())
         .await
         .expect("创建 Engine 失败");
 
@@ -222,7 +225,7 @@ async fn dead_magnet_times_out_instead_of_hanging() {
     let tmp = std::env::temp_dir().join(format!("mydl-deadmagnet-{}", std::process::id()));
     std::fs::create_dir_all(&tmp).unwrap();
 
-    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")))
+    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")), Vec::new())
         .await
         .expect("创建 Engine 失败");
 
@@ -271,7 +274,7 @@ async fn deselected_files_are_excluded() {
     std::fs::write(content.join("skip.bin"), vec![2u8; 80 * 1024]).unwrap();
 
     let torrent = make_local_torrent(&tmp, &content, "选择测试").await;
-    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")))
+    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")), Vec::new())
         .await
         .expect("创建 Engine 失败");
 
@@ -335,7 +338,7 @@ async fn preview_then_add_only_selected() {
     std::fs::write(content.join("skip.bin"), vec![2u8; 80 * 1024]).unwrap();
 
     let torrent = make_local_torrent(&tmp, &content, "预览测试").await;
-    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")))
+    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")), Vec::new())
         .await
         .expect("创建 Engine 失败");
 

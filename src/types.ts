@@ -47,6 +47,8 @@ export interface Settings {
   extractArchives: boolean;
   rssFeeds: RssFeed[];
   rssIntervalMinutes: number;
+  /** 给所有任务补充公共 tracker。改了要重启 App 才生效。 */
+  usePublicTrackers: boolean;
 }
 
 /** 对应 settings.rs 的 RssFeed。 */

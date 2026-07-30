@@ -27,7 +27,7 @@ async fn serves_range_requests() {
     std::fs::create_dir_all(&state_dir).unwrap();
 
     let engine = Arc::new(
-        Engine::new(tmp.join("downloads"), Some(state_dir))
+        Engine::new(tmp.join("downloads"), Some(state_dir), Vec::new())
             .await
             .expect("创建 Engine 失败"),
     );

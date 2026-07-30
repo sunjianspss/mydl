@@ -11,7 +11,7 @@ const IH: &str = "481b6e3617be4c88f96cb25e47c9d8272130071e";
 
 async fn try_magnet(tag: &str, magnet: &str) -> bool {
     let tmp = std::env::temp_dir().join(format!("mydl-diag-{}-{tag}", std::process::id()));
-    let engine = Engine::new(tmp.join("dl"), Some(tmp.join("state")))
+    let engine = Engine::new(tmp.join("dl"), Some(tmp.join("state")), Vec::new())
         .await
         .expect("创建 Engine 失败");
 

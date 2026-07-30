@@ -9,8 +9,9 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use librqbit::{
-    AddTorrent, AddTorrentOptions, AddTorrentResponse, ByteBufOwned, ListOnlyResponse,
-    ManagedTorrent, Session, SessionOptions, SessionPersistenceConfig, TorrentMetaV1Info,
+    AddTorrent, AddTorrentOptions, AddTorrentResponse, ByteBufOwned, DhtSessionConfig,
+    ListOnlyResponse, ListenerMode, ListenerOptions, ManagedTorrent, Session, SessionOptions,
+    SessionPersistenceConfig, ValidatedTorrentMetaV1Info,
 };
 use serde::Serialize;
 use tokio::io::{AsyncRead, AsyncSeek};
@@ -121,13 +122,13 @@ const PLAYABLE_EXTS: &[&str] = &[
 ///
 /// 这是在补 librqbit 的行为：它只在用默认下载目录时才做这件事。种子名是
 /// 外部输入，必须挡住 `../` 之类的路径穿越。
-fn subfolder_for(info: &TorrentMetaV1Info<ByteBufOwned>) -> Result<Option<PathBuf>> {
-    if info.iter_file_details()?.count() < 2 {
+fn subfolder_for(info: &ValidatedTorrentMetaV1Info<ByteBufOwned>) -> Result<Option<PathBuf>> {
+    if info.iter_file_details().count() < 2 {
         return Ok(None);
     }
 
-    let name = match &info.name {
-        Some(n) => String::from_utf8_lossy(n).into_owned(),
+    let name = match info.name() {
+        Some(n) => n.into_owned(),
         None => return Ok(None),
     };
     if name.is_empty() {
@@ -173,24 +174,58 @@ impl Engine {
     /// 传了目录就代表这是个隔离实例（测试），此时连 DHT 也不共用全局缓存 ——
     /// 否则不但会污染真实的 DHT 路由表，还会因为持久化里记着固定端口而
     /// 无法同时跑两个实例。
-    pub async fn new(download_dir: PathBuf, state_dir: Option<PathBuf>) -> Result<Self> {
+    pub async fn new(
+        download_dir: PathBuf,
+        state_dir: Option<PathBuf>,
+        extra_trackers: Vec<String>,
+    ) -> Result<Self> {
         std::fs::create_dir_all(&download_dir)
             .with_context(|| format!("无法创建下载目录 {}", download_dir.display()))?;
 
         let isolated = state_dir.is_some();
+
+        let trackers = extra_trackers
+            .iter()
+            .filter_map(|t| match t.parse() {
+                Ok(u) => Some(u),
+                Err(e) => {
+                    tracing::warn!("跳过无效的 tracker 地址 {t}：{e}");
+                    None
+                }
+            })
+            .collect();
 
         let session = Session::new_with_opts(
             download_dir.clone(),
             SessionOptions {
                 // 退出后把任务列表写盘，下次启动自动接着下。
                 persistence: Some(SessionPersistenceConfig::Json { folder: state_dir }),
-                disable_dht_persistence: isolated,
+                // v9 里 dht: None 是「关闭 DHT」，必须显式给配置。
+                // 隔离实例（测试）不共用全局 DHT 缓存，否则会抢固定端口。
+                dht: Some(DhtSessionConfig {
+                    persistence: if isolated { None } else { Some(Default::default()) },
+                    ..Default::default()
+                }),
                 // 重启后跳过全量校验。
                 fastresume: true,
-                // 不设这个的话 librqbit 根本不监听 TCP，只能主动连出、收不到入站 peer，
-                // UPnP 映射也就没意义了。范围取 rqbit CLI 的默认值。
-                listen_port_range: Some(4240..4260),
-                enable_upnp_port_forwarding: true,
+                listen: Some(ListenerOptions {
+                    // 关键：只监听 TCP 的话，连不上绝大多数家用 NAT 后的 peer ——
+                    // 现代客户端默认走 uTP。8.x 根本没有 uTP，这是磁力链
+                    // 老是解析不出元信息的真正原因。
+                    mode: ListenerMode::TcpAndUtp,
+                    // v9 用固定端口取代了 8.x 的端口范围，所以隔离实例（测试）
+                    // 必须用 0 让系统随机分配，否则并行跑就会互相抢端口。
+                    listen_addr: (
+                        std::net::Ipv6Addr::UNSPECIFIED,
+                        if isolated { 0 } else { 4240 },
+                    )
+                        .into(),
+                    // 随机端口做 UPnP 映射没意义。
+                    enable_upnp_port_forwarding: !isolated,
+                    ..Default::default()
+                }),
+                // 会话级补充 tracker，对只有裸 info-hash 的磁力链多一条找源的路。
+                trackers,
                 ..Default::default()
             },
         )
@@ -310,18 +345,19 @@ impl Engine {
 
         let files: Vec<PreviewFile> = probe
             .info
-            .iter_file_details()?
+            .iter_file_details()
             .enumerate()
             .map(|(index, fd)| {
-                let name = fd.filename.to_pathbuf()?.to_string_lossy().into_owned();
-                Ok(PreviewFile {
+                // v9 里 to_pathbuf() 已经不返回 Result 了。
+                let name = fd.filename.to_pathbuf().to_string_lossy().into_owned();
+                PreviewFile {
                     index,
                     playable: is_playable(&name),
                     name,
                     len: fd.len,
-                })
+                }
             })
-            .collect::<Result<_>>()?;
+            .collect();
 
         let info_hash = probe.info_hash.as_string();
         let already_added = self.session.get(probe.info_hash.into()).is_some();
@@ -345,9 +381,8 @@ impl Engine {
             token,
             name: probe
                 .info
-                .name
-                .as_ref()
-                .map(|n| String::from_utf8_lossy(n).into_owned())
+                .name()
+                .map(|n| n.into_owned())
                 .filter(|n| !n.is_empty())
                 .unwrap_or_else(|| info_hash.clone()),
             info_hash,
@@ -570,6 +605,7 @@ impl Engine {
 
         handle
             .stream(file_id)
+            .await
             .with_context(|| format!("无法打开任务 {id} 的文件 {file_id}"))
     }
 
@@ -603,7 +639,8 @@ fn view_of(id: TorrentId, handle: &TorrentHandle) -> TorrentView {
         uploaded_bytes: stats.uploaded_bytes,
         download_speed_bps: live.map_or(0.0, |l| l.download_speed.mbps * BYTES_PER_MIB),
         upload_speed_bps: live.map_or(0.0, |l| l.upload_speed.mbps * BYTES_PER_MIB),
-        peers_live: live.map_or(0, |l| l.snapshot.peer_stats.live),
+        // v9 把这个字段从 usize 改成了 u32。
+        peers_live: live.map_or(0, |l| l.snapshot.peer_stats.live as usize),
         eta: live.and_then(|l| l.time_remaining.as_ref().map(|t| t.to_string())),
     }
 }

@@ -222,8 +222,15 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
 
     // Session 启动包含读取持久化状态和绑定监听端口，必须在窗口出现前完成，
     // 否则前端第一次 list_torrents 会拿不到 State。
+    let trackers = if store.get().use_public_trackers {
+        settings::PUBLIC_TRACKERS.iter().map(|s| s.to_string()).collect()
+    } else {
+        Vec::new()
+    };
+    tracing::info!(公共tracker = trackers.len(), "会话 tracker 配置");
+
     let (engine, server) = tauri::async_runtime::block_on(async {
-        let engine = Arc::new(Engine::new(download_dir, None).await?);
+        let engine = Arc::new(Engine::new(download_dir, None, trackers).await?);
         let server = StreamServer::start(engine.clone()).await?;
         Ok::<_, anyhow::Error>((engine, server))
     })?;
