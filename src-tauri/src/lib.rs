@@ -86,9 +86,17 @@ fn set_download_dir(store: State<'_, Arc<SettingsStore>>, dir: Option<String>) -
 }
 
 /// 整份保存设置。下载目录不走这里 —— 它只在启动时读，见 `SettingsStore::update`。
+///
+/// 上传限速立刻生效（librqbit 的限速器是运行时可改的），不用重启。
 #[tauri::command]
-fn save_settings(store: State<'_, Arc<SettingsStore>>, settings: Settings) -> Result<(), String> {
-    store.update(settings).map_err(err)
+fn save_settings(
+    store: State<'_, Arc<SettingsStore>>,
+    engine: State<'_, Arc<Engine>>,
+    settings: Settings,
+) -> Result<(), String> {
+    store.update(settings).map_err(err)?;
+    engine.set_upload_limit(store.get().upload_limit_bps());
+    Ok(())
 }
 
 /// 返回磁盘路径，前端交给 opener 插件在访达里显示。
@@ -231,10 +239,13 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     tracing::info!(公共tracker = trackers.len(), "会话 tracker 配置");
 
     let (engine, server) = tauri::async_runtime::block_on(async {
-        let engine = Arc::new(Engine::new(download_dir, None, trackers).await?);
+        let engine = Arc::new(Engine::new(download_dir, None, config_dir.clone(), trackers).await?);
         let server = StreamServer::start(engine.clone()).await?;
         Ok::<_, anyhow::Error>((engine, server))
     })?;
+
+    // 限速只存在设置里，会话本身不持久化它，所以每次启动都要重新应用。
+    engine.set_upload_limit(store.get().upload_limit_bps());
 
     let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
 

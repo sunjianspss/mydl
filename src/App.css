@@ -347,7 +347,9 @@ button.primary:disabled {
   cursor: pointer;
 }
 
-.setting b {
+/* 只有标题那个 <b> 独占一行。写成 `.setting b` 会连说明文字里用来强调的
+   行内 <b> 一起变成块级，句子被拦腰截断、标点还会单独掉一行。 */
+.setting > span > b {
   display: block;
   font-weight: 600;
 }
@@ -359,11 +361,28 @@ button.primary:disabled {
   font-style: normal;
 }
 
+/* 子行要跟它所属的那一项在同一格里。分隔线本来画在 .setting 底部，
+   子行会掉到线下面，看着像是下一项的东西 —— 把线让给子行。 */
+.setting:has(+ .setting-sub) {
+  border-bottom: none;
+}
+
 .setting-sub {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px 0 0 26px;
+  padding: 10px 0 12px 26px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-sub input[type="number"] {
+  width: 96px;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
 }
 
 .setting-sub .path {

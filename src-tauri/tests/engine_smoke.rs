@@ -32,7 +32,7 @@ async fn downloads_real_torrent() {
     let state = tmp.join("state");
     std::fs::create_dir_all(&state).unwrap();
 
-    let engine = Engine::new(downloads, Some(state), Vec::new())
+    let engine = Engine::new(downloads, Some(state.clone()), state, Vec::new())
         .await
         .expect("创建 Engine 失败");
 
@@ -153,7 +153,12 @@ async fn multifile_torrent_gets_its_own_subfolder() {
     let torrent = make_local_torrent(&tmp, &content, LOCAL_TORRENT_NAME).await;
 
     // 会话默认目录故意设成别处，确保被测的是自定义目录这条路径。
-    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")), Vec::new())
+    let engine = Engine::new(
+        tmp.join("default-downloads"),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        Vec::new(),
+    )
         .await
         .expect("创建 Engine 失败");
 
@@ -177,6 +182,71 @@ async fn multifile_torrent_gets_its_own_subfolder() {
     outcome.unwrap_or_else(|e| panic!("{e}"));
 }
 
+/// 回归测试：自定义输出目录必须活过重启。
+///
+/// librqbit 把每个任务的输出目录藏在 `pub(crate)` 字段里读不到，Engine 自己
+/// 记了一份 —— 以前只记在内存里，重启后「在访达中显示」就退回默认下载目录，
+/// 用户会以为文件丢了。现在落盘到 output_folders.json，按 info-hash 索引
+/// （TorrentId 是重启后重新分配的，不能拿来当键）。
+#[tokio::test(flavor = "multi_thread")]
+async fn output_folder_survives_restart() {
+    let tmp = std::env::temp_dir().join(format!("mydl-folder-persist-{}", std::process::id()));
+    let content = tmp.join("content");
+    let custom_dir = tmp.join("我选的目录");
+    let state = tmp.join("state");
+    std::fs::create_dir_all(&content).unwrap();
+    std::fs::create_dir_all(&custom_dir).unwrap();
+    std::fs::create_dir_all(&state).unwrap();
+    std::fs::write(content.join("a.bin"), vec![7u8; 20 * 1024]).unwrap();
+    std::fs::write(content.join("b.bin"), vec![8u8; 20 * 1024]).unwrap();
+
+    let torrent = make_local_torrent(&tmp, &content, "重启测试").await;
+    let subdir = custom_dir.join("重启测试");
+
+    let engine = Engine::new(
+        tmp.join("default-downloads"),
+        Some(state.clone()),
+        state.clone(),
+        Vec::new(),
+    )
+    .await
+    .expect("创建 Engine 失败");
+
+    let id = engine
+        .add(&torrent.to_string_lossy(), Some(custom_dir.to_string_lossy().into_owned()))
+        .await
+        .expect("添加种子失败");
+    wait_for(&subdir, &custom_dir).await;
+    let before = engine.output_path(id).expect("读输出路径失败");
+    engine.shutdown().await;
+
+    // 重启：同一个 state / data 目录，librqbit 会把任务恢复回来。
+    let engine = Engine::new(
+        tmp.join("default-downloads"),
+        Some(state.clone()),
+        state,
+        Vec::new(),
+    )
+    .await
+    .expect("重启后创建 Engine 失败");
+
+    let restored = engine.list();
+    let after = restored
+        .first()
+        .map(|t| engine.output_path(t.id).expect("重启后读输出路径失败"));
+
+    engine.shutdown().await;
+    let _ = std::fs::remove_dir_all(&tmp);
+
+    assert_eq!(before, subdir, "添加时就该指向自定义目录下的子目录");
+    assert_eq!(restored.len(), 1, "重启后任务该被恢复");
+    assert_eq!(
+        after.as_deref(),
+        Some(subdir.as_path()),
+        "重启后该还记得自定义目录，而不是退回默认下载目录"
+    );
+}
+
 /// 反过来：单文件种子不该多套一层目录。
 #[tokio::test(flavor = "multi_thread")]
 async fn single_file_torrent_has_no_subfolder() {
@@ -189,7 +259,12 @@ async fn single_file_torrent_has_no_subfolder() {
 
     let torrent = make_local_torrent(&tmp, &content, "solo.bin").await;
 
-    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")), Vec::new())
+    let engine = Engine::new(
+        tmp.join("default-downloads"),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        Vec::new(),
+    )
         .await
         .expect("创建 Engine 失败");
 
@@ -225,7 +300,12 @@ async fn dead_magnet_times_out_instead_of_hanging() {
     let tmp = std::env::temp_dir().join(format!("mydl-deadmagnet-{}", std::process::id()));
     std::fs::create_dir_all(&tmp).unwrap();
 
-    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")), Vec::new())
+    let engine = Engine::new(
+        tmp.join("downloads"),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        Vec::new(),
+    )
         .await
         .expect("创建 Engine 失败");
 
@@ -274,7 +354,12 @@ async fn deselected_files_are_excluded() {
     std::fs::write(content.join("skip.bin"), vec![2u8; 80 * 1024]).unwrap();
 
     let torrent = make_local_torrent(&tmp, &content, "选择测试").await;
-    let engine = Engine::new(tmp.join("downloads"), Some(tmp.join("state")), Vec::new())
+    let engine = Engine::new(
+        tmp.join("downloads"),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        Vec::new(),
+    )
         .await
         .expect("创建 Engine 失败");
 
@@ -338,7 +423,12 @@ async fn preview_then_add_only_selected() {
     std::fs::write(content.join("skip.bin"), vec![2u8; 80 * 1024]).unwrap();
 
     let torrent = make_local_torrent(&tmp, &content, "预览测试").await;
-    let engine = Engine::new(tmp.join("default-downloads"), Some(tmp.join("state")), Vec::new())
+    let engine = Engine::new(
+        tmp.join("default-downloads"),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        Vec::new(),
+    )
         .await
         .expect("创建 Engine 失败");
 

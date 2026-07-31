@@ -51,6 +51,8 @@ export interface Settings {
   usePublicTrackers: boolean;
   /** 有任务在下载时阻止电脑休眠。 */
   preventSleepWhileDownloading: boolean;
+  /** 全局上传限速，KiB/s。null 或 0 表示不限。改完立刻生效。 */
+  uploadLimitKbps: number | null;
 }
 
 /** 对应 settings.rs 的 RssFeed。 */

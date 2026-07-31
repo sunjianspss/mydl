@@ -3,6 +3,7 @@
 //! 这一层刻意不含 UI 逻辑，也不含 Tauri 类型，方便以后换界面或加 CLI。
 
 use std::collections::{HashMap, HashSet};
+use std::num::NonZeroU32;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -35,9 +36,14 @@ const ADD_TIMEOUT: Duration = Duration::from_secs(120);
 pub struct Engine {
     session: Arc<Session>,
     download_dir: PathBuf,
-    /// 每个任务的自定义输出目录。librqbit 把它存在 `pub(crate)` 字段里读不到，
-    /// 所以本进程自己记一份。重启后恢复的任务查不到，回退到默认目录。
-    output_folders: Mutex<HashMap<TorrentId, PathBuf>>,
+    /// 每个任务的自定义输出目录。librqbit 把它存在 `pub(crate)` 字段里读不到
+    /// （`ManagedTorrentShared.options` 整个是 `pub(crate)`），所以自己记一份。
+    ///
+    /// 按 **info-hash** 而不是 TorrentId 索引：id 是会话重启后重新分配的，
+    /// 只有 info-hash 跨重启稳定。整份内容落在 [`Self::folders_path`]。
+    output_folders: Mutex<HashMap<String, PathBuf>>,
+    /// `output_folders` 的落盘位置。
+    folders_path: PathBuf,
     /// 预览过、但还没确认添加的种子。留着 torrent_bytes 是为了确认时不用
     /// 重新解析一遍 —— 磁力链解析一次可能要几十秒。
     previews: Mutex<HashMap<String, CachedPreview>>,
@@ -174,9 +180,13 @@ impl Engine {
     /// 传了目录就代表这是个隔离实例（测试），此时连 DHT 也不共用全局缓存 ——
     /// 否则不但会污染真实的 DHT 路由表，还会因为持久化里记着固定端口而
     /// 无法同时跑两个实例。
+    ///
+    /// `data_dir` 放 Engine 自己的旁路文件（目前只有输出目录表），正常运行时
+    /// 就是 App 的配置目录 —— 和 settings.json、rss_seen.json 放在一起。
     pub async fn new(
         download_dir: PathBuf,
         state_dir: Option<PathBuf>,
+        data_dir: PathBuf,
         extra_trackers: Vec<String>,
     ) -> Result<Self> {
         std::fs::create_dir_all(&download_dir)
@@ -232,12 +242,31 @@ impl Engine {
         .await
         .context("创建 librqbit session 失败")?;
 
+        let folders_path = data_dir.join("output_folders.json");
         Ok(Self {
             session,
             download_dir,
-            output_folders: Mutex::new(HashMap::new()),
+            output_folders: Mutex::new(read_folders(&folders_path)),
+            folders_path,
             previews: Mutex::new(HashMap::new()),
         })
+    }
+
+    /// 全局上传限速，单位字节/秒；None 或 0 表示不限。
+    ///
+    /// 这个开关是必要的：librqbit 的 uTP 用 CUBIC 拥塞控制
+    /// （librqbit-utp 0.7 的 lib.rs 里还写着 `// TODO: LEDBAT congestion
+    /// control`），不会像正经 uTP 那样给其他流量让路。做种时上行打满，
+    /// 同一条线路上的一切都会跟着卡。
+    ///
+    /// 运行时可改，不需要重建会话。
+    pub fn set_upload_limit(&self, bps: Option<u32>) {
+        let limit = bps.and_then(NonZeroU32::new);
+        self.session.ratelimits.set_upload_bps(limit);
+        match limit {
+            Some(v) => tracing::info!("上传限速：{} 字节/秒", v.get()),
+            None => tracing::info!("上传限速：不限"),
+        }
     }
 
     pub fn download_dir(&self) -> &Path {
@@ -307,17 +336,14 @@ impl Engine {
             .await
             .context("添加任务失败")?;
 
-        let id = match resp {
-            AddTorrentResponse::Added(id, _) | AddTorrentResponse::AlreadyManaged(id, _) => id,
+        let (id, handle) = match resp {
+            AddTorrentResponse::Added(id, h) | AddTorrentResponse::AlreadyManaged(id, h) => (id, h),
             // 只有显式设置 list_only 才会走到这里。
             AddTorrentResponse::ListOnly(_) => bail!("任务未被加入会话"),
         };
 
         if let Some(folder) = output_folder {
-            self.output_folders
-                .lock()
-                .unwrap()
-                .insert(id, PathBuf::from(folder));
+            self.remember_folder(&handle, PathBuf::from(folder));
         }
 
         Ok(id)
@@ -434,13 +460,13 @@ impl Engine {
             .await
             .context("添加任务失败")?;
 
-        let id = match resp {
-            AddTorrentResponse::Added(id, _) | AddTorrentResponse::AlreadyManaged(id, _) => id,
+        let (id, handle) = match resp {
+            AddTorrentResponse::Added(id, h) | AddTorrentResponse::AlreadyManaged(id, h) => (id, h),
             AddTorrentResponse::ListOnly(_) => bail!("任务未被加入会话"),
         };
 
         if let Some(folder) = folder {
-            self.output_folders.lock().unwrap().insert(id, folder);
+            self.remember_folder(&handle, folder);
         }
         Ok(id)
     }
@@ -490,12 +516,35 @@ impl Engine {
     }
 
     pub async fn delete(&self, id: TorrentId, delete_files: bool) -> Result<()> {
+        // 删完就拿不到 handle 了，info-hash 得先取出来。
+        let info_hash = self.handle(id).ok().map(|h| h.info_hash().as_string());
+
         self.session
             .delete(id.into(), delete_files)
             .await
             .context("删除失败")?;
-        self.output_folders.lock().unwrap().remove(&id);
+
+        if let Some(hash) = info_hash {
+            let mut map = self.output_folders.lock().unwrap();
+            if map.remove(&hash).is_some() {
+                self.save_folders(&map);
+            }
+        }
         Ok(())
+    }
+
+    /// 记下某个任务的自定义输出目录，并立刻落盘 —— 写不进去只警告，
+    /// 不能因为一份「在访达中显示」用的备忘录失败就让添加任务失败。
+    fn remember_folder(&self, handle: &TorrentHandle, folder: PathBuf) {
+        let mut map = self.output_folders.lock().unwrap();
+        map.insert(handle.info_hash().as_string(), folder);
+        self.save_folders(&map);
+    }
+
+    fn save_folders(&self, map: &HashMap<String, PathBuf>) {
+        if let Err(e) = write_folders(&self.folders_path, map) {
+            tracing::warn!("保存任务目录记录失败：{e:#}");
+        }
     }
 
     /// 任务内容在磁盘上的位置，用于「在访达中显示」。
@@ -508,7 +557,7 @@ impl Engine {
             .output_folders
             .lock()
             .unwrap()
-            .get(&id)
+            .get(&handle.info_hash().as_string())
             .cloned()
             .unwrap_or_else(|| self.download_dir.clone());
 
@@ -618,6 +667,41 @@ impl Engine {
             .get(id.into())
             .with_context(|| format!("找不到任务 {id}"))
     }
+}
+
+/// 读回 info-hash → 输出目录 的映射。文件不存在或坏了都当空表继续 ——
+/// 大不了「在访达中显示」退回默认下载目录，不值得让 App 起不来。
+fn read_folders(path: &Path) -> HashMap<String, PathBuf> {
+    let raw = match std::fs::read_to_string(path) {
+        Ok(r) => r,
+        // 首次启动没有这个文件，是正常情况。
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return HashMap::new(),
+        Err(e) => {
+            tracing::warn!("读取任务目录记录失败：{e}");
+            return HashMap::new();
+        }
+    };
+
+    match serde_json::from_str(&raw) {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::warn!("任务目录记录不是合法 JSON，忽略：{e}");
+            HashMap::new()
+        }
+    }
+}
+
+/// 先写临时文件再 rename，免得写到一半崩了留下半份坏文件。
+fn write_folders(path: &Path, map: &HashMap<String, PathBuf>) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("无法创建目录 {}", parent.display()))?;
+    }
+
+    let tmp = path.with_extension("json.tmp");
+    let json = serde_json::to_string_pretty(map).context("序列化任务目录记录失败")?;
+    std::fs::write(&tmp, json).with_context(|| format!("无法写入 {}", tmp.display()))?;
+    std::fs::rename(&tmp, path).with_context(|| format!("无法替换 {}", path.display()))
 }
 
 fn view_of(id: TorrentId, handle: &TorrentHandle) -> TorrentView {

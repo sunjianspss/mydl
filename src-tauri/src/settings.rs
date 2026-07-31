@@ -42,6 +42,21 @@ pub struct Settings {
 
     /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
     pub prevent_sleep_while_downloading: bool,
+
+    /// 全局上传限速，单位 KiB/s。None 或 0 表示不限。
+    ///
+    /// 默认不限是因为限速会拖慢自己的下载（BT 靠上传换下载），但一旦上行
+    /// 被打满，同一条线路上的其他人都会被牵连 —— 见 `Engine::set_upload_limit`。
+    pub upload_limit_kbps: Option<u32>,
+}
+
+impl Settings {
+    /// 换算成字节/秒给 Engine 用。0 和 None 一样当作不限速。
+    pub fn upload_limit_bps(&self) -> Option<u32> {
+        self.upload_limit_kbps
+            .filter(|k| *k > 0)
+            .map(|k| k.saturating_mul(1024))
+    }
 }
 
 /// 几个长期在运行的开放 tracker。开启后对所有任务生效。
@@ -97,6 +112,7 @@ impl Default for Settings {
             use_public_trackers: false,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
+            upload_limit_kbps: None,
         }
     }
 }

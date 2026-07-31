@@ -4,6 +4,10 @@ import { open } from "@tauri-apps/plugin-dialog";
 
 import type { Settings } from "./types";
 
+// 勾上「限制上传速度」时的初始值，KB/s。约 1 Mbps —— 基本任何家用上行都
+// 感觉不到，同时不至于低到让 tit-for-tat 把下载速度也拖下去。
+const DEFAULT_UPLOAD_LIMIT = 128;
+
 interface Props {
   initial: Settings;
   onSaved: (settings: Settings) => void;
@@ -82,6 +86,39 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.uploadLimitKbps !== null}
+            onChange={(e) => patch({ uploadLimitKbps: e.target.checked ? DEFAULT_UPLOAD_LIMIT : null })}
+          />
+          <span>
+            <b>限制上传速度</b>
+            <em>
+              不限速时上行会被占满，同一条线路上刷网页、开会都会跟着卡 ——
+              BT 的 uTP 本该给其他流量让路，但 librqbit 现在用的是 CUBIC，不会让。
+              <b>做种和下载中的任务都在上传</b>，所以两种情况都受限。填太低会连带
+              拖慢下载（BT 靠上传换下载），低于 32 就明显了。改完<b>立刻生效</b>。
+            </em>
+          </span>
+        </label>
+
+        {draft.uploadLimitKbps !== null && (
+          <div className="setting-sub">
+            <input
+              type="number"
+              min={1}
+              step={32}
+              value={draft.uploadLimitKbps}
+              disabled={saving}
+              onChange={(e) =>
+                patch({ uploadLimitKbps: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
+              }
+            />
+            <span className="path">KB/s（限的是上传；下载中的任务也在上传）</span>
+          </div>
+        )}
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.notifyOnComplete}
             onChange={(e) => patch({ notifyOnComplete: e.target.checked })}
           />
@@ -135,7 +172,12 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
           </button>
           <button
             className="primary"
-            disabled={saving || (draft.moveTo !== null && draft.moveTo.trim() === "")}
+            disabled={
+              saving ||
+              (draft.moveTo !== null && draft.moveTo.trim() === "") ||
+              // 0 在后端等于不限速，别让界面上写着「限制」实际却没限。
+              draft.uploadLimitKbps === 0
+            }
             onClick={save}
           >
             {saving ? "保存中…" : "保存"}

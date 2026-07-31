@@ -19,7 +19,7 @@ async fn preview_with_peer_logs() {
         .init();
 
     let tmp = std::env::temp_dir().join(format!("mydl-peerdbg-{}", std::process::id()));
-    let engine = Engine::new(tmp.join("dl"), Some(tmp.join("state")), Vec::new())
+    let engine = Engine::new(tmp.join("dl"), Some(tmp.join("state")), tmp.join("state"), Vec::new())
         .await
         .expect("创建 Engine 失败");
 

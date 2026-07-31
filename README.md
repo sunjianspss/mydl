@@ -13,6 +13,8 @@ uTP 实现。现代客户端默认走 uTP（UDP 上的传输协议，NAT 穿透�
 而普通资源的做种者连不上，磁力链的元信息就永远拿不到，表现为
 「解析磁力链超时」。同一条链接在 qBittorrent 里却能下。
 
+注意它换来的是**连通性**，不是「礼让」—— 这套 uTP 没有 LEDBAT，见「上传限速」。
+
 9.0.0-rc.0 引入 `librqbit-utp`，`ListenerMode::TcpAndUtp` 同时监听两者。
 注意上游把默认值仍留在 `TcpOnly`，代码里写着
 `// TODO: once uTP is stable upgrade default to both` —— 我们是主动开启的，
@@ -43,6 +45,28 @@ pnpm tauri build        # 打包出 .app / .dmg
 ```bash
 ditto src-tauri/target/release/bundle/macos/mydl.app /Applications/mydl.app
 ```
+
+## 上传限速
+
+设置里「限制上传速度」，单位 KB/s，默认不限；勾上后初始值 128 KB/s（约 1 Mbps），
+可以填到 1。改完**立刻生效**，不用重启 —— librqbit 的限速器
+（`Session.ratelimits`）是运行时可换的。
+
+限的是**上传**，而且不只做种：下载中的任务同样在往外传（tit-for-tat），
+所以两种情况都受这个值约束。
+
+为什么需要它：**这套 uTP 并不「礼让」**。BEP29 的卖点是 LEDBAT 拥塞控制，
+探测到排队延迟上升就主动退让，所以正经 uTP 客户端做种时不会影响别人上网。
+但 `librqbit-utp` 0.7 用的是 CUBIC（`src/congestion/` 下只有 `cubic.rs`，
+`lib.rs` 开头还留着 `// TODO: LEDBAT congestion control`），抢带宽和普通 TCP
+一样凶。上行一满，ACK 跟着排队，同一条线路上刷网页、开会全都卡。
+
+所以这里的 uTP 只兑现了「NAT 穿透」那一半好处，「不打扰别人」那一半得靠限速
+自己补。**代价是下载也会变慢** —— BT 靠上传换下载，限太死会被别人降速，
+低于 32 KB/s 就比较明显了。
+
+只有全局限速，没有按任务限速：v9 的 per-torrent `ratelimits` 在
+`ManagedTorrentOptions` 里，整个结构是 `pub(crate)`，外部够不着。
 
 ## 下载期间不休眠
 
@@ -117,7 +141,9 @@ src-tauri/src/
 └── lib.rs               Tauri 命令 + 应用入口
 ```
 
-设置存在 `~/Library/Application Support/com.sun.mydl/settings.json`。
+设置存在 `~/Library/Application Support/com.sun.mydl/settings.json`，
+同目录下还有 `rss_seen.json`（已处理过的 RSS 条目）和 `output_folders.json`
+（任务的自定义输出目录）。
 以后 RSS 规则、自动化动作往 `Settings` 里加字段即可 —— `#[serde(default)]`
 保证旧配置文件读得进来。
 
@@ -140,9 +166,10 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 
 ## 已知取舍
 
-- **任务目录记录不持久化。** librqbit 把每个任务的输出目录存在 `pub(crate)`
-  字段里读不到，所以 Engine 自己在内存里记了一份。重启后恢复的任务查不到记录，
-  「在访达中显示」会退回默认下载目录。
+- **任务目录靠自己记。** librqbit 把每个任务的输出目录存在 `pub(crate)` 字段里
+  读不到（`ManagedTorrentShared.options` 整个是 `pub(crate)`），所以 Engine 自己
+  记一份，写在配置目录的 `output_folders.json` 里。**按 info-hash 索引** ——
+  TorrentId 是会话每次启动重新分配的，拿它当键重启后就对不上了。
 - **自定义目录要多解析一次种子。** librqbit 只在使用会话默认目录时才自动建
   子目录（`session.rs` 里 `(Some(o), None) => PathBuf::from(o)` 把自定义目录
   原样拿去用），多文件种子会把几十个文件直接倒进目标目录。`Engine::add` 先用
@@ -192,6 +219,7 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - [x] 按文件勾选，只下需要的部分（添加时先预览，下载中也能改）
 - [x] 完成后自动化（系统通知、解压 zip、移动到指定目录）
 - [x] RSS 订阅按规则自动加种
+- [x] 全局上传限速（运行时可改）
 
 按规则重命名**没做**：想做好要解析剧集编号、季数、发布组等等，是一整套
 匹配规则，没有明确需求的情况下做出来多半是猜错方向。真需要时再说。
