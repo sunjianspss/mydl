@@ -92,11 +92,91 @@ git tag v0.2.0 && git push origin v0.2.0
 想先验证 workflow 本身能不能跑通，去 Actions 页面手动触发（`workflow_dispatch`）
 —— 不用为了试 CI 打一串废 tag。手动触发时跳过版本校验，只出产物不建 release。
 
-**两个包都没有签名**（没买证书）：macOS 首次打开要去「系统设置 → 隐私与安全性」
-点「仍要打开」，Windows 的 SmartScreen 要点「更多信息 → 仍要运行」。
+**两个包都没有签名**（没买证书）：Windows 的 SmartScreen 要点「更多信息 →
+仍要运行」；macOS 要用 `xattr` 摘掉 quarantine 标记，**别指望「仍要打开」
+按钮**，见「分发」。
 
 CI 里的 pnpm 大版本写死在 workflow 里，换开发机 pnpm 版本时记得同步，
 否则 `--frozen-lockfile` 会因为 lockfile 格式差异跑挂。
+
+## 分发
+
+包出来之后怎么送到人手上。因为没签名，**不能指望对方双击就能装**。
+
+### 为什么你自己跑得动，别人跑不动
+
+不是因为"你是开发者"，也不是因为钥匙串里那张 `Apple Development` 证书 ——
+那张证书全程没参与。`.app` 上的签名是链接器自动加的 ad-hoc：Apple Silicon
+要求所有 arm64 二进制至少有 ad-hoc 签名才能执行，这跟身份无关。
+
+真正的开关是 **`com.apple.quarantine` 扩展属性**。Safari、微信、AirDrop 这些
+"下载方"在文件落盘时打这个标记，而 `tauri build` 在本地生成文件时不打。
+Gatekeeper 只检查带标记的文件，所以本地产物根本没被问过。问它的话照样不合格：
+
+```bash
+spctl -a -vv src-tauri/target/release/bundle/macos/mydl.app
+# rejected：code has no resources but signature indicates they must be present
+```
+
+反过来也成立：把 dmg 传上网盘，再用 Safari 下载回**同一台机器**，一样打不开。
+想复现对方看到的效果，在副本上手动打标记：
+
+```bash
+cp -R src-tauri/target/release/bundle/macos/mydl.app /tmp/mydl-test.app
+xattr -w com.apple.quarantine "0081;00000000;Safari;" /tmp/mydl-test.app
+open /tmp/mydl-test.app     # 看完删掉，别在 bundle/ 里的原件上做
+```
+
+### 给 macOS 用户的说明（可以直接转发）
+
+> 1. 双击 dmg，把 mydl 拖进"应用程序"
+> 2. 打开"终端"，粘贴这行回车：
+>    ```
+>    xattr -dr com.apple.quarantine /Applications/mydl.app
+>    ```
+> 3. 再双击打开
+
+**不要指望「系统设置 → 隐私与安全性」里的「仍要打开」按钮。** 那个按钮是给
+"有签名但没公证"的 app 的；我们这个连有效签名都没有，被拦时更可能直接说
+「已损坏，你应该将它移到废纸篓」—— 那种情况下按钮不出现。具体文案随 macOS
+版本变，但 `xattr` 这条路在哪个版本上都稳。
+
+代价是对方必须会开一次终端。想免掉这一步，只有买证书做签名 + 公证，见下。
+
+### 首次启动会弹什么
+
+提前打个招呼，免得对方以为中毒了：
+
+- **「mydl 想要接受传入网络连接」** —— 必须允许。BT 要监听端口收 peer，
+  边下边播的本地 HTTP 服务也走这里。拒绝了速度会很惨。
+- **通知权限** —— 任务完成提醒，可选。
+- **访问"下载"文件夹** —— 默认下载目录取系统 `~/Downloads`（`lib.rs` 的
+  `init_app`），macOS 的 TCC 会问一次。可以在设置里改到别处。
+
+Windows 侧对应的是 SmartScreen 和防火墙 4240 端口，见「Windows」。
+
+### 对方出问题时管他要什么
+
+日志在 `~/Library/Logs/mydl/`（Windows 见「Windows」的表），配置和会话状态在
+`~/Library/Application Support/com.sun.mydl/` —— 要"恢复出厂"就删这个目录。
+
+另外记得说明这是跑在 **librqbit 9.0.0-rc.0 预发布版**上的自用级软件，
+见「已知取舍」。
+
+### 想做到双击即用
+
+买 Apple Developer Program（$99/年），建 `Developer ID Application` 证书
+（`Apple Development` 那张不行，它不能用于对外分发），然后给 CI 加 secrets：
+
+```
+APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD   # 导出的 .p12，base64
+APPLE_SIGNING_IDENTITY                            # Developer ID Application: ...
+APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID         # APPLE_PASSWORD 是 app 专用密码
+```
+
+`tauri-action` 认这几个环境变量（具体名字以它的文档为准），加上之后产物自带
+hardened runtime 签名并送 Apple 公证，对方双击零提示。没做之前，上面那条
+`xattr` 就是标准流程。
 
 ## 上传限速
 
@@ -282,9 +362,9 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - **`Speed.mbps` 实际单位是 MiB/s**，不是兆比特。`engine.rs` 里统一换算成字节/秒了。
 - **播放器检测是硬编码的**：两个平台都是按固定名字查固定目录，见
   `platform.rs` 里的 `KNOWN`。装在别处就认不出来。
-- **Windows 侧只做了类型检查，没有实机验证过。** `platform.rs` 的 Windows
-  分支用 `cargo check --target x86_64-pc-windows-msvc` 验过能编译，但播放器
-  路径、日志目录、阻止休眠的实际行为都还没在真机上跑过。
+- **Windows 只验到「能编译、能下载」。** 协议栈这条主链路实机跑通了，但
+  `platform.rs` 里那几处平台实现还没验：播放器路径（`KNOWN` 里的安装位置
+  是猜的）、日志目录、`SetThreadExecutionState` 到底拦没拦住休眠。
 - **暂停中的任务不能起播。** 暂停状态不会有新数据进来，播放器只会卡住，
   所以按钮直接禁用，后端也会明确报错。
 - **取消勾选不会删已下的数据。** `update_only_files` 只改 chunk tracker，

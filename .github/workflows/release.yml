@@ -85,14 +85,23 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: mydl ${{ github.ref_name }}
           releaseBody: |
-            两个包都**没有签名**（没有 Apple / 代码签名证书）：
+            两个包都**没有签名**（没买证书），所以不能双击就装：
 
-            - macOS：首次打开会说「无法打开，因为无法验证开发者」。
-              在「系统设置 → 隐私与安全性」里点「仍要打开」。
-            - Windows：SmartScreen 会拦，点「更多信息 → 仍要运行」。
+            **macOS**：拖进「应用程序」后，开终端跑一次
 
-            Win10 还需要 WebView2 运行时（Win11 自带）。首次运行时防火墙会问
-            是否允许 4240 端口，要点允许，否则连不上 peer。
+            ```
+            xattr -dr com.apple.quarantine /Applications/mydl.app
+            ```
+
+            别去找「系统设置 → 隐私与安全性」里的「仍要打开」按钮 —— 那是给
+            「有签名但没公证」的 app 的，这个包连有效签名都没有，多半直接报
+            「已损坏」，那种情况下按钮不出现。
+
+            **Windows**：SmartScreen 会拦，点「更多信息 → 仍要运行」。
+            Win10 还需要 WebView2 运行时（Win11 自带）。
+
+            首次运行时系统会问是否允许网络连接（Windows 是防火墙 4240 端口），
+            **要允许**，否则连不上 peer。
           # 先建成草稿，自己看过产物再手动发布。
           releaseDraft: true
           prerelease: false
