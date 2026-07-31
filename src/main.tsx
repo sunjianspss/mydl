@@ -1,5 +1,6 @@
 import React from "react";
 import "./platform";
+import "./theme";
 
 import ReactDOM from "react-dom/client";
 import App from "./App";

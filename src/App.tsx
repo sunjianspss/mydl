@@ -9,17 +9,20 @@ import FileList from "./FileList";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
+import { getTheme, setTheme, type Theme } from "./theme";
 import {
   CheckIcon,
   DocIcon,
   DownIcon,
   FolderIcon,
   GearIcon,
+  MoonIcon,
   PauseIcon,
   PlayIcon,
   PlusIcon,
   RssIcon,
   StackIcon,
+  SunIcon,
   TrashIcon,
   TypeIcon,
   UpIcon,
@@ -85,6 +88,8 @@ export default function App() {
   // 展开了文件列表的任务。
   const [expanded, setExpanded] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  // 主题存在 localStorage 里，theme.ts 在首帧前就应用好了，这里只是拿来渲染图标。
+  const [theme, setThemeState] = useState<Theme>(getTheme);
 
   const refresh = useCallback(async () => {
     try {
@@ -258,6 +263,18 @@ export default function App() {
             />
             <button type="button" className="tb-btn" onClick={pickTorrentFile} disabled={adding}>
               打开种子…
+            </button>
+            <button
+              type="button"
+              className="tb-icon"
+              title={theme === "dark" ? "切换到浅色" : "切换到深色"}
+              onClick={() => {
+                const next: Theme = theme === "dark" ? "light" : "dark";
+                setTheme(next);
+                setThemeState(next);
+              }}
+            >
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             </button>
             <button
               type="button"

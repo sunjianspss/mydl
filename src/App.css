@@ -45,8 +45,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* 主题由 <html data-theme> 决定，默认深色（见 theme.ts）。
+   `:root:not([data-theme])` 那条只是兜底：万一脚本没跑到，还能跟随系统。 */
+:root[data-theme="dark"],
+:root:not([data-theme]) {
     --bg: #1c1c1e;
     --panel: #2c2c2e;
     --sidebar: #232325;
@@ -68,7 +70,16 @@
     --shadow-card: 0 1px 2px rgb(0 0 0 / 28%);
     --shadow-btn: 0 1px 1.5px rgb(0 0 0 / 22%);
     --shadow-dialog: 0 24px 64px rgb(0 0 0 / 55%);
-  }
+}
+
+/* 原生控件（复选框、输入框、滚动条）也得跟着切，否则深色下会是白底。 */
+:root[data-theme="dark"],
+:root:not([data-theme]) {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 * {
@@ -106,16 +117,16 @@ body {
   background-clip: content-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: rgb(255 255 255 / 22%);
-    background-clip: content-box;
-  }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb,
+:root:not([data-theme]) ::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 22%);
+  background-clip: content-box;
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgb(255 255 255 / 36%);
-    background-clip: content-box;
-  }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+:root:not([data-theme]) ::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 36%);
+  background-clip: content-box;
 }
 
 /* 三段式骨架：左侧源列表 + 主区（工具栏/列表/状态栏）。

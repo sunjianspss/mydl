@@ -162,6 +162,26 @@ export function GearIcon(p: Props) {
   );
 }
 
+export function SunIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <circle cx="8" cy="8" r="3" {...stroke} />
+      <path
+        d="M8 1.4v1.7M8 12.9v1.7M14.6 8h-1.7M3.1 8H1.4M12.7 3.3l-1.2 1.2M4.5 11.5l-1.2 1.2M12.7 12.7l-1.2-1.2M4.5 4.5 3.3 3.3"
+        {...stroke}
+      />
+    </Svg>
+  );
+}
+
+export function MoonIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z" {...stroke} />
+    </Svg>
+  );
+}
+
 export function PauseIcon(p: Props) {
   return (
     <Svg {...p}>
