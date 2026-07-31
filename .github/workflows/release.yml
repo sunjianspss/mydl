@@ -1,0 +1,98 @@
+name: 发布
+
+# 打 v 开头的 tag 就出两个平台的安装包。也可以在 Actions 页面手动触发，
+# 用来验证 workflow 本身能不能跑通 —— 不想为了试 CI 打一串废 tag。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# tauri-action 要往仓库里建 release，默认的只读令牌不够。
+permissions:
+  contents: write
+
+jobs:
+  # tag 和 tauri.conf.json 里的版本对不上的话，产物文件名会带着旧版本号，
+  # 而且要等十几分钟编译完才发现。先花十秒钟卡住。
+  check-version:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - name: 核对版本号
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          conf=$(jq -r .version src-tauri/tauri.conf.json)
+          pkg=$(jq -r .version package.json)
+          echo "tag=$tag  tauri.conf=$conf  package.json=$pkg"
+          if [ "$tag" != "$conf" ] || [ "$tag" != "$pkg" ]; then
+            echo "::error::版本号对不上。改 tauri.conf.json 和 package.json 里的 version，或者换个 tag。"
+            exit 1
+          fi
+
+  build:
+    needs: [check-version]
+    # 手动触发时没有 tag，上面那个 job 会被跳过；skipped 不算失败，
+    # 但默认的 needs 依赖会连带跳过这个 job，所以显式放行。
+    if: always() && (needs.check-version.result == 'success' || needs.check-version.result == 'skipped')
+
+    strategy:
+      # 一个平台挂了，另一个继续 —— 至少能拿到一半的包。
+      fail-fast: false
+      matrix:
+        include:
+          # Intel Mac 也能跑，所以打 universal 包
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+            rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 跟开发机保持同一个大版本，免得 --frozen-lockfile 因为 lockfile
+      # 格式差异跑挂。换开发机 pnpm 版本时记得同步这里。
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      # 编译 librqbit 这一坨依赖很慢，缓存能把后续构建从十几分钟压到几分钟。
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: mydl ${{ github.ref_name }}
+          releaseBody: |
+            两个包都**没有签名**（没有 Apple / 代码签名证书）：
+
+            - macOS：首次打开会说「无法打开，因为无法验证开发者」。
+              在「系统设置 → 隐私与安全性」里点「仍要打开」。
+            - Windows：SmartScreen 会拦，点「更多信息 → 仍要运行」。
+
+            Win10 还需要 WebView2 运行时（Win11 自带）。首次运行时防火墙会问
+            是否允许 4240 端口，要点允许，否则连不上 peer。
+          # 先建成草稿，自己看过产物再手动发布。
+          releaseDraft: true
+          prerelease: false

@@ -66,7 +66,7 @@ OS 线程而不是 tokio 任务 —— 任务在 worker 之间迁移的话，解
 窗口控件在右上角，留着就是一条空白。判定走 userAgent 而不是调 Rust 命令：
 必须**同步**拿到，否则会先渲染出 38px 留白再跳掉。
 
-**在 Windows 上打包**（不支持从 macOS 交叉编译，Tauri 的 NSIS/MSI 需要
+**在 Windows 上本地打包**（不支持从 macOS 交叉编译，Tauri 的 NSIS/MSI 需要
 Windows 侧工具链）：
 
 ```powershell
@@ -77,6 +77,26 @@ pnpm tauri build      # 产物在 src-tauri\target\release\bundle\nsis\
 
 首次运行时 Windows 防火墙会问是否允许 4240 端口，**要点允许**，否则连不上 peer。
 Win10 还需要 WebView2 运行时（Win11 自带）。
+
+## 发版
+
+打 `v` 开头的 tag，GitHub Actions 就同时出 macOS（universal，Intel 也能跑）
+和 Windows 的安装包，收进一个**草稿 release**，自己看过再手动发布。
+
+```bash
+# 三处版本号必须一致，否则 CI 十秒内就会失败（不会白等十几分钟编译）
+# src-tauri/tauri.conf.json、package.json、tag
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+想先验证 workflow 本身能不能跑通，去 Actions 页面手动触发（`workflow_dispatch`）
+—— 不用为了试 CI 打一串废 tag。手动触发时跳过版本校验，只出产物不建 release。
+
+**两个包都没有签名**（没买证书）：macOS 首次打开要去「系统设置 → 隐私与安全性」
+点「仍要打开」，Windows 的 SmartScreen 要点「更多信息 → 仍要运行」。
+
+CI 里的 pnpm 大版本写死在 workflow 里，换开发机 pnpm 版本时记得同步，
+否则 `--frozen-lockfile` 会因为 lockfile 格式差异跑挂。
 
 ## 上传限速
 
