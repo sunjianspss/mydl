@@ -190,9 +190,11 @@ export default function App() {
 
   return (
     <main className="app">
-      {/* 标题栏被设成 Overlay，内容会延伸到红绿灯下面 —— 侧边栏顶部留白避让。 */}
+      {/* 标题栏被设成 Overlay，内容会延伸到红绿灯下面 —— 侧边栏顶部留白避让。
+          这块同时是拖拽区：Overlay 之后系统标题栏被网页盖住，鼠标事件全被
+          webview 吃掉，不显式标出来窗口就拖不动。 */}
       <aside className="sidebar">
-        <div className="titlebar-gap" />
+        <div className="titlebar-gap" data-tauri-drag-region />
 
         <nav className="side-nav">
           {FILTERS.map(({ id, label, icon: Icon }) => (
@@ -233,7 +235,9 @@ export default function App() {
       </aside>
 
       <div className="main">
-        <header className="toolbar">
+        {/* 上面那条 32px 留白也是拖拽区。属性只对事件目标本身生效，所以
+            下面的输入框和按钮照常可点。 */}
+        <header className="toolbar" data-tauri-drag-region>
           <form
             className="add-row"
             onSubmit={(e) => {

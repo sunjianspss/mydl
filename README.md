@@ -178,8 +178,14 @@ src-tauri/src/
 每行都塞满。删除确认仍然是文字按钮：三个图标分不清「仅移除任务」和「连同文件」。
 
 **标题栏用 `titleBarStyle: "Overlay"` + `hiddenTitle`**，内容延伸到红绿灯
-下面。侧边栏顶部的 `.titlebar-gap` 和工具栏的 32px 上内边距都是给拖拽区
-让位的 —— **控件放进那一条点不动**。
+下面。侧边栏顶部的 `.titlebar-gap` 和工具栏的 32px 上内边距都是给这条留的，
+**控件放进去点不动**。
+
+这两块还必须标上 `data-tauri-drag-region`，否则**窗口拖不动** —— Overlay
+之后系统标题栏被网页盖住，鼠标事件全被 webview 吃掉。属性只对事件目标本身
+生效，所以下面的输入框和按钮照常可点。还要在 `capabilities/default.json` 里
+加 `core:window:allow-start-dragging`，这条**不在 `core:default` 里**，漏了
+就是标了属性也拖不动。
 
 ## 边下边播怎么工作
 
