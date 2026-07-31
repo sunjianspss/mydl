@@ -22,9 +22,14 @@ async fn try_magnet(tag: &str, magnet: &str) -> bool {
     let _ = std::fs::remove_dir_all(&tmp);
 
     match result {
-        Ok(p) => {
+        // None 只在有人主动取消时出现，诊断工具里不会发生。
+        Ok(Some(p)) => {
             eprintln!("  [{tag}] 成功 用时 {elapsed:?} — {} ({} 个文件)", p.name, p.files.len());
             true
+        }
+        Ok(None) => {
+            eprintln!("  [{tag}] 被取消 用时 {elapsed:?}");
+            false
         }
         Err(e) => {
             eprintln!("  [{tag}] 失败 用时 {elapsed:?} — {e:#}");

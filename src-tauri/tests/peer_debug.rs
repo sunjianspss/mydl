@@ -25,7 +25,8 @@ async fn preview_with_peer_logs() {
 
     let t0 = Instant::now();
     match engine.preview(&magnet).await {
-        Ok(p) => eprintln!(">>> 成功 用时 {:?}：{}（{} 个文件）", t0.elapsed(), p.name, p.files.len()),
+        Ok(Some(p)) => eprintln!(">>> 成功 用时 {:?}：{}（{} 个文件）", t0.elapsed(), p.name, p.files.len()),
+        Ok(None) => eprintln!(">>> 被取消 用时 {:?}", t0.elapsed()),
         Err(e) => eprintln!(">>> 失败 用时 {:?}：{e:#}", t0.elapsed()),
     }
     engine.shutdown().await;

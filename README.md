@@ -359,6 +359,12 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
   `list_only` 探一次拿到种子名和文件数，自己补上这一层。探测返回的
   `torrent_bytes` 会复用，所以磁力链不会重新解析元信息。
 - **界面用 1 秒轮询**而不是事件推送。任务量大时可以改成 Rust 侧 emit 事件。
+- **解析磁力链时可以主动取消**，不用干等满 120 秒。`Engine::preview` 用
+  `tokio::select!` 在 probe 和一个 `Notify` 之间二选一，取消那条被选中时
+  probe 那个 future 就被 drop —— librqbit 那边的解析随之取消，和超时走的
+  是同一条路。取消返回 `Ok(None)` 而不是 `Err`：那不是错误，界面不该弹红条。
+  用 `notify_one` 而不是 `notify_waiters`，后者在还没有人等待时会把通知丢掉，
+  用户手快就会点了没反应。
 - **对话框不能挂在工具栏里。** 工具栏有 `backdrop-filter`，而**带
   `backdrop-filter` 的元素会成为固定定位后代的包含块** —— 对话框挂在
   `<header>` 里的话，`position: fixed` 的遮罩会被困在工具栏那一条里，整个

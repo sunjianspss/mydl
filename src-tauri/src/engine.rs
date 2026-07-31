@@ -47,6 +47,9 @@ pub struct Engine {
     /// 预览过、但还没确认添加的种子。留着 torrent_bytes 是为了确认时不用
     /// 重新解析一遍 —— 磁力链解析一次可能要几十秒。
     previews: Mutex<HashMap<String, CachedPreview>>,
+    /// 正在进行的那次预览的取消信号。同一时间只允许一个预览（界面在解析
+    /// 期间会禁掉添加按钮），所以一个槽就够。
+    preview_cancel: Mutex<Option<Arc<tokio::sync::Notify>>>,
 }
 
 struct CachedPreview {
@@ -261,6 +264,7 @@ impl Engine {
             output_folders: Mutex::new(read_folders(&folders_path)),
             folders_path,
             previews: Mutex::new(HashMap::new()),
+            preview_cancel: Mutex::new(None),
         })
     }
 
@@ -365,7 +369,8 @@ impl Engine {
     ///
     /// torrent_bytes 会被缓存起来，[`Self::add_previewed`] 直接复用，
     /// 所以磁力链只解析这一次。
-    pub async fn preview(&self, uri: &str) -> Result<TorrentPreview> {
+    /// 返回 None 表示用户主动取消了 —— 那不是错误，界面不该弹红条。
+    pub async fn preview(&self, uri: &str) -> Result<Option<TorrentPreview>> {
         let uri = uri.trim();
         if uri.is_empty() {
             bail!("请输入磁力链、种子地址或本地种子文件路径");
@@ -373,9 +378,24 @@ impl Engine {
 
         tracing::info!(uri = %uri, "预览种子");
 
-        let probe = match tokio::time::timeout(ADD_TIMEOUT, self.probe(uri)).await {
-            Ok(r) => r?,
-            Err(_) => {
+        let cancel = Arc::new(tokio::sync::Notify::new());
+        *self.preview_cancel.lock().unwrap() = Some(cancel.clone());
+
+        // select 的另一条分支被选中时，probe 那个 future 会被 drop —— librqbit
+        // 那边的解析也就随之取消，和超时走的是同一条路。
+        let outcome = tokio::select! {
+            r = tokio::time::timeout(ADD_TIMEOUT, self.probe(uri)) => Some(r),
+            _ = cancel.notified() => None,
+        };
+        self.preview_cancel.lock().unwrap().take();
+
+        let probe = match outcome {
+            None => {
+                tracing::info!(uri = %uri, "预览已被用户取消");
+                return Ok(None);
+            }
+            Some(Ok(r)) => r?,
+            Some(Err(_)) => {
                 tracing::warn!(uri = %uri, "预览超时");
                 bail!("{}", add_timeout_message(uri))
             }
@@ -415,7 +435,7 @@ impl Engine {
             );
         }
 
-        Ok(TorrentPreview {
+        Ok(Some(TorrentPreview {
             token,
             name: probe
                 .info
@@ -427,7 +447,18 @@ impl Engine {
             total_bytes: files.iter().map(|f| f.len).sum(),
             files,
             already_added,
-        })
+        }))
+    }
+
+    /// 打断正在进行的预览。没有正在进行的就什么也不做。
+    ///
+    /// 用 `notify_one` 而不是 `notify_waiters`：前者在还没有人等待时会把这次
+    /// 通知存下来，后者会直接丢掉 —— 用户手快、在 select 第一次轮询之前就
+    /// 点了取消的话，信号会丢。
+    pub fn cancel_preview(&self) {
+        if let Some(n) = self.preview_cancel.lock().unwrap().as_ref() {
+            n.notify_one();
+        }
     }
 
     /// 确认添加之前预览过的种子，只下 `only_files` 里的文件。

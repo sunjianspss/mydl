@@ -134,7 +134,9 @@ export default function App() {
     setAdding(true);
     setError(null);
     try {
-      setPreview(await invoke<TorrentPreview>("preview_torrent", { uri: value }));
+      // null = 用户点了取消，安静收场，不当错误处理。
+      const p = await invoke<TorrentPreview | null>("preview_torrent", { uri: value });
+      if (p) setPreview(p);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -289,7 +291,16 @@ export default function App() {
 
           {adding && (
             <p className="adding-hint">
-              正在解析…磁力链需要先从其他 peer 拿到文件列表，最多等 2 分钟。
+              <span>
+                正在解析…磁力链需要先从其他 peer 拿到文件列表，最多等 2 分钟。
+              </span>
+              <button
+                type="button"
+                className="act-text"
+                onClick={() => invoke("cancel_preview").catch(() => {})}
+              >
+                取消
+              </button>
             </p>
           )}
 

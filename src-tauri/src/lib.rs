@@ -20,12 +20,20 @@ fn err(e: anyhow::Error) -> String {
 }
 
 /// 解析种子但不加入会话，让用户先看看里面有什么。
+///
+/// 返回 null 表示用户点了取消 —— 不是错误，界面不该弹红条。
 #[tauri::command]
 async fn preview_torrent(
     engine: State<'_, Arc<Engine>>,
     uri: String,
-) -> Result<TorrentPreview, String> {
+) -> Result<Option<TorrentPreview>, String> {
     engine.preview(&uri).await.map_err(err)
+}
+
+/// 打断正在进行的预览。磁力链解析最长要等 2 分钟，不该只能干等。
+#[tauri::command]
+fn cancel_preview(engine: State<'_, Arc<Engine>>) {
+    engine.cancel_preview();
 }
 
 /// 确认添加预览过的种子，只下勾选的文件。
@@ -326,6 +334,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             preview_torrent,
+            cancel_preview,
             add_previewed,
             list_torrents,
             session_status,

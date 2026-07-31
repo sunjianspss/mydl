@@ -336,6 +336,58 @@ async fn dead_magnet_times_out_instead_of_hanging() {
     eprintln!("OK: {elapsed:?} 后超时返回 — {msg}");
 }
 
+/// 主动取消必须立刻返回，而不是干等满 120 秒的超时。
+///
+/// 用死磁力链：它永远解析不出来，所以只要函数返回了，就一定是取消起了作用。
+/// 不联网也能跑 —— probe 照样会一直挂着，取消路径不依赖网络。
+#[tokio::test(flavor = "multi_thread")]
+async fn preview_can_be_cancelled() {
+    use std::sync::Arc;
+
+    let tmp = std::env::temp_dir().join(format!("mydl-cancel-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+
+    let engine = Arc::new(
+        Engine::new(
+            tmp.join("downloads"),
+            Some(tmp.join("state")),
+            tmp.join("state"),
+            Vec::new(),
+        )
+        .await
+        .expect("创建 Engine 失败"),
+    );
+
+    let dead = format!("magnet:?xt=urn:btih:{:040x}", rand_hash());
+    let e = engine.clone();
+    let task = tokio::spawn(async move { e.preview(&dead).await });
+
+    // 等预览真的开始，让 select 完成第一次轮询。
+    tokio::time::sleep(Duration::from_millis(800)).await;
+
+    let started = Instant::now();
+    engine.cancel_preview();
+
+    let joined = tokio::time::timeout(Duration::from_secs(15), task).await;
+    let elapsed = started.elapsed();
+
+    engine.shutdown().await;
+    let _ = std::fs::remove_dir_all(&tmp);
+
+    let outcome = joined
+        .expect("取消后 15 秒内没返回，说明没被打断")
+        .expect("预览任务 panic 了");
+
+    match outcome {
+        Ok(None) => {}
+        Ok(Some(_)) => panic!("死磁力链不可能解析成功"),
+        Err(e) => panic!("取消不该报错，实际：{e:#}"),
+    }
+    // 真正的超时是 120 秒，这里必须远快于它。
+    assert!(elapsed < Duration::from_secs(15), "返回太慢：{elapsed:?}");
+    eprintln!("OK: 取消后 {elapsed:?} 返回");
+}
+
 /// 造一个随机 info-hash，避免误中真实种子。
 fn rand_hash() -> u128 {
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -436,7 +488,8 @@ async fn preview_then_add_only_selected() {
     let preview = engine
         .preview(&torrent.to_string_lossy())
         .await
-        .expect("预览失败");
+        .expect("预览失败")
+        .expect("本地种子不该返回「已取消」");
     assert_eq!(preview.files.len(), 2, "预览该列出两个文件");
     assert_eq!(preview.name, "预览测试");
     assert!(!preview.already_added);
