@@ -48,6 +48,8 @@ export interface Settings {
   downloadDir: string | null;
   /** 下载完成时发系统通知。 */
   notifyOnComplete: boolean;
+  /** 下载完成时播一声提示音。和通知分开，勿扰模式下通知不响但这个会响。 */
+  soundOnComplete: boolean;
   /** 完成后移动到这个目录；null 表示不移动。移动后会停止做种。 */
   moveTo: string | null;
   /** 完成后解压内容里的 .zip。 */

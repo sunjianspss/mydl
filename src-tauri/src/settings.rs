@@ -18,6 +18,12 @@ pub struct Settings {
     /// 下载完成时发系统通知。
     pub notify_on_complete: bool,
 
+    /// 下载完成时播一声提示音。
+    ///
+    /// 和通知分开：通知权限被拒、或者开了勿扰，系统通知就不会响，而这个
+    /// 是我们自己播的，照样能听见。反过来也可以只要通知不要声音。
+    pub sound_on_complete: bool,
+
     /// 完成后把内容移动到这个目录。None 表示不移动。
     ///
     /// 移动之后 librqbit 就找不到文件了，所以会顺带把任务从列表移除
@@ -105,6 +111,7 @@ impl Default for Settings {
             download_dir: None,
             // 通知是无害的，默认开；会动文件的两项默认关。
             notify_on_complete: true,
+            sound_on_complete: true,
             move_to: None,
             extract_archives: false,
             rss_feeds: Vec::new(),

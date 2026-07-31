@@ -44,6 +44,7 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
 
                 let settings = store.get();
                 if !settings.notify_on_complete
+                    && !settings.sound_on_complete
                     && settings.move_to.is_none()
                     && !settings.extract_archives
                 {
@@ -52,6 +53,10 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
 
                 tracing::info!(id = t.id, name = %t.name, "任务完成，执行自动化");
                 let outcome = run_actions(&engine, &store, t.id).await;
+
+                if settings.sound_on_complete {
+                    crate::platform::play_done_sound();
+                }
 
                 if settings.notify_on_complete {
                     let (title, body) = match &outcome {

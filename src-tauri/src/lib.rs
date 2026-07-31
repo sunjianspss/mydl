@@ -160,6 +160,12 @@ fn log_dir() -> String {
     platform::log_dir().to_string_lossy().into_owned()
 }
 
+/// 设置里的「试听」用。不然要等一个任务真的下完才知道声音是什么。
+#[tauri::command]
+fn play_done_sound() {
+    platform::play_done_sound();
+}
+
 /// 已装的播放器，界面按这个渲染按钮。
 #[tauri::command]
 fn available_players() -> Vec<String> {
@@ -336,6 +342,7 @@ pub fn run() {
             set_only_files,
             stream_url,
             available_players,
+            play_done_sound,
             open_in_player,
             log_dir,
         ])

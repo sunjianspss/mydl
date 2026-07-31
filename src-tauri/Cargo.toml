@@ -41,7 +41,11 @@ reqwest = { version = "0.12", features = ["default-tls"] }
 
 # 阻止休眠在 Windows 上走 SetThreadExecutionState，见 platform.rs
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_System_Power"] }
+windows-sys = { version = "0.59", features = [
+  "Win32_System_Power",          # 阻止休眠
+  "Win32_System_Diagnostics_Debug", # 完成提示音 MessageBeep（就在这个模块下）
+  "Win32_UI_WindowsAndMessaging",   # MB_ICONASTERISK 常量
+] }
 
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]

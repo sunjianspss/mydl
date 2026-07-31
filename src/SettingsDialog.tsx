@@ -131,6 +131,36 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.soundOnComplete}
+            onChange={(e) => patch({ soundOnComplete: e.target.checked })}
+          />
+          <span>
+            <b>下载完成时播提示音</b>
+            <em>
+              和通知是两件事：通知权限被拒、或者开了勿扰，系统通知不会响，
+              而这一声是 App 自己播的，照样听得见。用的是系统自带提示音，
+              没有额外打包音频。
+            </em>
+          </span>
+        </label>
+
+        {draft.soundOnComplete && (
+          <div className="setting-sub">
+            <button
+              disabled={saving}
+              onClick={() => {
+                invoke("play_done_sound").catch((e) => onError(String(e)));
+              }}
+            >
+              试听
+            </button>
+            <span className="path">不用等任务下完就能听到是什么声</span>
+          </div>
+        )}
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.extractArchives}
             onChange={(e) => patch({ extractArchives: e.target.checked })}
           />

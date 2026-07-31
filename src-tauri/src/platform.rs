@@ -59,6 +59,21 @@ mod imp {
         Ok(())
     }
 
+    /// 任务完成的提示音。用系统自带的 Glass，不额外打包音频资源。
+    ///
+    /// 单独起线程等它结束：直接 spawn 不 wait 会留一串僵尸进程，而在调用方
+    /// 那边同步 wait 又会把轮询循环卡住一秒。
+    pub fn play_done_sound() {
+        std::thread::spawn(|| {
+            let r = Command::new("/usr/bin/afplay")
+                .arg("/System/Library/Sounds/Glass.aiff")
+                .status();
+            if let Err(e) = r {
+                tracing::warn!("播放提示音失败：{e}");
+            }
+        });
+    }
+
     /// 阻止休眠：拉一个 `caffeinate` 子进程。
     ///
     /// 不直接调 IOKit 是为了少一层 FFI，而且 `pmset -g assertions` 里能看到
@@ -113,6 +128,10 @@ mod imp {
     use windows_sys::Win32::System::Power::{
         SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED,
     };
+    // MessageBeep 在 Diagnostics::Debug 下（windows-sys 的元数据分组就是这么怪），
+    // 常量却在 WindowsAndMessaging 里 —— 两个 feature 都得开。
+    use windows_sys::Win32::System::Diagnostics::Debug::MessageBeep;
+    use windows_sys::Win32::UI::WindowsAndMessaging::MB_ICONASTERISK;
 
     pub fn home() -> PathBuf {
         std::env::var_os("USERPROFILE")
@@ -189,6 +208,15 @@ mod imp {
         Ok(())
     }
 
+    /// 任务完成的提示音。走 `MessageBeep`，声音是系统「星号」提示音，
+    /// 用户在「声音设置」里换过就跟着换 —— 比硬塞一个 wav 得体。
+    /// 本身就是异步返回的，不用起线程。
+    pub fn play_done_sound() {
+        if unsafe { MessageBeep(MB_ICONASTERISK) } == 0 {
+            tracing::warn!("播放提示音失败");
+        }
+    }
+
     /// 阻止休眠：`SetThreadExecutionState`。
     ///
     /// 只挡系统休眠（ES_SYSTEM_REQUIRED），不挡息屏 —— 下载中没道理让显示器
@@ -230,4 +258,4 @@ mod imp {
     }
 }
 
-pub use imp::{available_players, log_dir, open_in_player, SleepBlocker};
+pub use imp::{available_players, log_dir, open_in_player, play_done_sound, SleepBlocker};
