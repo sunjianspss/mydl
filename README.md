@@ -46,6 +46,38 @@ pnpm tauri build        # 打包出 .app / .dmg
 ditto src-tauri/target/release/bundle/macos/mydl.app /Applications/mydl.app
 ```
 
+## Windows
+
+平台差异全在 `src-tauri/src/platform.rs`，别的模块里不该再出现 `cfg(target_os)`：
+
+| | macOS | Windows |
+|---|---|---|
+| 阻止休眠 | `caffeinate -i -m -s -w <pid>` 子进程 | `SetThreadExecutionState` |
+| 日志目录 | `~/Library/Logs/mydl` | `%LOCALAPPDATA%\mydl\logs` |
+| 播放器 | 扫 `/Applications` 找 `.app` | 扫 Program Files 找 VLC / mpv / PotPlayer / MPC-HC |
+| 起播 | `open -a <播放器> <地址>` | 直接 `播放器.exe <地址>` |
+
+`SetThreadExecutionState` **是按线程记的**，所以 `keep_awake::spawn` 用独立
+OS 线程而不是 tokio 任务 —— 任务在 worker 之间迁移的话，解除会发生在另一个
+线程上，原线程那份要求永远留着，电脑再也不会自己睡。循环体本来也全是同步
+调用，不需要 async。
+
+界面上的标题栏留白只在 macOS 出现（`[data-platform="macos"]`）。Windows 的
+窗口控件在右上角，留着就是一条空白。判定走 userAgent 而不是调 Rust 命令：
+必须**同步**拿到，否则会先渲染出 38px 留白再跳掉。
+
+**在 Windows 上打包**（不支持从 macOS 交叉编译，Tauri 的 NSIS/MSI 需要
+Windows 侧工具链）：
+
+```powershell
+# 先装 Rust、Node + pnpm，以及 VS Build Tools 的「使用 C++ 的桌面开发」
+pnpm install
+pnpm tauri build      # 产物在 src-tauri\target\release\bundle\nsis\
+```
+
+首次运行时 Windows 防火墙会问是否允许 4240 端口，**要点允许**，否则连不上 peer。
+Win10 还需要 WebView2 运行时（Win11 自带）。
+
 ## 上传限速
 
 设置里「限制上传速度」，单位 KB/s，默认不限；勾上后初始值 128 KB/s（约 1 Mbps），
@@ -137,6 +169,7 @@ src/                     React 界面
 
 src-tauri/src/
 ├── engine.rs            librqbit 会话的封装，不含 Tauri 类型
+├── platform.rs          平台差异（日志目录、播放器、阻止休眠）
 ├── stream_server.rs     本地 HTTP 流媒体服务（Range 支持）
 ├── settings.rs          持久化设置（JSON，原子写）
 └── lib.rs               Tauri 命令 + 应用入口
@@ -227,8 +260,11 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - **设置图标是滑杆不是齿轮。** 16px 视口画不出齿，圆圈加八根辐条实机看着
   是个太阳。
 - **`Speed.mbps` 实际单位是 MiB/s**，不是兆比特。`engine.rs` 里统一换算成字节/秒了。
-- **播放器检测是硬编码 + macOS 专用**：按固定名字查 `/Applications` 等目录，
-  打开走 `open -a`。要支持别的平台得换实现。
+- **播放器检测是硬编码的**：两个平台都是按固定名字查固定目录，见
+  `platform.rs` 里的 `KNOWN`。装在别处就认不出来。
+- **Windows 侧只做了类型检查，没有实机验证过。** `platform.rs` 的 Windows
+  分支用 `cargo check --target x86_64-pc-windows-msvc` 验过能编译，但播放器
+  路径、日志目录、阻止休眠的实际行为都还没在真机上跑过。
 - **暂停中的任务不能起播。** 暂停状态不会有新数据进来，播放器只会卡住，
   所以按钮直接禁用，后端也会明确报错。
 - **取消勾选不会删已下的数据。** `update_only_files` 只改 chunk tracker，

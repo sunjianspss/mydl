@@ -147,9 +147,14 @@ body {
   border-right: 1px solid var(--hairline);
 }
 
-/* 红绿灯按钮占的高度。少了这块，第一个分类会被压在按钮底下。 */
+/* 红绿灯按钮占的高度。少了这块，第一个分类会被压在按钮底下。
+   只有 macOS 需要：Windows 的窗口控件在右上角，留着就是一条空白。 */
 .titlebar-gap {
   flex: none;
+  height: 0;
+}
+
+:root[data-platform="macos"] .titlebar-gap {
   height: 38px;
 }
 
@@ -429,16 +434,21 @@ input[type="checkbox"] {
 
 /* ---------- 顶部工具栏 ---------- */
 
-/* 上内边距是给 Overlay 标题栏让位的：那一条是窗口拖拽区，控件放进去点不动。
-   顺带这也正是原生统一工具栏的高度观感。 */
+/* macOS 上多出来的上内边距是给 Overlay 标题栏让位的：那一条是窗口拖拽区，
+   控件放进去点不动。顺带这也正是原生统一工具栏的高度观感。
+   Windows 有自己的标题栏，不需要让位。 */
 .toolbar {
   flex: none;
-  padding: 32px 14px 10px;
+  padding: 12px 14px 10px;
   user-select: none;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--hairline);
+}
+
+:root[data-platform="macos"] .toolbar {
+  padding-top: 32px;
 }
 
 .add-row {

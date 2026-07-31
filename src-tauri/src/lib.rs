@@ -1,12 +1,12 @@
 pub mod automation;
 pub mod engine;
 pub mod keep_awake;
+pub mod platform;
 pub mod rss;
 pub mod settings;
 pub mod stream_server;
 
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use engine::{Engine, FileView, TorrentId, TorrentPreview, TorrentView};
@@ -157,53 +157,19 @@ async fn check_rss_now(
 /// 日志目录，给界面上的「日志」入口用 —— 打包版看不到 stdout。
 #[tauri::command]
 fn log_dir() -> String {
-    dirs_home()
-        .join("Library/Logs/mydl")
-        .to_string_lossy()
-        .into_owned()
+    platform::log_dir().to_string_lossy().into_owned()
 }
 
-/// macOS 上常见的播放器。只返回真正装了的，界面按这个渲染按钮。
-const KNOWN_PLAYERS: &[&str] = &["IINA", "VLC", "mpv", "QuickTime Player"];
-
+/// 已装的播放器，界面按这个渲染按钮。
 #[tauri::command]
 fn available_players() -> Vec<String> {
-    let roots = [
-        PathBuf::from("/Applications"),
-        PathBuf::from("/System/Applications"),
-        dirs_home().join("Applications"),
-    ];
-
-    KNOWN_PLAYERS
-        .iter()
-        .filter(|name| {
-            roots
-                .iter()
-                .any(|root| root.join(format!("{name}.app")).exists())
-        })
-        .map(|s| s.to_string())
-        .collect()
+    platform::available_players()
 }
 
-/// 用指定播放器打开流地址。走 `open -a`，因为 http:// 交给系统默认处理会进浏览器。
+/// 用指定播放器打开流地址。
 #[tauri::command]
 fn open_in_player(url: String, app: String) -> Result<(), String> {
-    let status = Command::new("/usr/bin/open")
-        .args(["-a", &app, &url])
-        .status()
-        .map_err(|e| format!("启动 {app} 失败：{e}"))?;
-
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!("{app} 退出码 {status}"))
-    }
-}
-
-fn dirs_home() -> PathBuf {
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new("/").to_path_buf())
+    platform::open_in_player(&url, &app).map_err(err)
 }
 
 fn init_app(app: &tauri::App) -> anyhow::Result<()> {
@@ -273,7 +239,7 @@ fn init_logging() -> Option<tracing_appender::non_blocking::WorkerGuard> {
     use tracing_appender::rolling::{Builder, Rotation};
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-    let log_dir = dirs_home().join("Library/Logs/mydl");
+    let log_dir = platform::log_dir();
 
     // 日志坏了也不能影响 App 启动，所以每一步失败都只是退化成「只打终端」。
     let (file_layer, guard) = match std::fs::create_dir_all(&log_dir).ok().and_then(|_| {

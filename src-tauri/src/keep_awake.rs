@@ -1,16 +1,13 @@
 //! 有任务在下载时阻止电脑休眠，下完自动解除。
 //!
-//! 走 `caffeinate` 子进程而不是直接调 IOKit：少一层 FFI，行为也和系统自带
-//! 工具完全一致，`pmset -g assertions` 里能看到是谁在阻止休眠。
-//!
-//! 关键是 `-w <自己的 pid>`：万一 App 被强杀、来不及 kill 子进程，
-//! caffeinate 也会跟着退出，不会留一个进程让电脑永远睡不着。
+//! 平台实现（macOS 的 caffeinate、Windows 的 SetThreadExecutionState）在
+//! `platform.rs`，这里只管什么时候该开、什么时候该关。
 
-use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::engine::{Engine, TorrentView};
+use crate::platform::SleepBlocker;
 use crate::settings::SettingsStore;
 
 const POLL: Duration = Duration::from_secs(15);
@@ -21,48 +18,22 @@ pub fn should_stay_awake(enabled: bool, torrents: &[TorrentView]) -> bool {
     enabled && torrents.iter().any(|t| t.state == "live" && !t.finished)
 }
 
-fn start() -> std::io::Result<Child> {
-    Command::new("/usr/bin/caffeinate")
-        // -i 禁止闲置休眠，-m 禁止磁盘休眠，-s 禁止系统休眠（仅接电源时有效）
-        .args(["-i", "-m", "-s", "-w", &std::process::id().to_string()])
-        .spawn()
-}
-
 pub fn spawn(engine: Arc<Engine>, store: Arc<SettingsStore>) {
-    tauri::async_runtime::spawn(async move {
-        let mut guard: Option<Child> = None;
+    // 用独立的 OS 线程而不是 tokio 任务：Windows 的 SetThreadExecutionState
+    // 是**按线程**记的，任务在 worker 线程之间迁移的话，解除会发生在另一个
+    // 线程上，原线程那份要求就永远留着了 —— 电脑再也不会自己睡。
+    //
+    // 循环体本来也全是同步调用（engine.list()、store.get()），不需要 async。
+    std::thread::spawn(move || {
+        let mut blocker = SleepBlocker::default();
 
         loop {
-            tokio::time::sleep(POLL).await;
-
+            std::thread::sleep(POLL);
             let want = should_stay_awake(
                 store.get().prevent_sleep_while_downloading,
                 &engine.list(),
             );
-
-            match (want, guard.as_mut()) {
-                (true, None) => match start() {
-                    Ok(child) => {
-                        tracing::info!(pid = child.id(), "有任务在下载，已阻止休眠");
-                        guard = Some(child);
-                    }
-                    Err(e) => tracing::warn!("启动 caffeinate 失败：{e}"),
-                },
-                (false, Some(child)) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    tracing::info!("没有正在下载的任务，已解除阻止休眠");
-                    guard = None;
-                }
-                // 子进程意外没了（比如被人手动 kill），下一轮会重新拉起。
-                (true, Some(child)) => {
-                    if matches!(child.try_wait(), Ok(Some(_))) {
-                        tracing::warn!("caffeinate 意外退出，将重新启动");
-                        guard = None;
-                    }
-                }
-                (false, None) => {}
-            }
+            blocker.set(want);
         }
     });
 }

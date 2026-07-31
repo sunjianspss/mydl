@@ -1,0 +1,233 @@
+//! 平台差异全集中在这里，别的模块里不该再出现 `cfg(target_os)`。
+//!
+//! 目前只支持 macOS 和 Windows。加平台就在下面补一个 `mod imp`。
+
+#[cfg(not(any(target_os = "macos", windows)))]
+compile_error!("mydl 目前只支持 macOS 和 Windows：日志目录、播放器检测、阻止休眠都要按平台实现");
+
+// 前端判断平台走 userAgent（见 src/platform.ts）：那个判断必须同步拿到，
+// 否则会先按 macOS 渲染出标题栏留白再跳掉。所以这里不需要导出平台名。
+
+#[cfg(target_os = "macos")]
+mod imp {
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    use anyhow::{bail, Context, Result};
+
+    pub fn home() -> PathBuf {
+        std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/"))
+    }
+
+    pub fn log_dir() -> PathBuf {
+        home().join("Library/Logs/mydl")
+    }
+
+    /// macOS 上常见的播放器。只返回真正装了的，界面按这个渲染按钮。
+    const KNOWN: &[&str] = &["IINA", "VLC", "mpv", "QuickTime Player"];
+
+    pub fn available_players() -> Vec<String> {
+        let roots = [
+            PathBuf::from("/Applications"),
+            PathBuf::from("/System/Applications"),
+            home().join("Applications"),
+        ];
+
+        KNOWN
+            .iter()
+            .filter(|name| {
+                roots
+                    .iter()
+                    .any(|root| root.join(format!("{name}.app")).exists())
+            })
+            .map(|s| s.to_string())
+            .collect()
+    }
+
+    /// 走 `open -a`，因为 http:// 交给系统默认处理会进浏览器。
+    pub fn open_in_player(url: &str, app: &str) -> Result<()> {
+        let status = Command::new("/usr/bin/open")
+            .args(["-a", app, url])
+            .status()
+            .with_context(|| format!("启动 {app} 失败"))?;
+
+        if !status.success() {
+            bail!("{app} 退出码 {status}");
+        }
+        Ok(())
+    }
+
+    /// 阻止休眠：拉一个 `caffeinate` 子进程。
+    ///
+    /// 不直接调 IOKit 是为了少一层 FFI，而且 `pmset -g assertions` 里能看到
+    /// 是谁在阻止休眠。关键是 `-w <自己的 pid>`：万一 App 被强杀、来不及
+    /// kill 子进程，caffeinate 也会跟着退出，不会留一个进程让电脑永远睡不着。
+    #[derive(Default)]
+    pub struct SleepBlocker {
+        child: Option<std::process::Child>,
+    }
+
+    impl SleepBlocker {
+        pub fn set(&mut self, want: bool) {
+            match (want, self.child.as_mut()) {
+                (true, None) => {
+                    // -i 禁止闲置休眠，-m 禁止磁盘休眠，-s 禁止系统休眠（仅接电源时有效）
+                    let spawned = Command::new("/usr/bin/caffeinate")
+                        .args(["-i", "-m", "-s", "-w", &std::process::id().to_string()])
+                        .spawn();
+                    match spawned {
+                        Ok(child) => {
+                            tracing::info!(pid = child.id(), "有任务在下载，已阻止休眠");
+                            self.child = Some(child);
+                        }
+                        Err(e) => tracing::warn!("启动 caffeinate 失败：{e}"),
+                    }
+                }
+                (false, Some(child)) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    tracing::info!("没有正在下载的任务，已解除阻止休眠");
+                    self.child = None;
+                }
+                // 子进程意外没了（比如被人手动 kill），下一轮会重新拉起。
+                (true, Some(child)) => {
+                    if matches!(child.try_wait(), Ok(Some(_))) {
+                        tracing::warn!("caffeinate 意外退出，将重新启动");
+                        self.child = None;
+                    }
+                }
+                (false, None) => {}
+            }
+        }
+    }
+}
+
+#[cfg(windows)]
+mod imp {
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    use anyhow::{bail, Context, Result};
+    use windows_sys::Win32::System::Power::{
+        SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED,
+    };
+
+    pub fn home() -> PathBuf {
+        std::env::var_os("USERPROFILE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("C:\\"))
+    }
+
+    /// `%LOCALAPPDATA%\mydl\logs`。LOCALAPPDATA 拿不到时退回用户目录，
+    /// 总比写不出日志强。
+    pub fn log_dir() -> PathBuf {
+        std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home().join("AppData\\Local"))
+            .join("mydl\\logs")
+    }
+
+    /// Windows 上常见的播放器：显示名 → 相对安装根目录的可执行文件路径。
+    /// 一个播放器可能有多个候选路径（32/64 位、不同版本装到不同地方）。
+    const KNOWN: &[(&str, &[&str])] = &[
+        ("VLC", &[r"VideoLAN\VLC\vlc.exe"]),
+        ("mpv", &[r"mpv\mpv.exe"]),
+        (
+            "PotPlayer",
+            &[
+                r"DAUM\PotPlayer\PotPlayerMini64.exe",
+                r"DAUM\PotPlayer\PotPlayer.exe",
+            ],
+        ),
+        (
+            "MPC-HC",
+            &[r"MPC-HC\mpc-hc64.exe", r"MPC-HC64\mpc-hc64.exe"],
+        ),
+    ];
+
+    /// 装在哪都有可能：64 位和 32 位的 Program Files，以及只给当前用户装的。
+    fn roots() -> Vec<PathBuf> {
+        ["ProgramFiles", "ProgramFiles(x86)"]
+            .iter()
+            .filter_map(|k| std::env::var_os(k).map(PathBuf::from))
+            .chain(std::env::var_os("LOCALAPPDATA").map(|p| PathBuf::from(p).join("Programs")))
+            .collect()
+    }
+
+    fn find(app: &str) -> Option<PathBuf> {
+        let (_, candidates) = KNOWN.iter().find(|(name, _)| *name == app)?;
+        roots().iter().find_map(|root| {
+            candidates
+                .iter()
+                .map(|rel| root.join(rel))
+                .find(|p| p.exists())
+        })
+    }
+
+    pub fn available_players() -> Vec<String> {
+        KNOWN
+            .iter()
+            .filter(|(name, _)| find(name).is_some())
+            .map(|(name, _)| name.to_string())
+            .collect()
+    }
+
+    /// 直接把流地址作为参数拉起播放器。不走 `cmd /c start`：那样 http://
+    /// 会被交给系统默认程序，也就是浏览器。
+    pub fn open_in_player(url: &str, app: &str) -> Result<()> {
+        let exe = find(app).with_context(|| format!("没找到 {app} 的安装位置"))?;
+        let status = Command::new(&exe)
+            .arg(url)
+            .status()
+            .with_context(|| format!("启动 {app} 失败"))?;
+
+        if !status.success() {
+            bail!("{app} 退出码 {status}");
+        }
+        Ok(())
+    }
+
+    /// 阻止休眠：`SetThreadExecutionState`。
+    ///
+    /// 只挡系统休眠（ES_SYSTEM_REQUIRED），不挡息屏 —— 下载中没道理让显示器
+    /// 一直亮着，这一点和 macOS 那边 `caffeinate -i -m -s` 的取舍一致。
+    ///
+    /// **这个状态是按线程记的**，所以调用方必须保证所有调用都在同一个长期
+    /// 存活的线程上，见 `keep_awake::spawn`。
+    #[derive(Default)]
+    pub struct SleepBlocker {
+        active: bool,
+    }
+
+    impl SleepBlocker {
+        pub fn set(&mut self, want: bool) {
+            if want == self.active {
+                return;
+            }
+
+            let flags = if want {
+                ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+            } else {
+                // 只留 ES_CONTINUOUS 就是清掉之前设的那些要求。
+                ES_CONTINUOUS
+            };
+
+            // 返回 0 表示失败；除了记一笔没别的可做。
+            if unsafe { SetThreadExecutionState(flags) } == 0 {
+                tracing::warn!("SetThreadExecutionState 失败，休眠状态未改变");
+                return;
+            }
+
+            self.active = want;
+            if want {
+                tracing::info!("有任务在下载，已阻止休眠");
+            } else {
+                tracing::info!("没有正在下载的任务，已解除阻止休眠");
+            }
+        }
+    }
+}
+
+pub use imp::{available_players, log_dir, open_in_player, SleepBlocker};
