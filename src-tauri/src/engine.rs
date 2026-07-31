@@ -82,6 +82,18 @@ pub struct TorrentPreview {
 /// 最多缓存几份未确认的预览。预览是临时的，超了直接整个清掉最省事。
 const MAX_PREVIEWS: usize = 8;
 
+/// 底部状态栏要显示的会话级信息。
+///
+/// 只放真的拿得到的：DHT 路由表大小和实际监听端口。UPnP 映射结果 librqbit
+/// 没有暴露接口，所以不显示 —— 状态栏写一个猜的结论比不写更糟。
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionStatus {
+    /// DHT 路由表里的节点数。None = DHT 没启用或还没起来。
+    pub dht_nodes: Option<usize>,
+    pub listen_port: Option<u16>,
+}
+
 /// 单个任务在界面上需要的全部信息。
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -497,6 +509,13 @@ impl Engine {
         match resp {
             AddTorrentResponse::ListOnly(r) => Ok(r),
             _ => bail!("bug: list_only 却返回了非 ListOnly 结果"),
+        }
+    }
+
+    pub fn session_status(&self) -> SessionStatus {
+        SessionStatus {
+            dht_nodes: self.session.get_dht().map(|d| d.stats().routing_table_size),
+            listen_port: self.session.listen_addr().map(|a| a.port()),
         }
     }
 

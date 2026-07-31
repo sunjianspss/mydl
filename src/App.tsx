@@ -1,14 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
-import type { Settings, TorrentPreview, TorrentView } from "./types";
+import type { SessionStatus, Settings, TorrentPreview, TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
 import FileList from "./FileList";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
+import {
+  CheckIcon,
+  DocIcon,
+  DownIcon,
+  FolderIcon,
+  GearIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+  RssIcon,
+  StackIcon,
+  TrashIcon,
+  TypeIcon,
+  UpIcon,
+  iconKindFor,
+} from "./icons";
 import "./App.css";
 
 const POLL_INTERVAL_MS = 1000;
@@ -20,8 +36,37 @@ const STATE_LABEL: Record<string, string> = {
   error: "出错",
 };
 
+/** 侧边栏的分类。计数和过滤共用同一个判定，不会出现「写着 2 个点进去只有 1 个」。 */
+type Filter = "all" | "downloading" | "seeding" | "done" | "paused";
+
+type IconComponent = (p: { className?: string }) => React.ReactElement;
+
+const FILTERS: { id: Filter; label: string; icon: IconComponent }[] = [
+  { id: "all", label: "全部任务", icon: StackIcon },
+  { id: "downloading", label: "下载中", icon: DownIcon },
+  { id: "seeding", label: "做种中", icon: UpIcon },
+  { id: "done", label: "已完成", icon: CheckIcon },
+  { id: "paused", label: "已暂停", icon: PauseIcon },
+];
+
+function matchesFilter(t: TorrentView, f: Filter): boolean {
+  switch (f) {
+    case "downloading":
+      return t.state === "live" && !t.finished;
+    case "seeding":
+      return t.state === "live" && t.finished;
+    case "done":
+      return t.finished;
+    case "paused":
+      return t.state === "paused";
+    default:
+      return true;
+  }
+}
+
 export default function App() {
   const [torrents, setTorrents] = useState<TorrentView[]>([]);
+  const [status, setStatus] = useState<SessionStatus | null>(null);
   const [uri, setUri] = useState("");
   const [outputFolder, setOutputFolder] = useState<string | null>(null);
   const [defaultDir, setDefaultDir] = useState("");
@@ -39,10 +84,12 @@ export default function App() {
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
   // 展开了文件列表的任务。
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
 
   const refresh = useCallback(async () => {
     try {
       setTorrents(await invoke<TorrentView[]>("list_torrents"));
+      setStatus(await invoke<SessionStatus>("session_status"));
     } catch (e) {
       setError(String(e));
     }
@@ -132,143 +179,206 @@ export default function App() {
   const totalDown = torrents.reduce((sum, t) => sum + t.downloadSpeedBps, 0);
   const totalUp = torrents.reduce((sum, t) => sum + t.uploadSpeedBps, 0);
 
+  const counts = useMemo(() => {
+    const c = {} as Record<Filter, number>;
+    for (const f of FILTERS) c[f.id] = torrents.filter((t) => matchesFilter(t, f.id)).length;
+    return c;
+  }, [torrents]);
+
+  const visible = torrents.filter((t) => matchesFilter(t, filter));
+  const dir = outputFolder ?? defaultDir;
+
   return (
     <main className="app">
-      <header className="toolbar">
-        <form
-          className="add-row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (uri.trim()) addTorrent(uri);
-          }}
-        >
-          <input
-            className="uri-input"
-            value={uri}
-            placeholder="粘贴磁力链或种子地址…"
-            onChange={(e) => setUri(e.target.value)}
-            spellCheck={false}
-          />
-          <button type="submit" disabled={adding || !uri.trim()}>
-            {adding ? "解析中…" : "添加"}
-          </button>
-          <button type="button" onClick={pickTorrentFile} disabled={adding}>
-            打开种子…
-          </button>
-        </form>
+      {/* 标题栏被设成 Overlay，内容会延伸到红绿灯下面 —— 侧边栏顶部留白避让。 */}
+      <aside className="sidebar">
+        <div className="titlebar-gap" />
 
-        {adding && (
-          <p className="adding-hint">
-            正在解析…磁力链需要先从其他 peer 拿到文件列表，最多等 2 分钟。
-          </p>
-        )}
-
-        {showRss && settings && (
-          <RssDialog
-            initial={settings}
-            onSaved={(s) => {
-              setSettings(s);
-              refresh();
-            }}
-            onClose={() => setShowRss(false)}
-            onError={setError}
-          />
-        )}
-
-        {showSettings && settings && (
-          <SettingsDialog
-            initial={settings}
-            onSaved={setSettings}
-            onClose={() => setShowSettings(false)}
-            onError={setError}
-          />
-        )}
-
-        {preview && (
-          <AddDialog
-            preview={preview}
-            targetDir={outputFolder ?? defaultDir}
-            busy={confirming}
-            onConfirm={confirmAdd}
-            onCancel={() => setPreview(null)}
-          />
-        )}
-
-        <div className="meta-row">
-          <button type="button" className="link" onClick={pickOutputFolder}>
-            下载到：{outputFolder ?? (defaultDir || "…")}
-          </button>
-          {outputFolder && (
-            <button type="button" className="link" onClick={() => changeOutputFolder(null)}>
-              恢复默认
+        <nav className="side-nav">
+          {FILTERS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              className="side-item"
+              aria-current={filter === id}
+              onClick={() => setFilter(id)}
+            >
+              <Icon />
+              <span className="side-name">{label}</span>
+              {counts[id] > 0 && <span className="side-count">{counts[id]}</span>}
             </button>
+          ))}
+        </nav>
+
+        <div className="side-label">订阅</div>
+        <button className="side-item" onClick={() => setShowRss(true)} disabled={!settings}>
+          <RssIcon />
+          <span className="side-name">RSS 订阅</span>
+          {settings && settings.rssFeeds.filter((f) => f.enabled).length > 0 && (
+            <span className="side-count">
+              {settings.rssFeeds.filter((f) => f.enabled).length}
+            </span>
           )}
+        </button>
+
+        <div className="side-label">下载到</div>
+        <button className="side-item" title={dir} onClick={pickOutputFolder}>
+          <FolderIcon />
+          <span className="side-name side-path">{dir.split("/").pop() || dir || "…"}</span>
+        </button>
+        {outputFolder && (
+          <button className="side-reset" onClick={() => changeOutputFolder(null)}>
+            恢复默认目录
+          </button>
+        )}
+      </aside>
+
+      <div className="main">
+        <header className="toolbar">
+          <form
+            className="add-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (uri.trim()) addTorrent(uri);
+            }}
+          >
+            <button type="submit" className="tb-btn primary" disabled={adding || !uri.trim()}>
+              <PlusIcon />
+              {adding ? "解析中…" : "添加"}
+            </button>
+            <input
+              className="tb-input"
+              value={uri}
+              placeholder="粘贴磁力链或种子地址…"
+              onChange={(e) => setUri(e.target.value)}
+              spellCheck={false}
+            />
+            <button type="button" className="tb-btn" onClick={pickTorrentFile} disabled={adding}>
+              打开种子…
+            </button>
+            <button
+              type="button"
+              className="tb-icon"
+              title="设置"
+              disabled={!settings}
+              onClick={() => setShowSettings(true)}
+            >
+              <GearIcon />
+            </button>
+          </form>
+
+          {adding && (
+            <p className="adding-hint">
+              正在解析…磁力链需要先从其他 peer 拿到文件列表，最多等 2 分钟。
+            </p>
+          )}
+
+          {error && (
+            <div className="error-banner" onClick={() => setError(null)} title="点击关闭">
+              {error}
+            </div>
+          )}
+        </header>
+
+        <section className="list">
+          {visible.length === 0 && (
+            <p className="empty">
+              {torrents.length === 0
+                ? "还没有任务。粘贴一个磁力链，或打开本地 .torrent 文件。"
+                : "这个分类下没有任务。"}
+            </p>
+          )}
+          {visible.map((t) => (
+            <TorrentRow
+              key={t.id}
+              torrent={t}
+              expanded={expanded === t.id}
+              onToggleExpand={() => setExpanded(expanded === t.id ? null : t.id)}
+              onError={setError}
+              confirming={confirmingDelete === t.id}
+              onConfirmDelete={() => setConfirmingDelete(t.id)}
+              onCancelDelete={() => setConfirmingDelete(null)}
+              onPause={() => run(() => invoke("pause_torrent", { id: t.id }))}
+              onResume={() => run(() => invoke("resume_torrent", { id: t.id }))}
+              onDelete={(deleteFiles) =>
+                run(async () => {
+                  await invoke("delete_torrent", { id: t.id, deleteFiles });
+                  setConfirmingDelete(null);
+                })
+              }
+              onReveal={() =>
+                run(async () => {
+                  const path = await invoke<string>("reveal_path", { id: t.id });
+                  await revealItemInDir(path);
+                })
+              }
+            />
+          ))}
+        </section>
+
+        <footer className="statusbar">
+          <span className="sb-item">{torrents.length} 个任务</span>
+          <span className="sb-item">↓ {formatSpeed(totalDown)}</span>
+          <span className="sb-item">↑ {formatSpeed(totalUp)}</span>
+          {settings?.uploadLimitKbps ? (
+            <span className="sb-item sb-limit" title="在设置里改，立刻生效">
+              上传限速 {settings.uploadLimitKbps} KB/s
+            </span>
+          ) : null}
           <span className="spacer" />
-          {settings && (
-            <>
-              <button type="button" className="link" onClick={() => setShowRss(true)}>
-                RSS
-                {settings.rssFeeds.filter((f) => f.enabled).length > 0 &&
-                  ` (${settings.rssFeeds.filter((f) => f.enabled).length})`}
-              </button>
-              <button type="button" className="link" onClick={() => setShowSettings(true)}>
-                设置
-              </button>
-            </>
+          {status?.dhtNodes != null && (
+            <span className="sb-item" title="DHT 路由表里的节点数">
+              DHT {status.dhtNodes} 节点
+            </span>
+          )}
+          {status?.listenPort != null && (
+            <span className="sb-item" title="BT 监听端口（TCP + uTP）">
+              端口 {status.listenPort}
+            </span>
           )}
           <button
-            type="button"
-            className="link"
+            className="sb-btn"
             title="出问题时把日志目录翻出来"
-            onClick={() =>
-              run(async () => revealItemInDir(await invoke<string>("log_dir")))
-            }
+            onClick={() => run(async () => revealItemInDir(await invoke<string>("log_dir")))}
           >
+            <DocIcon />
             日志
           </button>
-          <span className="totals">
-            ↓ {formatSpeed(totalDown)}　↑ {formatSpeed(totalUp)}
-          </span>
-        </div>
+        </footer>
+      </div>
 
-        {error && (
-          <div className="error-banner" onClick={() => setError(null)} title="点击关闭">
-            {error}
-          </div>
-        )}
-      </header>
+      {/* 对话框必须挂在工具栏外面：工具栏有 backdrop-filter，而带 backdrop-filter
+          的元素会成为固定定位后代的包含块 —— 挂在里面的话 `position: fixed`
+          的遮罩会被困在工具栏那一条里，对话框整个错位。 */}
+      {showRss && settings && (
+        <RssDialog
+          initial={settings}
+          onSaved={(s) => {
+            setSettings(s);
+            refresh();
+          }}
+          onClose={() => setShowRss(false)}
+          onError={setError}
+        />
+      )}
 
-      <section className="list">
-        {torrents.length === 0 && (
-          <p className="empty">还没有任务。粘贴一个磁力链，或打开本地 .torrent 文件。</p>
-        )}
-        {torrents.map((t) => (
-          <TorrentRow
-            key={t.id}
-            torrent={t}
-            expanded={expanded === t.id}
-            onToggleExpand={() => setExpanded(expanded === t.id ? null : t.id)}
-            onError={setError}
-            confirming={confirmingDelete === t.id}
-            onConfirmDelete={() => setConfirmingDelete(t.id)}
-            onCancelDelete={() => setConfirmingDelete(null)}
-            onPause={() => run(() => invoke("pause_torrent", { id: t.id }))}
-            onResume={() => run(() => invoke("resume_torrent", { id: t.id }))}
-            onDelete={(deleteFiles) =>
-              run(async () => {
-                await invoke("delete_torrent", { id: t.id, deleteFiles });
-                setConfirmingDelete(null);
-              })
-            }
-            onReveal={() =>
-              run(async () => {
-                const path = await invoke<string>("reveal_path", { id: t.id });
-                await revealItemInDir(path);
-              })
-            }
-          />
-        ))}
-      </section>
+      {showSettings && settings && (
+        <SettingsDialog
+          initial={settings}
+          onSaved={setSettings}
+          onClose={() => setShowSettings(false)}
+          onError={setError}
+        />
+      )}
+
+      {preview && (
+        <AddDialog
+          preview={preview}
+          targetDir={dir}
+          busy={confirming}
+          onConfirm={confirmAdd}
+          onCancel={() => setPreview(null)}
+        />
+      )}
     </main>
   );
 }
@@ -302,71 +412,97 @@ function TorrentRow({
 }: RowProps) {
   const pct = percent(t.progressBytes, t.totalBytes);
   const paused = t.state === "paused";
+  // 下完了还挂在 live 上就是在做种 —— 跟「正在下载」用不同颜色区分开，
+  // 否则一眼看不出哪个任务还在耗带宽下东西。
+  const seeding = t.state === "live" && t.finished;
+  const kind = seeding ? "seeding" : t.state;
+  const iconKind = iconKindFor(t.name, t.state === "error");
 
   return (
-    <article className={`row state-${t.state}`}>
-      {/* 整行可点：光靠那个小三角太难发现。 */}
-      <div
-        className="row-head"
-        role="button"
-        tabIndex={0}
-        title={expanded ? "收起文件列表" : "展开文件列表"}
-        onClick={onToggleExpand}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggleExpand();
-          }
-        }}
-      >
-        <span className="disclosure">{expanded ? "▾" : "▸"}</span>
-        <span className="name" title={t.infoHash}>
-          {t.name}
-        </span>
-        <span className={`badge badge-${t.state}`}>
-          {t.finished && t.state === "live" ? "做种中" : (STATE_LABEL[t.state] ?? t.state)}
-        </span>
+    <article className={`task state-${t.state}${seeding ? " is-seeding" : ""}`}>
+      <div className={`type-icon type-${iconKind}`}>
+        <TypeIcon kind={iconKind} />
       </div>
 
-      <div className="bar">
-        <div className="bar-fill" style={{ width: `${pct}%` }} />
-      </div>
+      <div className="task-body">
+        {/* 整行标题可点：光靠那个小三角太难发现。 */}
+        <div
+          className="title-row"
+          role="button"
+          tabIndex={0}
+          title={expanded ? "收起文件列表" : "展开文件列表"}
+          onClick={onToggleExpand}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onToggleExpand();
+            }
+          }}
+        >
+          <span className="title">{t.name}</span>
+          <span className={`state state-dot-${kind}`}>
+            {seeding ? "做种中" : (STATE_LABEL[t.state] ?? t.state)}
+          </span>
+        </div>
 
-      <div className="row-stats">
-        <span className="pct">{pct.toFixed(1)}%</span>
-        <span>
-          {formatBytes(t.progressBytes)} / {formatBytes(t.totalBytes)}
-        </span>
-        <span>↓ {formatSpeed(t.downloadSpeedBps)}</span>
-        <span>↑ {formatSpeed(t.uploadSpeedBps)}</span>
-        <span>{t.peersLive} peers</span>
-        {t.eta && !t.finished && <span>剩余 {t.eta}</span>}
-        <span className="spacer" />
-        {confirming ? (
-          <>
-            <span className="confirm-label">确认删除？</span>
-            <button onClick={() => onDelete(false)}>仅移除任务</button>
-            <button className="danger" onClick={() => onDelete(true)}>
-              连同文件
-            </button>
-            <button onClick={onCancelDelete}>取消</button>
-          </>
-        ) : (
-          <>
-            <button onClick={paused ? onResume : onPause}>{paused ? "继续" : "暂停"}</button>
-            <button onClick={onReveal}>在访达中显示</button>
-            <button className="danger" onClick={onConfirmDelete}>
-              删除
-            </button>
-          </>
+        <div className="bar">
+          <div className="bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+
+        <div className="stats">
+          <span className="pct">{pct.toFixed(1)}%</span>
+          <span className="meta">
+            <span>
+              {formatBytes(t.progressBytes)} / {formatBytes(t.totalBytes)}
+            </span>
+            <span>↓ {formatSpeed(t.downloadSpeedBps)}</span>
+            <span>↑ {formatSpeed(t.uploadSpeedBps)}</span>
+            <span>{t.peersLive} peers</span>
+            {t.eta && !t.finished && <span>剩余 {t.eta}</span>}
+          </span>
+          <span className="spacer" />
+
+          {/* 确认删除时必须完全显形：这时候压暗等于把关键选择藏起来 */}
+          <div className={`acts${confirming ? " is-confirming" : ""}`}>
+            {confirming ? (
+              <>
+                <span className="confirm-label">确认删除？</span>
+                <button className="act-text" onClick={() => onDelete(false)}>
+                  仅移除任务
+                </button>
+                <button className="act-text danger" onClick={() => onDelete(true)}>
+                  连同文件
+                </button>
+                <button className="act-text" onClick={onCancelDelete}>
+                  取消
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="act"
+                  title={paused ? "继续下载" : "暂停"}
+                  onClick={paused ? onResume : onPause}
+                >
+                  {paused ? <PlayIcon /> : <PauseIcon />}
+                </button>
+                <button className="act" title="在访达中显示" onClick={onReveal}>
+                  <FolderIcon />
+                </button>
+                <button className="act danger" title="删除" onClick={onConfirmDelete}>
+                  <TrashIcon />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {t.error && <p className="task-error">{t.error}</p>}
+
+        {expanded && (
+          <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
         )}
       </div>
-
-      {t.error && <p className="row-error">{t.error}</p>}
-
-      {expanded && (
-        <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
-      )}
     </article>
   );
 }

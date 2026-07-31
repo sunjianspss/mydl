@@ -1,29 +1,73 @@
+/* ============================================================
+   设计基线：向 macOS 自带应用看齐 —— 系统字体、系统语义色、克制的层次。
+
+   三层表面：窗口底 --bg → 卡片/对话框 --panel → 悬停填充 --fill。
+   数字一律等宽（tabular-nums），否则速度每秒跳动时整行都在抖。
+   ============================================================ */
+
 :root {
-  --bg: #f5f5f7;
-  --panel: #ffffff;
+  color-scheme: light dark;
+
+  /* 表面 */
+  --bg: #f2f2f7;
+  --panel: #fff;
+  --sidebar: #e8e8ed;
+  --fill: rgb(0 0 0 / 6%);
+  --track: #e3e3e8;
+
+  /* 文字 */
   --text: #1d1d1f;
   --muted: #6e6e73;
-  --border: #d6d6db;
-  --accent: #0a84ff;
-  --danger: #d7263d;
-  --track: #e5e5ea;
+  --faint: #a1a1a6;
+
+  /* 线条：--border 给控件，--hairline 给分隔 */
+  --border: #d3d3d8;
+  --hairline: rgb(0 0 0 / 9%);
+
+  /* 语义色，取 macOS 系统色 */
+  --accent: #007aff;
+  --success: #34c759;
+  --warn: #ff9500;
+  --danger: #ff3b30;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 6%);
+  --shadow-btn: 0 1px 1.5px rgb(0 0 0 / 5%);
+  --shadow-dialog: 0 24px 64px rgb(0 0 0 / 28%);
+
+  --r-sm: 5px;
+  --r-md: 7px;
+  --r-lg: 12px;
 
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", sans-serif;
   font-size: 13px;
   color: var(--text);
   background: var(--bg);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #1c1c1e;
     --panel: #2c2c2e;
+    --sidebar: #232325;
+    --fill: rgb(255 255 255 / 8%);
+    --track: #3a3a3c;
+
     --text: #f5f5f7;
     --muted: #98989d;
-    --border: #3a3a3c;
+    --faint: #7c7c80;
+
+    --border: #48484a;
+    --hairline: rgb(255 255 255 / 11%);
+
     --accent: #0a84ff;
-    --danger: #ff6961;
-    --track: #3a3a3c;
+    --success: #30d158;
+    --warn: #ff9f0a;
+    --danger: #ff453a;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 28%);
+    --shadow-btn: 0 1px 1.5px rgb(0 0 0 / 22%);
+    --shadow-dialog: 0 24px 64px rgb(0 0 0 / 55%);
   }
 }
 
@@ -33,100 +77,817 @@
 
 body {
   margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* 细滚动条。系统默认那条在窄面板里显得很笨重。 */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(0 0 0 / 20%);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(0 0 0 / 34%);
+  background-clip: content-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: rgb(255 255 255 / 22%);
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(255 255 255 / 36%);
+    background-clip: content-box;
+  }
+}
+
+/* 三段式骨架：左侧源列表 + 主区（工具栏/列表/状态栏）。
+   标题栏设成 Overlay，内容会延伸到红绿灯下面，靠 .titlebar-gap 避让。 */
 .app {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.main {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: var(--bg);
+  min-width: 0;
+}
+
+/* ---------- 侧边源列表 ---------- */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 9px 10px;
+  overflow-y: auto;
+  user-select: none;
+  background: var(--sidebar);
+  border-right: 1px solid var(--hairline);
+}
+
+/* 红绿灯按钮占的高度。少了这块，第一个分类会被压在按钮底下。 */
+.titlebar-gap {
+  flex: none;
+  height: 38px;
+}
+
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-label {
+  padding: 12px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+}
+
+.side-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.side-item:hover:not(:disabled) {
+  background: var(--fill);
+}
+
+.side-item[aria-current="true"] {
+  color: #fff;
+  background: var(--accent);
+}
+
+.side-item[aria-current="true"]:hover {
+  background: var(--accent);
+}
+
+.side-item[aria-current="true"] .side-count,
+.side-item[aria-current="true"] svg {
+  color: rgb(255 255 255 / 78%);
+}
+
+.side-item svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.side-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-count {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.side-reset {
+  padding: 3px 8px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+.side-reset:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
+}
+
+/* ---------- 底部状态栏 ---------- */
+
+.statusbar {
+  display: flex;
+  flex: none;
+  gap: 13px;
+  align-items: center;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  color: var(--muted);
+  user-select: none;
+  background: color-mix(in srgb, var(--sidebar) 55%, var(--bg));
+  border-top: 1px solid var(--hairline);
+}
+
+.sb-item {
+  white-space: nowrap;
+}
+
+.sb-limit {
+  color: var(--warn);
+}
+
+.sb-btn {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+.sb-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
+}
+
+.sb-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ---------- 通用控件 ---------- */
+
+button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-btn);
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 6%, var(--panel));
+}
+
+button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 12%, var(--panel));
+}
+
+button:disabled {
+  color: var(--faint);
+  cursor: default;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+button.primary {
+  color: #fff;
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 82%, black);
+}
+
+button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, black 8%, var(--accent));
+}
+
+button.primary:active:not(:disabled) {
+  background: color-mix(in srgb, black 16%, var(--accent));
+}
+
+button.primary:disabled {
+  color: #fff;
+  opacity: 0.45;
+}
+
+button.danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+/* 文字按钮：工具栏里的次要入口 */
+button.link {
+  max-width: 44ch;
+  padding: 3px 7px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+button.link:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
+}
+
+/* 安静按钮：内容区里的操作不该个个都长得像实体按钮，否则整屏都是框。
+   平时只有文字，鼠标移上去才浮出底色。 */
+.files-toolbar button,
+.dialog-toolbar button,
+.file-actions button {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.files-toolbar button:hover:not(:disabled),
+.dialog-toolbar button:hover:not(:disabled),
+.file-actions button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
+  border-color: transparent;
+}
+
+.file-actions button.danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: transparent;
+}
+
+.rss-item input[type="text"],
+.rss-item input:not([type]),
+.rss-interval input,
+.setting-sub input[type="number"] {
+  min-width: 0;
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 3%);
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.rss-item input:focus,
+.rss-interval input:focus,
+.setting-sub input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+:where(button, [role="button"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[type="checkbox"] {
+  flex: none;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* ---------- 顶部工具栏 ---------- */
 
+/* 上内边距是给 Overlay 标题栏让位的：那一条是窗口拖拽区，控件放进去点不动。
+   顺带这也正是原生统一工具栏的高度观感。 */
 .toolbar {
-  position: sticky;
-  top: 0;
-  padding: 12px 16px 10px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  flex: none;
+  padding: 32px 14px 10px;
+  user-select: none;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .add-row {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
-.uri-input {
+.tb-btn {
+  padding: 5px 11px;
+}
+
+.tb-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tb-input {
   flex: 1;
   min-width: 0;
-  padding: 7px 10px;
+  padding: 6px 10px;
   font: inherit;
+  font-size: 12.5px;
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-md);
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 3%);
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
-.uri-input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
+.tb-input::placeholder {
+  color: var(--faint);
 }
 
-button {
-  padding: 6px 12px;
-  font: inherit;
-  color: var(--text);
-  white-space: nowrap;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover:not(:disabled) {
+.tb-input:focus {
   border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
-button:disabled {
-  color: var(--muted);
-  cursor: default;
-  opacity: 0.5;
-}
-
-button.danger:hover:not(:disabled) {
-  color: var(--danger);
-  border-color: var(--danger);
-}
-
-button.link {
+.tb-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 27px;
   padding: 0;
   color: var(--muted);
   background: none;
   border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
 }
 
-button.link:hover {
-  color: var(--accent);
+.tb-icon:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
 }
 
-.meta-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 8px;
-  color: var(--muted);
+.tb-icon svg {
+  width: 15px;
+  height: 15px;
 }
 
 .spacer {
   flex: 1;
 }
 
-.totals {
-  font-variant-numeric: tabular-nums;
+.adding-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
-/* ---------- 添加前的文件选择对话框 ---------- */
+.error-banner {
+  padding: 7px 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--danger);
+  user-select: text;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-radius: var(--r-md);
+}
+
+/* ---------- 任务列表 ---------- */
+
+.list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 20px;
+  overflow-y: auto;
+}
+
+.empty {
+  max-width: 320px;
+  margin: 72px auto 0;
+  line-height: 1.7;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* 任务卡：左边 38px 图标底板当视觉锚点，右边正文。
+   纯文字列表看起来像调试面板，图标是拉开观感最有效的一项。 */
+.task {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 11px;
+  padding: 10px 11px;
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s ease;
+}
+
+.task:hover {
+  box-shadow: 0 2px 7px rgb(0 0 0 / 8%);
+}
+
+.type-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.type-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.type-video {
+  background: linear-gradient(180deg, #6f7bff, #4a53d8);
+}
+
+.type-audio {
+  background: linear-gradient(180deg, #ff6f8e, #e03a63);
+}
+
+.type-disc {
+  background: linear-gradient(180deg, #ff9f4a, #f0761e);
+}
+
+.type-archive {
+  background: linear-gradient(180deg, #8e9aa8, #667585);
+}
+
+.type-file {
+  background: linear-gradient(180deg, #9aa0a8, #71787f);
+}
+
+.type-dead {
+  background: linear-gradient(180deg, #b4b4bb, #8e8e96);
+}
+
+.task-body {
+  min-width: 0;
+}
+
+.title-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--r-sm);
+}
+
+.title-row:hover {
+  background: var(--fill);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 590;
+  letter-spacing: -0.005em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 状态用小圆点 + 文字。填色胶囊在窄窗口里会被挤成两行（「做种/中」），
+   而且几个任务并排时满屏色块，反而看不出哪个要紧。 */
+.state {
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.state::before {
+  width: 7px;
+  height: 7px;
+  content: "";
+  background: var(--faint);
+  border-radius: 50%;
+}
+
+.state-dot-live::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.state-dot-seeding::before {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+}
+
+.state-dot-error {
+  color: var(--danger);
+}
+
+.state-dot-error::before {
+  background: var(--danger);
+}
+
+.bar {
+  height: 4px;
+  margin: 8px 0 7px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: 2px;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition:
+    width 0.4s ease-out,
+    background 0.2s ease;
+}
+
+.is-seeding .bar-fill {
+  background: var(--success);
+}
+
+.state-paused .bar-fill {
+  background: var(--faint);
+}
+
+.state-error .bar-fill {
+  background: var(--danger);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.pct {
+  min-width: 44px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 中点分隔比一堆等宽空隙更紧凑，也更像系统应用的信息行。 */
+.meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.meta > span + span::before {
+  margin-right: 8px;
+  color: var(--faint);
+  content: "\00b7";
+}
+
+/* 操作平时隐形，指到这一行才出现 —— 三个描边按钮常驻会把每一行都塞满。 */
+.acts {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.task:hover .acts,
+.task:focus-within .acts,
+.acts.is-confirming {
+  opacity: 1;
+}
+
+.act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+.act:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
+}
+
+.act.danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: transparent;
+}
+
+.act svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 删除确认是文字按钮：三个图标分不清「仅移除」和「连同文件」。 */
+.act-text {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+.act-text:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill);
+}
+
+.act-text.danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.confirm-label {
+  font-weight: 500;
+  color: var(--danger);
+}
+
+.task-error {
+  padding: 6px 9px;
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--danger);
+  user-select: text;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: var(--r-md);
+}
+
+/* ---------- 展开的文件列表 ---------- */
+
+.files-panel {
+  margin-top: 11px;
+  border-top: 1px solid var(--hairline);
+}
+
+.files-toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.files {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border-top: 1px solid var(--hairline);
+}
+
+.files-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.file {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 5px;
+  margin: 0 -5px;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+}
+
+.file:hover {
+  background: var(--fill);
+}
+
+.file:last-child {
+  border-bottom: none;
+}
+
+/* 跳过的文件压暗，但仍要能看清名字和大小。 */
+.file-skipped .file-name,
+.file-skipped .file-size {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+
+.file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.file-pct {
+  margin-left: 2px;
+}
+
+.file-actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* ---------- 对话框 ---------- */
 
 .overlay {
   position: fixed;
@@ -135,8 +896,10 @@ button.link:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: rgb(0 0 0 / 35%);
+  padding: 28px;
+  background: rgb(0 0 0 / 30%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .dialog {
@@ -144,46 +907,46 @@ button.link:hover {
   flex-direction: column;
   width: min(720px, 100%);
   max-height: 100%;
-  padding: 16px 18px;
+  padding: 18px 20px 16px;
+  user-select: none;
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-dialog);
 }
 
 .dialog-title {
   margin: 0;
   overflow: hidden;
   font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .dialog-sub {
   margin: 6px 0 0;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .dialog-warn {
-  padding: 6px 10px;
+  padding: 7px 10px;
   margin: 10px 0 0;
+  font-size: 12px;
   color: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-md);
 }
 
 .dialog-toolbar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   padding: 10px 0;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.dialog-toolbar button {
-  padding: 2px 8px;
   font-size: 12px;
+  color: var(--muted);
 }
 
 .dialog-files {
@@ -192,39 +955,28 @@ button.link:hover {
   margin: 0;
   overflow-y: auto;
   list-style: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
 }
 
 .dialog-files li {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 6px 5px;
+  margin: 0 -5px;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
 }
 
-.dialog-files input[type="checkbox"] {
-  flex: none;
-  margin: 0;
-  cursor: pointer;
+.dialog-files li:hover {
+  background: var(--fill);
 }
 
 .dialog-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  padding-top: 12px;
-}
-
-button.primary {
-  color: #fff;
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-button.primary:disabled {
-  color: #fff;
-  opacity: 0.5;
+  padding-top: 14px;
 }
 
 /* ---------- RSS 订阅对话框 ---------- */
@@ -238,12 +990,12 @@ button.primary:disabled {
   min-height: 60px;
   margin-top: 10px;
   overflow-y: auto;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
 }
 
 .rss-item {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 11px 0;
+  border-bottom: 1px solid var(--hairline);
 }
 
 .rss-off {
@@ -257,19 +1009,16 @@ button.primary:disabled {
 }
 
 .rss-rules {
-  margin-top: 6px;
   padding-left: 24px;
+  margin-top: 6px;
 }
 
 .rss-item input[type="text"],
-.rss-item input:not([type]) {
-  min-width: 0;
+.rss-item input:not([type]),
+.rss-interval input {
   padding: 4px 8px;
-  font: inherit;
-  color: var(--text);
+  font-size: 12.5px;
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 5px;
 }
 
 .rss-rules input {
@@ -288,24 +1037,19 @@ button.primary:disabled {
   display: flex;
   gap: 12px;
   align-items: center;
-  padding-top: 10px;
+  padding-top: 12px;
 }
 
 .rss-interval {
   display: flex;
   gap: 6px;
   align-items: center;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .rss-interval input {
   width: 62px;
-  padding: 4px 6px;
-  font: inherit;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 5px;
 }
 
 .rss-reports {
@@ -313,9 +1057,10 @@ button.primary:disabled {
   padding: 8px 0 0;
   margin: 8px 0 0;
   overflow-y: auto;
+  font-size: 12px;
   color: var(--muted);
   list-style: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
 }
 
 .rss-reports li {
@@ -330,21 +1075,31 @@ button.primary:disabled {
 
 .settings-dialog {
   width: min(560px, 100%);
+  overflow-y: auto;
+}
+
+/* 窗口一矮，设置项就比对话框还高，「保存」会被挤出可视区、用户以为改不了。
+   让对话框自己滚，操作栏 sticky 钉在底部；负 bottom 和内边距是用来抵消
+   .dialog 自身的 padding，免得钉住时和底边差一截。 */
+.settings-dialog .dialog-actions {
+  position: sticky;
+  bottom: -16px;
+  padding-bottom: 16px;
+  margin-bottom: -16px;
+  background: var(--panel);
 }
 
 .setting {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 12px 0;
+  padding: 13px 0;
   cursor: pointer;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .setting input[type="checkbox"] {
-  flex: none;
   margin: 2px 0 0;
-  cursor: pointer;
 }
 
 /* 只有标题那个 <b> 独占一行。写成 `.setting b` 会连说明文字里用来强调的
@@ -356,9 +1111,11 @@ button.primary:disabled {
 
 .setting em {
   display: block;
-  margin-top: 3px;
-  color: var(--muted);
+  margin-top: 4px;
+  font-size: 12px;
   font-style: normal;
+  line-height: 1.55;
+  color: var(--muted);
 }
 
 /* 子行要跟它所属的那一项在同一格里。分隔线本来画在 .setting 底部，
@@ -371,247 +1128,19 @@ button.primary:disabled {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px 0 12px 26px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 0 13px 26px;
+  border-bottom: 1px solid var(--hairline);
 }
 
 .setting-sub input[type="number"] {
   width: 96px;
-  padding: 4px 8px;
-  font: inherit;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 5px;
+  padding: 5px 8px;
 }
 
 .setting-sub .path {
   overflow: hidden;
+  font-size: 12px;
   color: var(--muted);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.adding-hint {
-  margin: 8px 0 0;
-  color: var(--muted);
-}
-
-.error-banner {
-  padding: 6px 10px;
-  margin-top: 8px;
-  color: var(--danger);
-  cursor: pointer;
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  border-radius: 6px;
-}
-
-/* ---------- 任务列表 ---------- */
-
-.list {
-  flex: 1;
-  padding: 12px 16px;
-  overflow-y: auto;
-}
-
-.empty {
-  margin-top: 48px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.row {
-  padding: 12px 14px;
-  margin-bottom: 10px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.row-head {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 2px 4px;
-  margin: -2px -4px;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.row-head:hover {
-  background: var(--track);
-}
-
-.row-head:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.name {
-  overflow: hidden;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.badge {
-  padding: 1px 7px;
-  font-size: 11px;
-  color: var(--muted);
-  background: var(--track);
-  border-radius: 10px;
-}
-
-.badge-live {
-  color: #fff;
-  background: var(--accent);
-}
-
-.badge-error {
-  color: #fff;
-  background: var(--danger);
-}
-
-.bar {
-  height: 6px;
-  margin: 9px 0 7px;
-  overflow: hidden;
-  background: var(--track);
-  border-radius: 3px;
-}
-
-.bar-fill {
-  height: 100%;
-  background: var(--accent);
-  transition: width 0.4s ease-out;
-}
-
-.state-paused .bar-fill {
-  background: var(--muted);
-}
-
-.state-error .bar-fill {
-  background: var(--danger);
-}
-
-.row-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.row-stats button {
-  padding: 3px 9px;
-  font-size: 12px;
-}
-
-.pct {
-  min-width: 44px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.confirm-label {
-  color: var(--danger);
-}
-
-.row-error {
-  margin: 8px 0 0;
-  color: var(--danger);
-}
-
-/* ---------- 展开的文件列表 ---------- */
-
-.disclosure {
-  width: 12px;
-  color: var(--muted);
-  user-select: none;
-}
-
-.files-panel {
-  margin-top: 10px;
-  border-top: 1px solid var(--border);
-}
-
-.files-toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 0 6px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.files-toolbar button {
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.files {
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  border-top: 1px solid var(--border);
-}
-
-.files-hint {
-  margin: 10px 0 0;
-  color: var(--muted);
-}
-
-.file {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.file input[type="checkbox"] {
-  flex: none;
-  margin: 0;
-  cursor: pointer;
-}
-
-/* 跳过的文件压暗，但仍要能看清名字和大小。 */
-.file-skipped .file-name,
-.file-skipped .file-size {
-  color: var(--muted);
-  text-decoration: line-through;
-  text-decoration-color: var(--border);
-}
-
-.file:last-child {
-  border-bottom: none;
-}
-
-.file-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.file-size {
-  color: var(--muted);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.file-pct {
-  margin-left: 2px;
-}
-
-.file-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.file-actions button {
-  padding: 2px 8px;
-  font-size: 12px;
 }

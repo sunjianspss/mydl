@@ -47,6 +47,12 @@ fn list_torrents(engine: State<'_, Arc<Engine>>) -> Vec<TorrentView> {
     engine.list()
 }
 
+/// 底部状态栏用的会话信息（DHT 节点数、监听端口）。
+#[tauri::command]
+fn session_status(engine: State<'_, Arc<Engine>>) -> engine::SessionStatus {
+    engine.session_status()
+}
+
 #[tauri::command]
 async fn pause_torrent(engine: State<'_, Arc<Engine>>, id: TorrentId) -> Result<(), String> {
     engine.pause(id).await.map_err(err)
@@ -350,6 +356,7 @@ pub fn run() {
             preview_torrent,
             add_previewed,
             list_torrents,
+            session_status,
             pause_torrent,
             resume_torrent,
             delete_torrent,

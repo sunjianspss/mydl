@@ -17,6 +17,13 @@ export interface TorrentView {
   eta: string | null;
 }
 
+/** 对应 engine.rs 的 SessionStatus。底部状态栏用。 */
+export interface SessionStatus {
+  /** DHT 路由表里的节点数；null 表示 DHT 没启用或还没起来。 */
+  dhtNodes: number | null;
+  listenPort: number | null;
+}
+
 /** 对应 engine.rs 的 PreviewFile。 */
 export interface PreviewFile {
   index: number;
