@@ -69,6 +69,10 @@ export interface Settings {
   moveTo: string | null;
   /** 完成后解压内容里的 .zip。 */
   extractArchives: boolean;
+  /** 分享率到这个值就停止做种。null = 不限。注意每次重启会归零。 */
+  seedRatioLimit: number | null;
+  /** 所有任务完成后让电脑睡眠。 */
+  sleepWhenAllDone: boolean;
   rssFeeds: RssFeed[];
   rssIntervalMinutes: number;
   /** 给所有任务补充公共 tracker。改了要重启 App 才生效。 */

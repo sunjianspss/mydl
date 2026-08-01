@@ -342,6 +342,54 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.seedRatioLimit !== null}
+            onChange={(e) => patch({ seedRatioLimit: e.target.checked ? 2 : null })}
+          />
+          <span>
+            <b>分享率到顶就停止做种</b>
+            <em>
+              上传量达到文件大小的这个倍数就自动暂停。<b>分享率每次重启会归零</b> ——
+              librqbit 只统计本次会话的上传量，不持久化，所以这个值的实际含义是
+              「本次运行期间上传到几倍」，不是 PT 站看到的那个累计分享率。
+            </em>
+          </span>
+        </label>
+
+        {draft.seedRatioLimit !== null && (
+          <div className="setting-sub">
+            <input
+              type="number"
+              min={0.1}
+              step={0.5}
+              value={draft.seedRatioLimit}
+              disabled={saving}
+              onChange={(e) =>
+                patch({ seedRatioLimit: Math.max(0, Number(e.target.value) || 0) || null })
+              }
+            />
+            <span className="path">倍（2 = 上传量达到文件大小的两倍）</span>
+          </div>
+        )}
+
+        <label className="setting">
+          <input
+            type="checkbox"
+            checked={draft.sleepWhenAllDone}
+            onChange={(e) => patch({ sleepWhenAllDone: e.target.checked })}
+          />
+          <span>
+            <b>全部下完后让电脑睡眠</b>
+            <em>
+              只在「这一轮真的有任务完成、且完成后一个未完成的都不剩」时触发，
+              睡前等 20 秒（给通知留时间，也等阻止休眠的开关松手）。
+              等待期间有新任务进来就取消。醒来后不会立刻又睡回去。
+            </em>
+          </span>
+        </label>
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.moveTo !== null}
             onChange={(e) => patch({ moveTo: e.target.checked ? "" : null })}
           />

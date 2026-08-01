@@ -12,11 +12,28 @@ use anyhow::{bail, Context, Result};
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
-use crate::engine::{Engine, TorrentId};
+use crate::engine::{Engine, TorrentId, TorrentView};
 use crate::settings::SettingsStore;
 
 /// 轮询间隔。完成后自动化不需要秒级实时。
 const POLL: Duration = Duration::from_secs(5);
+
+/// 决定睡眠前等一会儿。`keep_awake` 每 15 秒才松一次 `caffeinate`，
+/// 立刻睡下去可能被它拦住；顺便也给「最后一个任务刚完成」的通知留出时间。
+const SLEEP_DELAY: Duration = Duration::from_secs(20);
+
+/// 到达分享率上限的任务要不要停。
+///
+/// 只看还在做种的（已完成 + live）。总大小为 0 时不判断 —— 除不了。
+pub fn over_ratio(t: &TorrentView, limit: Option<f64>) -> bool {
+    let Some(limit) = limit.filter(|l| *l > 0.0) else {
+        return false;
+    };
+    if !t.finished || t.state != "live" || t.total_bytes == 0 {
+        return false;
+    }
+    t.uploaded_bytes as f64 / t.total_bytes as f64 >= limit
+}
 
 pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
     tauri::async_runtime::spawn(async move {
@@ -32,7 +49,26 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
         loop {
             tokio::time::sleep(POLL).await;
 
-            for t in engine.list() {
+            let all = engine.list();
+
+            // 分享率到顶就停做种。放在完成处理之前：刚下完的那一轮分享率
+            // 必然是 0，不会被误停。
+            let limit = store.get().seed_ratio_limit;
+            for t in all.iter().filter(|t| over_ratio(t, limit)) {
+                match engine.pause(t.id).await {
+                    Ok(()) => tracing::info!(
+                        id = t.id,
+                        name = %t.name,
+                        分享率 = format!("{:.2}", t.uploaded_bytes as f64 / t.total_bytes as f64),
+                        "达到分享率上限，已停止做种"
+                    ),
+                    Err(e) => tracing::warn!(id = t.id, "停止做种失败：{e:#}"),
+                }
+            }
+
+            let mut completed_now = false;
+
+            for t in all {
                 if !t.finished {
                     // 重新校验或补下时会退回未完成，这样下次完成还能再触发。
                     done.remove(&t.id);
@@ -52,6 +88,7 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
                 }
 
                 tracing::info!(id = t.id, name = %t.name, "任务完成，执行自动化");
+                completed_now = true;
                 let outcome = run_actions(&engine, &store, t.id).await;
 
                 if settings.sound_on_complete {
@@ -76,6 +113,24 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
 
                 if let Err(e) = outcome {
                     tracing::error!(id = t.id, "自动化失败：{e:#}");
+                }
+            }
+
+            // 只在「这一轮真的有任务完成」时才考虑睡眠。否则睡醒之后条件
+            // 依然成立，会立刻又睡回去。
+            if completed_now && store.get().sleep_when_all_done {
+                let list = engine.list();
+                let pending = list.iter().filter(|t| !t.finished).count();
+                if !list.is_empty() && pending == 0 {
+                    tracing::info!("全部任务已完成，{} 秒后睡眠", SLEEP_DELAY.as_secs());
+                    tokio::time::sleep(SLEEP_DELAY).await;
+
+                    // 等待期间有新任务进来就别睡了。
+                    if engine.list().iter().any(|t| !t.finished) {
+                        tracing::info!("等待期间有新任务，取消睡眠");
+                    } else if let Err(e) = crate::platform::sleep_now() {
+                        tracing::warn!("睡眠失败：{e:#}");
+                    }
                 }
             }
         }
@@ -281,6 +336,51 @@ fn safe_entry_path(name: &str) -> Option<PathBuf> {
     }
     let out: PathBuf = path.components().collect();
     (!out.as_os_str().is_empty()).then_some(out)
+}
+
+#[cfg(test)]
+mod ratio_tests {
+    use super::*;
+
+    fn t(finished: bool, state: &str, up: u64, total: u64) -> TorrentView {
+        TorrentView {
+            id: 0,
+            name: "t".into(),
+            info_hash: "h".into(),
+            state: state.into(),
+            error: None,
+            finished,
+            progress_bytes: total,
+            total_bytes: total,
+            uploaded_bytes: up,
+            download_speed_bps: 0.0,
+            upload_speed_bps: 0.0,
+            peers_live: 0,
+            eta: None,
+        }
+    }
+
+    #[test]
+    fn stops_only_when_over_limit() {
+        // 正好到 2.0 就该停
+        assert!(over_ratio(&t(true, "live", 200, 100), Some(2.0)));
+        assert!(over_ratio(&t(true, "live", 300, 100), Some(2.0)));
+        // 还不到
+        assert!(!over_ratio(&t(true, "live", 199, 100), Some(2.0)));
+        // 没设上限
+        assert!(!over_ratio(&t(true, "live", 999, 100), None));
+        assert!(!over_ratio(&t(true, "live", 999, 100), Some(0.0)));
+    }
+
+    #[test]
+    fn ignores_unfinished_paused_and_zero_size() {
+        // 没下完的不管（还在下载时上传也会计数）
+        assert!(!over_ratio(&t(false, "live", 999, 100), Some(2.0)));
+        // 已经停了的不用再停
+        assert!(!over_ratio(&t(true, "paused", 999, 100), Some(2.0)));
+        // 总大小为 0 除不了
+        assert!(!over_ratio(&t(true, "live", 999, 0), Some(2.0)));
+    }
 }
 
 #[cfg(test)]

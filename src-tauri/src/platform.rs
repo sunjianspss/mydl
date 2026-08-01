@@ -74,6 +74,20 @@ mod imp {
         });
     }
 
+    /// 立刻让电脑睡眠。
+    ///
+    /// `pmset sleepnow` 是系统自带的做法，等价于菜单里点「睡眠」。
+    pub fn sleep_now() -> Result<()> {
+        let status = Command::new("/usr/bin/pmset")
+            .arg("sleepnow")
+            .status()
+            .context("执行 pmset sleepnow 失败")?;
+        if !status.success() {
+            bail!("pmset 退出码 {status}");
+        }
+        Ok(())
+    }
+
     /// 阻止休眠：拉一个 `caffeinate` 子进程。
     ///
     /// 不直接调 IOKit 是为了少一层 FFI，而且 `pmset -g assertions` 里能看到
@@ -126,7 +140,7 @@ mod imp {
 
     use anyhow::{bail, Context, Result};
     use windows_sys::Win32::System::Power::{
-        SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED,
+        SetSuspendState, SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED,
     };
     // MessageBeep 在 Diagnostics::Debug 下（windows-sys 的元数据分组就是这么怪），
     // 常量却在 WindowsAndMessaging 里 —— 两个 feature 都得开。
@@ -220,6 +234,19 @@ mod imp {
         }
     }
 
+    /// 立刻让电脑睡眠。
+    ///
+    /// 第一个参数 false = 睡眠而不是休眠（hibernate）；第二个 false = 不强制，
+    /// 尊重那些正在阻止睡眠的程序 —— 强制睡下去可能打断别人正在写盘的活。
+    pub fn sleep_now() -> Result<()> {
+        // SAFETY: 三个都是纯值参数，没有指针。
+        let ok = unsafe { SetSuspendState(0, 0, 0) };
+        if ok == 0 {
+            bail!("SetSuspendState 调用失败");
+        }
+        Ok(())
+    }
+
     /// 阻止休眠：`SetThreadExecutionState`。
     ///
     /// 只挡系统休眠（ES_SYSTEM_REQUIRED），不挡息屏 —— 下载中没道理让显示器
@@ -261,4 +288,6 @@ mod imp {
     }
 }
 
-pub use imp::{available_players, log_dir, open_in_player, play_done_sound, SleepBlocker};
+pub use imp::{
+    available_players, log_dir, open_in_player, play_done_sound, sleep_now, SleepBlocker,
+};

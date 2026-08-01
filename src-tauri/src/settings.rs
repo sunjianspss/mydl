@@ -9,7 +9,9 @@ use std::sync::Mutex;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+// 不派生 Eq：seed_ratio_limit 是 f64，而 f64 只有 PartialEq。
+// 这里只需要能比较相等（测试里的 assert_eq!），够用。
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     /// 用户选定的下载目录。None 表示跟随系统默认下载文件夹。
@@ -32,6 +34,16 @@ pub struct Settings {
 
     /// 完成后解压内容里的 .zip。原压缩包保留。
     pub extract_archives: bool,
+
+    /// 分享率到这个值就自动停止做种。None = 不限。
+    ///
+    /// **分享率每次重启会归零** —— librqbit 的 `uploaded_bytes` 只统计本次
+    /// 会话，不持久化（会话文件里根本没这个字段）。所以这个值的实际含义是
+    /// 「本次运行期间上传到几倍」，不是 PT 站看到的那个累计分享率。
+    pub seed_ratio_limit: Option<f64>,
+
+    /// 所有任务都完成后让电脑睡眠。默认关 —— 这是会打断你手头事情的动作。
+    pub sleep_when_all_done: bool,
 
     /// RSS 订阅。
     pub rss_feeds: Vec<RssFeed>,
@@ -153,6 +165,8 @@ impl Default for Settings {
             sound_on_complete: true,
             move_to: None,
             extract_archives: false,
+            seed_ratio_limit: None,
+            sleep_when_all_done: false,
             rss_feeds: Vec::new(),
             rss_interval_minutes: 30,
             use_public_trackers: false,
