@@ -41,12 +41,16 @@ reqwest = { version = "0.12", features = ["default-tls"] }
 tauri-plugin-clipboard-manager = "2.3.2"
 quick-xml = "0.41"
 # API key 存系统钥匙串（macOS）/ 凭据管理器（Windows），见 secrets.rs。
-# apple 那个后端还要再点一个 keychain 子特性，否则编译期直接 compile_error!。
 keyring = { version = "4.1.6", default-features = false, features = [
   "v1",
   "apple-native-keyring-store",
   "windows-native-keyring-store",
 ] }
+
+# apple 那个后端还要再点一个 keychain 子特性，否则编译期直接 compile_error!。
+# **必须限定 target**：放进通用 dependencies 的话 Windows 也会编它，而它里面
+# 有 std::os::unix 和 libc::PATH_MAX，直接编译失败。这条是 CI 抓出来的。
+[target.'cfg(target_os = "macos")'.dependencies]
 apple-native-keyring-store = { version = "1", features = ["keychain"] }
 
 # 阻止休眠在 Windows 上走 SetThreadExecutionState，见 platform.rs
