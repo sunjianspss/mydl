@@ -3343,6 +3343,7 @@ dependencies = [
  "feed-rs",
  "futures",
  "keyring",
+ "libc",
  "librqbit",
  "quick-xml 0.41.0",
  "rand",

@@ -74,6 +74,55 @@ mod imp {
         });
     }
 
+    /// 想要的文件描述符上限。
+    ///
+    /// BT 是一个 peer 一个 socket，几百个连接很正常。macOS 给 GUI 应用的
+    /// 软限制只有 **256**（`launchctl limit maxfiles`），撞上之后表现极具
+    /// 误导性：种子照常下（那些 socket 早就建好了），但边下边播的 HTTP
+    /// 服务 accept 不了新连接，看起来像「播放功能坏了」。
+    ///
+    /// 系统硬上限是 `kern.maxfilesperproc`（本机 184320），8192 足够用，
+    /// 也不至于夸张到把系统资源占光。
+    const WANT_FDS: libc::rlim_t = 8192;
+
+    /// 启动时把文件描述符软限制抬上去。
+    ///
+    /// 失败只警告不中断 —— 限制没抬上去顶多是并发多了会出问题，不该因此
+    /// 起不来。
+    pub fn raise_file_limit() {
+        let mut lim = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+        // SAFETY: 传的是本地变量的可变指针，长度由类型保证。
+        if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut lim) } != 0 {
+            tracing::warn!("读取文件描述符上限失败");
+            return;
+        }
+
+        let old = lim.rlim_cur;
+        // 硬上限可能是 RLIM_INFINITY，那时直接用我们想要的值 —— 传
+        // RLIM_INFINITY 给 setrlimit 在 macOS 上会被拒。
+        let target = if lim.rlim_max == libc::RLIM_INFINITY {
+            WANT_FDS
+        } else {
+            WANT_FDS.min(lim.rlim_max)
+        };
+
+        if old >= target {
+            tracing::info!(软限制 = old, "文件描述符上限够用，不动");
+            return;
+        }
+
+        lim.rlim_cur = target;
+        // SAFETY: 同上。
+        if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &lim) } == 0 {
+            tracing::info!(原来 = old, 现在 = target, "已抬高文件描述符上限");
+        } else {
+            tracing::warn!(原来 = old, 想要 = target, "抬高文件描述符上限失败");
+        }
+    }
+
     /// 立刻让电脑睡眠。
     ///
     /// `pmset sleepnow` 是系统自带的做法，等价于菜单里点「睡眠」。
@@ -234,6 +283,9 @@ mod imp {
         }
     }
 
+    /// Windows 不是 fd 模型，句柄上限由系统动态管理，没有对应操作。
+    pub fn raise_file_limit() {}
+
     /// 立刻让电脑睡眠。
     ///
     /// 第一个参数 false = 睡眠而不是休眠（hibernate）；第二个 false = 不强制，
@@ -289,5 +341,6 @@ mod imp {
 }
 
 pub use imp::{
-    available_players, log_dir, open_in_player, play_done_sound, sleep_now, SleepBlocker,
+    available_players, log_dir, open_in_player, play_done_sound, raise_file_limit, sleep_now,
+    SleepBlocker,
 };

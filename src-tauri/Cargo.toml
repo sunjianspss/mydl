@@ -61,6 +61,9 @@ windows-sys = { version = "0.59", features = [
   "Win32_UI_WindowsAndMessaging",   # MB_ICONASTERISK 常量
 ] }
 
+[target."cfg(unix)".dependencies]
+libc = "0.2.189"
+
 [dev-dependencies]
 # 集成测试需要 #[tokio::test]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }

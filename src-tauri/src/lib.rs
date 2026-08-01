@@ -260,6 +260,9 @@ fn open_in_player(url: String, app: String) -> Result<(), String> {
 }
 
 fn init_app(app: &tauri::App) -> anyhow::Result<()> {
+    // 必须在建会话之前：librqbit 一起来就会开一堆 socket。
+    platform::raise_file_limit();
+
     let config_dir = app
         .path()
         .app_config_dir()

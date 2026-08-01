@@ -404,6 +404,13 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
   本体，`status` 会等到播放器退出；而 `open_in_player` 是同步 Tauri 命令、
   跑在主线程上，界面会卡死到用户关掉播放器为止。macOS 碰不到这个坑，
   `open -a` 交给 LaunchServices 后立刻返回。
+- **启动时会把文件描述符软限制抬到 8192。** macOS 给 GUI 应用的软限制只有
+  **256**（`launchctl limit maxfiles`），而 BT 是一个 peer 一个 socket，任务
+  一多就撞上。症状极具误导性：种子照常下（那些 socket 早建好了），但边下边播
+  的 HTTP 服务 `accept` 不了新连接，看起来像「播放坏了」，日志里是
+  `axum::serve::listener: accept error: Too many open files`。
+  **这个 bug 用 `pnpm tauri dev` 复现不了** —— dev 启动的进程继承终端的
+  `ulimit`（通常上百万），只有 launchd 启动的安装版才是 256。
 - **界面用 1 秒轮询**而不是事件推送。任务量大时可以改成 Rust 侧 emit 事件。
 - **解析磁力链时可以主动取消**，不用干等满 120 秒。`Engine::preview` 用
   `tokio::select!` 在 probe 和一个 `Notify` 之间二选一，取消那条被选中时
