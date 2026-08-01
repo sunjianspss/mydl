@@ -70,6 +70,22 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.watchClipboard}
+            onChange={(e) => patch({ watchClipboard: e.target.checked })}
+          />
+          <span>
+            <b>切回窗口时检查剪贴板</b>
+            <em>
+              剪贴板里有磁力链就显示一个横幅问要不要添加，<b>绝不自动添加</b>。
+              只在窗口重新获得焦点时读一次，不在后台轮询 —— 常驻读剪贴板既让人
+              不安，macOS 15 起还会弹「某某读取了剪贴板」的系统提示。
+            </em>
+          </span>
+        </label>
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.usePublicTrackers}
             onChange={(e) => patch({ usePublicTrackers: e.target.checked })}
           />

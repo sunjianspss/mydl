@@ -49,6 +49,13 @@ pub struct Settings {
     /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
     pub prevent_sleep_while_downloading: bool,
 
+    /// 切回窗口时看一眼剪贴板里有没有磁力链，有就提示添加。
+    ///
+    /// **只在窗口重新获得焦点时读一次**，不在后台轮询：常驻读剪贴板既让人
+    /// 不安，macOS 15 起还会弹「某某读取了剪贴板」的系统提示。读到了也只是
+    /// 显示一个横幅，绝不自动添加。
+    pub watch_clipboard: bool,
+
     /// 全局上传限速，单位 KiB/s。None 或 0 表示不限。
     ///
     /// 默认不限是因为限速会拖慢自己的下载（BT 靠上传换下载），但一旦上行
@@ -119,6 +126,7 @@ impl Default for Settings {
             use_public_trackers: false,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
+            watch_clipboard: true,
             upload_limit_kbps: None,
         }
     }

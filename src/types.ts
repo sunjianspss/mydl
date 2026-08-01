@@ -60,6 +60,8 @@ export interface Settings {
   usePublicTrackers: boolean;
   /** 有任务在下载时阻止电脑休眠。 */
   preventSleepWhileDownloading: boolean;
+  /** 切回窗口时看一眼剪贴板里有没有磁力链。只读一次，不后台轮询。 */
+  watchClipboard: boolean;
   /** 全局上传限速，KiB/s。null 或 0 表示不限。改完立刻生效。 */
   uploadLimitKbps: number | null;
 }

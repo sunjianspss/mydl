@@ -38,6 +38,7 @@ tauri-plugin-notification = "2"
 zip = "8.6.0"
 feed-rs = "2.4.0"
 reqwest = { version = "0.12", features = ["default-tls"] }
+tauri-plugin-clipboard-manager = "2.3.2"
 
 # 阻止休眠在 Windows 上走 SetThreadExecutionState，见 platform.rs
 [target.'cfg(windows)'.dependencies]

@@ -324,6 +324,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             // 不能把错误往上抛：Tauri 会直接 panic!，用户看到的是系统的
             // 「意外退出」崩溃报告，完全看不出发生了什么。

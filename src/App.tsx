@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
 import type { SessionStatus, Settings, TorrentPreview, TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
@@ -88,6 +90,10 @@ export default function App() {
   // 展开了文件列表的任务。
   const [expanded, setExpanded] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  // 拖着 .torrent 悬在窗口上时给个视觉反馈。
+  const [dragging, setDragging] = useState(false);
+  // 剪贴板里发现的、还没处理过的磁力链。null = 不显示横幅。
+  const [clipMagnet, setClipMagnet] = useState<string | null>(null);
   // 主题存在 localStorage 里，theme.ts 在首帧前就应用好了，这里只是拿来渲染图标。
   const [theme, setThemeState] = useState<Theme>(getTheme);
 
@@ -113,6 +119,53 @@ export default function App() {
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [refresh]);
+
+  // 拖 .torrent 文件进窗口就直接进预览。
+  //
+  // 只认文件：Tauri 接管了 webview 的原生拖放，回调里拿到的是**文件路径**，
+  // 从浏览器拖过来的磁力链是文本、不会走到这里 —— 那条路交给剪贴板检测。
+  useEffect(() => {
+    const un = getCurrentWebview().onDragDropEvent((e) => {
+      if (e.payload.type === "over" || e.payload.type === "enter") {
+        setDragging(true);
+        return;
+      }
+      setDragging(false);
+      if (e.payload.type !== "drop") return;
+
+      const torrent = e.payload.paths.find((p) => p.toLowerCase().endsWith(".torrent"));
+      if (torrent) addTorrent(torrent);
+      else setError("只能拖 .torrent 文件；磁力链请粘贴到输入框");
+    });
+    return () => {
+      un.then((f) => f());
+    };
+    // addTorrent 每次渲染都是新的，但它只用 setState，放进依赖会反复重挂监听。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 切回窗口时看一眼剪贴板。只在获得焦点时读一次 —— 常驻轮询读剪贴板既让人
+  // 不安，macOS 15 起还会弹系统提示。读到也只提示，绝不自动添加。
+  useEffect(() => {
+    if (!settings?.watchClipboard) return;
+
+    const check = async () => {
+      try {
+        const text = (await readText())?.trim() ?? "";
+        if (!/^magnet:\?xt=urn:btih:/i.test(text)) return;
+        // 已经在任务列表里的就别再问了。
+        const hash = text.slice(text.indexOf("btih:") + 5, text.indexOf("btih:") + 45).toLowerCase();
+        if (torrents.some((t) => t.infoHash.toLowerCase().startsWith(hash.slice(0, 40)))) return;
+        setClipMagnet(text);
+      } catch {
+        // 剪贴板里是图片之类的读不出来，忽略。
+      }
+    };
+
+    window.addEventListener("focus", check);
+    check();
+    return () => window.removeEventListener("focus", check);
+  }, [settings?.watchClipboard, torrents]);
 
   const run = useCallback(
     async (action: () => Promise<unknown>) => {
@@ -196,7 +249,7 @@ export default function App() {
   const dir = outputFolder ?? defaultDir;
 
   return (
-    <main className="app">
+    <main className={`app${dragging ? " is-dragging" : ""}`}>
       {/* 标题栏被设成 Overlay，内容会延伸到红绿灯下面 —— 侧边栏顶部留白避让。
           这块同时是拖拽区：Overlay 之后系统标题栏被网页盖住，鼠标事件全被
           webview 吃掉，不显式标出来窗口就拖不动。 */}
@@ -302,6 +355,25 @@ export default function App() {
                 取消
               </button>
             </p>
+          )}
+
+          {clipMagnet && (
+            <div className="clip-banner">
+              <span className="clip-text">剪贴板里有一条磁力链</span>
+              <button
+                className="act-text"
+                onClick={() => {
+                  const m = clipMagnet;
+                  setClipMagnet(null);
+                  addTorrent(m);
+                }}
+              >
+                添加
+              </button>
+              <button className="act-text" onClick={() => setClipMagnet(null)}>
+                忽略
+              </button>
+            </div>
           )}
 
           {error && (

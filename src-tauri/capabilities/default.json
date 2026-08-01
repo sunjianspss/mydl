@@ -9,6 +9,7 @@
     "opener:default",
     "opener:allow-reveal-item-in-dir",
     "dialog:allow-open",
-    "notification:default"
+    "notification:default",
+    "clipboard-manager:allow-read-text"
   ]
 }

@@ -545,6 +545,29 @@ input[type="checkbox"] {
   color: var(--muted);
 }
 
+/* 拖着 .torrent 悬停时给整块内容区描一圈，明确「松手就收」。 */
+.app.is-dragging .list {
+  outline: 2px dashed var(--accent);
+  outline-offset: -8px;
+  border-radius: 8px;
+}
+
+.clip-banner {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px 6px 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: var(--r-md);
+}
+
+.clip-text {
+  flex: 1;
+}
+
 .error-banner {
   padding: 7px 10px;
   margin-top: 8px;
