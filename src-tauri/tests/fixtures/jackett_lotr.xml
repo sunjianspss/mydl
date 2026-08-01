@@ -1,0 +1,935 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+  <channel>
+    <atom:link href="http://127.0.0.1:9117/" rel="self" type="application/rss+xml" />
+    <title>AggregateSearch</title>
+    <description>This feed includes all configured trackers</description>
+    <link>http://127.0.0.1/</link>
+    <language>en-US</language>
+    <category>search</category>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Return.Of.The.King.2003.EXTENDED.2160p.BluRay.REMUX.HE</title>
+      <guid>magnet:?xt=urn:btih:AB196A7F5A0840D8CC6088BC026140488B219903&amp;dn=The.Lord.of.the.Rings.The.Return.Of.The.King.2003.EXTENDED.2160p.BluRay.REMUX.HE&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=81804449</comments>
+      <pubDate>Thu, 15 Jan 2026 02:30:36 +0800</pubDate>
+      <size>164955086800</size>
+      <files>1</files>
+      <description>Uploader: Cybotage&lt;br&gt;The.Lord.of.the.Rings.The.Return.Of.The.King.2003.EXTENDED.2160p.BluRay.REMUX.HE</description>
+      <link>magnet:?xt=urn:btih:AB196A7F5A0840D8CC6088BC026140488B219903&amp;dn=The.Lord.of.the.Rings.The.Return.Of.The.King.2003.EXTENDED.2160p.BluRay.REMUX.HE&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2045</category>
+      <category>100211</category>
+      <enclosure url="magnet:?xt=urn:btih:AB196A7F5A0840D8CC6088BC026140488B219903&amp;dn=The.Lord.of.the.Rings.The.Return.Of.The.King.2003.EXTENDED.2160p.BluRay.REMUX.HE&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="164955086800" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="category" value="100211" />
+      <torznab:attr name="seeders" value="96" />
+      <torznab:attr name="peers" value="131" />
+      <torznab:attr name="infohash" value="AB196A7F5A0840D8CC6088BC026140488B219903" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:AB196A7F5A0840D8CC6088BC026140488B219903&amp;dn=The.Lord.of.the.Rings.The.Return.Of.The.King.2003.EXTENDED.2160p.BluRay.REMUX.HE&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Return Of The King 2003 EXTENDED 2160p BluRay REMUX HE</title>
+      <guid>https://www.limetorrents.fun/The%20Lord%20of%20the%20Rings%20The%20Return%20Of%20The%20King%202003%20EXTENDED%202160p%20BluRay%20REMUX%20HE-torrent-19455017.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The%20Lord%20of%20the%20Rings%20The%20Return%20Of%20The%20King%202003%20EXTENDED%202160p%20BluRay%20REMUX%20HE-torrent-19455017.html</comments>
+      <pubDate>Mon, 02 Feb 2026 13:24:36 +0800</pubDate>
+      <size>164958956421</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3MVBpQjAyOVNlYjBzbUdmRmRfM0NHQlFJdjg4RVRiSzM4bDJqTWhjLVMxZi1ydHlzMlNWSFdlTU5mY2ozM2hXek5JWHUxbGFocFZRZWprZWVlRUtoTmJkNWxGWnpTY2JBNjRNenlOS0NMMXlLczZsSVlWOVA5SERxeGJtb2UxNTBpWmdkTVJsbUw1bE1tTXdrTXFucFhVbUk3LUlWb2NvTlQ2NjExYzhmSEtKamhNbXpacTFmY2oyRmlHRHNsZ3o5WmxHMnlzOXdkUmRlZFR6aml3UkZFTEl1RVhlazNmTTllR2xjYnEzckdFTXgwNnNxeFhOTFpKeGh6aXVsT1hKWDNpMXEyTWhhYnpzdDUtcGNIaFc2UA&amp;file=The+Lord+of+the+Rings+The+Return+Of+The+King+2003+EXTENDED+2160p+BluRay+REMUX+HE</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3MVBpQjAyOVNlYjBzbUdmRmRfM0NHQlFJdjg4RVRiSzM4bDJqTWhjLVMxZi1ydHlzMlNWSFdlTU5mY2ozM2hXek5JWHUxbGFocFZRZWprZWVlRUtoTmJkNWxGWnpTY2JBNjRNenlOS0NMMXlLczZsSVlWOVA5SERxeGJtb2UxNTBpWmdkTVJsbUw1bE1tTXdrTXFucFhVbUk3LUlWb2NvTlQ2NjExYzhmSEtKamhNbXpacTFmY2oyRmlHRHNsZ3o5WmxHMnlzOXdkUmRlZFR6aml3UkZFTEl1RVhlazNmTTllR2xjYnEzckdFTXgwNnNxeFhOTFpKeGh6aXVsT1hKWDNpMXEyTWhhYnpzdDUtcGNIaFc2UA&amp;file=The+Lord+of+the+Rings+The+Return+Of+The+King+2003+EXTENDED+2160p+BluRay+REMUX+HE" length="164958956421" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="63" />
+      <torznab:attr name="peers" value="94" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.REMUX</title>
+      <guid>magnet:?xt=urn:btih:B50D1A13E240E34283569838228B587ACA579326&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.REMUX&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76395452</comments>
+      <pubDate>Tue, 27 Aug 2024 21:38:36 +0800</pubDate>
+      <size>79150725065</size>
+      <files>2</files>
+      <description>Uploader: Cybotage&lt;br&gt;The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.REMUX</description>
+      <link>magnet:?xt=urn:btih:B50D1A13E240E34283569838228B587ACA579326&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.REMUX&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:B50D1A13E240E34283569838228B587ACA579326&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.REMUX&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="79150725065" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="82" />
+      <torznab:attr name="peers" value="95" />
+      <torznab:attr name="infohash" value="B50D1A13E240E34283569838228B587ACA579326" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:B50D1A13E240E34283569838228B587ACA579326&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.REMUX&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings Trilogy 2002 EXTENDED REMASTERED 1080p BluRay HEVC x265 5</title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-Trilogy-2002-EXTENDED-REMASTERED-1080p-BluRay-HEVC-x265-5-torrent-19414141.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-Trilogy-2002-EXTENDED-REMASTERED-1080p-BluRay-HEVC-x265-5-torrent-19414141.html</comments>
+      <pubDate>Sat, 03 Jan 2026 13:24:36 +0800</pubDate>
+      <size>13024488325</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU2ekVqQ1Y4bmRLdGt4djFLMEJXdjJfSmJjdHNacUlPU0t6QUdqY1hTdk1qMENJSTlwaHplekdiZDV4QVdacU9pampOcHhRRGhIdUxJQmt2ai1wdmRNRFAxX1ktZl93THlPMkpReDVYUkFjWGw0d0hrOHBFeS1SS3VyUVcxcF8yTkpjRHBCVC04VXVqQVppLVk2Z0k3Q2dHQ0xyQVZwcHU3dkczdWd0c0tFenVvQ0ZOc2FibGRfemNhQ0xsTzgtMFRaT0VaVnBGWnRCbDJUQktsZHZxbE51ZkNzSW9hREdwclEyRktOa0VyV291aEVYRlRJaEtfU0ctZm8xN29tOFNHMDBaS2hpUDNCQkI2WmdoRHdMUGZYMA&amp;file=The+Lord+of+the+Rings+Trilogy+2002+EXTENDED+REMASTERED+1080p+BluRay+HEVC+x265+5</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU2ekVqQ1Y4bmRLdGt4djFLMEJXdjJfSmJjdHNacUlPU0t6QUdqY1hTdk1qMENJSTlwaHplekdiZDV4QVdacU9pampOcHhRRGhIdUxJQmt2ai1wdmRNRFAxX1ktZl93THlPMkpReDVYUkFjWGw0d0hrOHBFeS1SS3VyUVcxcF8yTkpjRHBCVC04VXVqQVppLVk2Z0k3Q2dHQ0xyQVZwcHU3dkczdWd0c0tFenVvQ0ZOc2FibGRfemNhQ0xsTzgtMFRaT0VaVnBGWnRCbDJUQktsZHZxbE51ZkNzSW9hREdwclEyRktOa0VyV291aEVYRlRJaEtfU0ctZm8xN29tOFNHMDBaS2hpUDNCQkI2WmdoRHdMUGZYMA&amp;file=The+Lord+of+the+Rings+Trilogy+2002+EXTENDED+REMASTERED+1080p+BluRay+HEVC+x265+5" length="13024488325" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="484" />
+      <torznab:attr name="peers" value="655" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings Trilogy 2002 EXTENDED REMASTERED 1080p BluRay HEVC x265 5.</title>
+      <guid>magnet:?xt=urn:btih:AB25E785ABEA95343249A300A516455D14E54144&amp;dn=The+Lord+of+the+Rings+Trilogy+2002+EXTENDED+REMASTERED+1080p+BluRay+HEVC+x265+5.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=81583247</comments>
+      <pubDate>Thu, 25 Dec 2025 07:27:14 +0800</pubDate>
+      <size>13028499982</size>
+      <files>3</files>
+      <description>Uploader: .BONE.&lt;br&gt;The Lord of the Rings Trilogy 2002 EXTENDED REMASTERED 1080p BluRay HEVC x265 5.</description>
+      <link>magnet:?xt=urn:btih:AB25E785ABEA95343249A300A516455D14E54144&amp;dn=The+Lord+of+the+Rings+Trilogy+2002+EXTENDED+REMASTERED+1080p+BluRay+HEVC+x265+5.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:AB25E785ABEA95343249A300A516455D14E54144&amp;dn=The+Lord+of+the+Rings+Trilogy+2002+EXTENDED+REMASTERED+1080p+BluRay+HEVC+x265+5.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="13028499982" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="seeders" value="463" />
+      <torznab:attr name="peers" value="623" />
+      <torznab:attr name="infohash" value="AB25E785ABEA95343249A300A516455D14E54144" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:AB25E785ABEA95343249A300A516455D14E54144&amp;dn=The+Lord+of+the+Rings+Trilogy+2002+EXTENDED+REMASTERED+1080p+BluRay+HEVC+x265+5.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>Lord.of.the.Rings.Fellowship.of.Ring.2001.EXTENDED.1080p.BluRay.</title>
+      <guid>magnet:?xt=urn:btih:94240B8E89974035555008274223F5A1C7F35FE9&amp;dn=Lord.of.the.Rings.Fellowship.of.Ring.2001.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=30986620</comments>
+      <pubDate>Sat, 30 Mar 2019 00:00:02 +0800</pubDate>
+      <size>5800519737</size>
+      <files>1</files>
+      <description>Uploader: GoodFilms&lt;br&gt;Lord.of.the.Rings.Fellowship.of.Ring.2001.EXTENDED.1080p.BluRay.</description>
+      <link>magnet:?xt=urn:btih:94240B8E89974035555008274223F5A1C7F35FE9&amp;dn=Lord.of.the.Rings.Fellowship.of.Ring.2001.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:94240B8E89974035555008274223F5A1C7F35FE9&amp;dn=Lord.of.the.Rings.Fellowship.of.Ring.2001.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="5800519737" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="seeders" value="708" />
+      <torznab:attr name="peers" value="881" />
+      <torznab:attr name="infohash" value="94240B8E89974035555008274223F5A1C7F35FE9" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:94240B8E89974035555008274223F5A1C7F35FE9&amp;dn=Lord.of.the.Rings.Fellowship.of.Ring.2001.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Two Towers (2002) [2160p] [BluRay] [5.1]</title>
+      <guid>magnet:?xt=urn:btih:78993BC5A25D775B3EB87ECC71D4F3797E030F67&amp;dn=The+Lord+of+the+Rings+The+Two+Towers+(2002)+%5B2160p%5D+%5BBluRay%5D+%5B5.1%5D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=66299929</comments>
+      <pubDate>Wed, 22 Feb 2023 19:18:05 +0800</pubDate>
+      <size>11923033905</size>
+      <files>3</files>
+      <description>Uploader: surferbroadband&lt;br&gt;The Lord of the Rings The Two Towers (2002) [2160p] [BluRay] [5.1]</description>
+      <link>magnet:?xt=urn:btih:78993BC5A25D775B3EB87ECC71D4F3797E030F67&amp;dn=The+Lord+of+the+Rings+The+Two+Towers+(2002)+%5B2160p%5D+%5BBluRay%5D+%5B5.1%5D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2045</category>
+      <category>100211</category>
+      <enclosure url="magnet:?xt=urn:btih:78993BC5A25D775B3EB87ECC71D4F3797E030F67&amp;dn=The+Lord+of+the+Rings+The+Two+Towers+(2002)+%5B2160p%5D+%5BBluRay%5D+%5B5.1%5D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="11923033905" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="category" value="100211" />
+      <torznab:attr name="imdb" value="0167261" />
+      <torznab:attr name="imdbid" value="tt0167261" />
+      <torznab:attr name="seeders" value="336" />
+      <torznab:attr name="peers" value="362" />
+      <torznab:attr name="infohash" value="78993BC5A25D775B3EB87ECC71D4F3797E030F67" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:78993BC5A25D775B3EB87ECC71D4F3797E030F67&amp;dn=The+Lord+of+the+Rings+The+Two+Towers+(2002)+%5B2160p%5D+%5BBluRay%5D+%5B5.1%5D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.REMASTERED.1080p.BluR</title>
+      <guid>magnet:?xt=urn:btih:39D5983AE6BE1FA7650BF213D5DDDFAA29651921&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.REMASTERED.1080p.BluR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76397272</comments>
+      <pubDate>Wed, 28 Aug 2024 02:11:11 +0800</pubDate>
+      <size>87741738909</size>
+      <files>2</files>
+      <description>Uploader: Cybotage&lt;br&gt;The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.REMASTERED.1080p.BluR</description>
+      <link>magnet:?xt=urn:btih:39D5983AE6BE1FA7650BF213D5DDDFAA29651921&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.REMASTERED.1080p.BluR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:39D5983AE6BE1FA7650BF213D5DDDFAA29651921&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.REMASTERED.1080p.BluR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="87741738909" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="28" />
+      <torznab:attr name="peers" value="33" />
+      <torznab:attr name="infohash" value="39D5983AE6BE1FA7650BF213D5DDDFAA29651921" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:39D5983AE6BE1FA7650BF213D5DDDFAA29651921&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.REMASTERED.1080p.BluR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Rings.of.Power.S02.COMPLETE.1080p.AMZN</title>
+      <guid>magnet:?xt=urn:btih:88339DFB5332E40CA02D0D30352A22A941574E64&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S02.COMPLETE.1080p.AMZN&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76772009</comments>
+      <pubDate>Thu, 03 Oct 2024 19:08:12 +0800</pubDate>
+      <size>24755912665</size>
+      <files>9</files>
+      <description>Uploader: TGxGoodies&lt;br&gt;The.Lord.of.the.Rings.The.Rings.of.Power.S02.COMPLETE.1080p.AMZN</description>
+      <link>magnet:?xt=urn:btih:88339DFB5332E40CA02D0D30352A22A941574E64&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S02.COMPLETE.1080p.AMZN&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>5040</category>
+      <category>100208</category>
+      <enclosure url="magnet:?xt=urn:btih:88339DFB5332E40CA02D0D30352A22A941574E64&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S02.COMPLETE.1080p.AMZN&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="24755912665" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5040" />
+      <torznab:attr name="category" value="100208" />
+      <torznab:attr name="imdb" value="7631058" />
+      <torznab:attr name="imdbid" value="tt7631058" />
+      <torznab:attr name="seeders" value="99" />
+      <torznab:attr name="peers" value="133" />
+      <torznab:attr name="infohash" value="88339DFB5332E40CA02D0D30352A22A941574E64" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:88339DFB5332E40CA02D0D30352A22A941574E64&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S02.COMPLETE.1080p.AMZN&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.1080p.BluRay.</title>
+      <guid>magnet:?xt=urn:btih:2D1EBC4CFD6F46D84CFF406EF737BAE9931A8AA3&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76280568</comments>
+      <pubDate>Fri, 16 Aug 2024 11:22:41 +0800</pubDate>
+      <size>6799351441</size>
+      <files>4</files>
+      <description>Uploader: GalaxyRG&lt;br&gt;The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.1080p.BluRay.</description>
+      <link>magnet:?xt=urn:btih:2D1EBC4CFD6F46D84CFF406EF737BAE9931A8AA3&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:2D1EBC4CFD6F46D84CFF406EF737BAE9931A8AA3&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="6799351441" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0167261" />
+      <torznab:attr name="imdbid" value="tt0167261" />
+      <torznab:attr name="seeders" value="304" />
+      <torznab:attr name="peers" value="328" />
+      <torznab:attr name="infohash" value="2D1EBC4CFD6F46D84CFF406EF737BAE9931A8AA3" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:2D1EBC4CFD6F46D84CFF406EF737BAE9931A8AA3&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.1080p.BluRay.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings: The Return of the King EXTENDED (2003) 10</title>
+      <guid>magnet:?xt=urn:btih:AD73D5576DC4ECFEEA4353D4503F9B3F93DFA740&amp;dn=The+Lord+of+the+Rings%3A+The+Return+of+the+King+EXTENDED+(2003)+10&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=7435497</comments>
+      <pubDate>Thu, 12 Jul 2012 10:44:55 +0800</pubDate>
+      <size>3975288941</size>
+      <files>3</files>
+      <description>Uploader: YIFY&lt;br&gt;The Lord of the Rings: The Return of the King EXTENDED (2003) 10</description>
+      <link>magnet:?xt=urn:btih:AD73D5576DC4ECFEEA4353D4503F9B3F93DFA740&amp;dn=The+Lord+of+the+Rings%3A+The+Return+of+the+King+EXTENDED+(2003)+10&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:AD73D5576DC4ECFEEA4353D4503F9B3F93DFA740&amp;dn=The+Lord+of+the+Rings%3A+The+Return+of+the+King+EXTENDED+(2003)+10&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="3975288941" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0167260" />
+      <torznab:attr name="imdbid" value="tt0167260" />
+      <torznab:attr name="seeders" value="505" />
+      <torznab:attr name="peers" value="623" />
+      <torznab:attr name="infohash" value="AD73D5576DC4ECFEEA4353D4503F9B3F93DFA740" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:AD73D5576DC4ECFEEA4353D4503F9B3F93DFA740&amp;dn=The+Lord+of+the+Rings%3A+The+Return+of+the+King+EXTENDED+(2003)+10&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings: The Two Towers {Extended} (2002) 1080p Br</title>
+      <guid>magnet:?xt=urn:btih:EBDA5B39978F58B50B2666A808A11C971A9CF080&amp;dn=The+Lord+of+the+Rings%3A+The+Two+Towers+%7BExtended%7D+(2002)+1080p+Br&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=7414084</comments>
+      <pubDate>Thu, 05 Jul 2012 09:35:18 +0800</pubDate>
+      <size>3225110627</size>
+      <files>3</files>
+      <description>Uploader: YIFY&lt;br&gt;The Lord of the Rings: The Two Towers {Extended} (2002) 1080p Br</description>
+      <link>magnet:?xt=urn:btih:EBDA5B39978F58B50B2666A808A11C971A9CF080&amp;dn=The+Lord+of+the+Rings%3A+The+Two+Towers+%7BExtended%7D+(2002)+1080p+Br&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:EBDA5B39978F58B50B2666A808A11C971A9CF080&amp;dn=The+Lord+of+the+Rings%3A+The+Two+Towers+%7BExtended%7D+(2002)+1080p+Br&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="3225110627" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0167261" />
+      <torznab:attr name="imdbid" value="tt0167261" />
+      <torznab:attr name="seeders" value="562" />
+      <torznab:attr name="peers" value="667" />
+      <torznab:attr name="infohash" value="EBDA5B39978F58B50B2666A808A11C971A9CF080" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:EBDA5B39978F58B50B2666A808A11C971A9CF080&amp;dn=The+Lord+of+the+Rings%3A+The+Two+Towers+%7BExtended%7D+(2002)+1080p+Br&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Return of the King 2003 Extended 1080p UHD BluRay</title>
+      <guid>magnet:?xt=urn:btih:85AE2611A161938D9A7CF8755E483BD2AFC20041&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+Extended+1080p+UHD+BluRay&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=78714577</comments>
+      <pubDate>Sat, 05 Apr 2025 16:48:42 +0800</pubDate>
+      <size>17996387404</size>
+      <files>4</files>
+      <description>Uploader: TvTeam&lt;br&gt;The Lord of the Rings The Return of the King 2003 Extended 1080p UHD BluRay</description>
+      <link>magnet:?xt=urn:btih:85AE2611A161938D9A7CF8755E483BD2AFC20041&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+Extended+1080p+UHD+BluRay&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:85AE2611A161938D9A7CF8755E483BD2AFC20041&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+Extended+1080p+UHD+BluRay&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="17996387404" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="88" />
+      <torznab:attr name="peers" value="132" />
+      <torznab:attr name="infohash" value="85AE2611A161938D9A7CF8755E483BD2AFC20041" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:85AE2611A161938D9A7CF8755E483BD2AFC20041&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+Extended+1080p+UHD+BluRay&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings - The Rings of Power (2022) S01 S01 (1080p AMZN WEB-D</title>
+      <guid>magnet:?xt=urn:btih:897FC6BD322FFFCAFA68EEC9B7BD6B9B1AE6359F&amp;dn=The+Lord+of+the+Rings+-+The+Rings+of+Power+(2022)+S01+S01+(1080p+AMZN+WEB-D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76399038</comments>
+      <pubDate>Wed, 28 Aug 2024 06:20:13 +0800</pubDate>
+      <size>19309272164</size>
+      <files>8</files>
+      <description>Uploader: Cybotage&lt;br&gt;The Lord of the Rings - The Rings of Power (2022) Season 1 S01 (1080p AMZN WEB-D</description>
+      <link>magnet:?xt=urn:btih:897FC6BD322FFFCAFA68EEC9B7BD6B9B1AE6359F&amp;dn=The+Lord+of+the+Rings+-+The+Rings+of+Power+(2022)+S01+S01+(1080p+AMZN+WEB-D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>5040</category>
+      <category>100208</category>
+      <enclosure url="magnet:?xt=urn:btih:897FC6BD322FFFCAFA68EEC9B7BD6B9B1AE6359F&amp;dn=The+Lord+of+the+Rings+-+The+Rings+of+Power+(2022)+S01+S01+(1080p+AMZN+WEB-D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="19309272164" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5040" />
+      <torznab:attr name="category" value="100208" />
+      <torznab:attr name="seeders" value="79" />
+      <torznab:attr name="peers" value="97" />
+      <torznab:attr name="infohash" value="897FC6BD322FFFCAFA68EEC9B7BD6B9B1AE6359F" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:897FC6BD322FFFCAFA68EEC9B7BD6B9B1AE6359F&amp;dn=The+Lord+of+the+Rings+-+The+Rings+of+Power+(2022)+S01+S01+(1080p+AMZN+WEB-D&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Return of the King 2003 1080p HBO Max WEB DL H264</title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Return-of-the-King-2003-1080p-HBO-Max-WEB-DL-H264-torrent-19729702.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Return-of-the-King-2003-1080p-HBO-Max-WEB-DL-H264-torrent-19729702.html</comments>
+      <pubDate>Tue, 02 Jun 2026 13:24:36 +0800</pubDate>
+      <size>8557722337</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0bDh4YWFFR0taUXVmc2FlWXFZckVpYmlqTWE0bzFLVDZIN1cxaVpRcVRvelhiYlJic0dBaU52M2VQUWZvOVc5STlrNHo4RFdSRWE2dWJoQ3F3XzdMMldUMGxDeWVfZ2g5WlJYNFVYRElJcEYwalhObF9mUmtqMnk0WUFYUDBaQ185bU5HSElfZUdPc1oxajROUGFqQlAxa3VoM2JURkhaWVRRcERGVG9mQ3kxMDRXTGJoQzc4WHdiSUlRS3prWUJyYU9aNjNaclU1YllLbF9JTHExalg0czJTMV96UXJZUU1UQUYtOS1tNGo3VlJNSl8wbHhDUk9la0k3ejBBOXJVUQ&amp;file=The+Lord+of+the+Rings+The+Return+of+the+King+2003+1080p+HBO+Max+WEB+DL+H264</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0bDh4YWFFR0taUXVmc2FlWXFZckVpYmlqTWE0bzFLVDZIN1cxaVpRcVRvelhiYlJic0dBaU52M2VQUWZvOVc5STlrNHo4RFdSRWE2dWJoQ3F3XzdMMldUMGxDeWVfZ2g5WlJYNFVYRElJcEYwalhObF9mUmtqMnk0WUFYUDBaQ185bU5HSElfZUdPc1oxajROUGFqQlAxa3VoM2JURkhaWVRRcERGVG9mQ3kxMDRXTGJoQzc4WHdiSUlRS3prWUJyYU9aNjNaclU1YllLbF9JTHExalg0czJTMV96UXJZUU1UQUYtOS1tNGo3VlJNSl8wbHhDUk9la0k3ejBBOXJVUQ&amp;file=The+Lord+of+the+Rings+The+Return+of+the+King+2003+1080p+HBO+Max+WEB+DL+H264" length="8557722337" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="131" />
+      <torznab:attr name="peers" value="150" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.REMASTERED.1080p.</title>
+      <guid>magnet:?xt=urn:btih:2EF56E8CA6DC8CA3E8D6C28E6D82713C606D75AD&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.REMASTERED.1080p.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76336494</comments>
+      <pubDate>Thu, 22 Aug 2024 01:42:36 +0800</pubDate>
+      <size>26425000009</size>
+      <files>2</files>
+      <description>Uploader: Cybotage&lt;br&gt;The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.REMASTERED.1080p.</description>
+      <link>magnet:?xt=urn:btih:2EF56E8CA6DC8CA3E8D6C28E6D82713C606D75AD&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.REMASTERED.1080p.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:2EF56E8CA6DC8CA3E8D6C28E6D82713C606D75AD&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.REMASTERED.1080p.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="26425000009" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="40" />
+      <torznab:attr name="peers" value="51" />
+      <torznab:attr name="infohash" value="2EF56E8CA6DC8CA3E8D6C28E6D82713C606D75AD" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:2EF56E8CA6DC8CA3E8D6C28E6D82713C606D75AD&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.REMASTERED.1080p.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Two Towers (2002) 2160p BRRip 5.1 10Bit x265 -YTS</title>
+      <guid>https://yts.gg/torrent/download/78993BC5A25D775B3EB87ECC71D4F3797E030F67</guid>
+      <jackettindexer id="yts">YTS</jackettindexer>
+      <type>public</type>
+      <comments>https://yts.gg/movies/the-lord-of-the-rings-the-two-towers-2002</comments>
+      <pubDate>Wed, 22 Feb 2023 08:08:00 +0800</pubDate>
+      <size>11918534246</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3UTEzNGdXc0NvUnhGX3dHb1lvOWhmbFR4WHlGaEt6SV9JTG1NcXJWN05YS1NsWXlUQTZuZ1ppRTNUcnh6U2gxb2t6ZlZya0lLRDhpcVZXYUpMTjZIR0h5Z0JQRmxhYmJ5b1Z2MmJnVEtKZ0JwN2taUEhhOUdCaldEWUc4UDc1UlVBNEVZYmpBa3dyMzQ1b3JRRHd3QU5UNGZxRUxZTFFNWTlLUVA1YlhTTFBVWVJNMGJTY3VUd05wekQwZmV3N19R&amp;file=The+Lord+of+the+Rings+The+Two+Towers+(2002)+2160p+BRRip+5.1+10Bit+x265+-YTS</link>
+      <category>2045</category>
+      <category>100046</category>
+      <enclosure url="http://127.0.0.1:9117/dl/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3UTEzNGdXc0NvUnhGX3dHb1lvOWhmbFR4WHlGaEt6SV9JTG1NcXJWN05YS1NsWXlUQTZuZ1ppRTNUcnh6U2gxb2t6ZlZya0lLRDhpcVZXYUpMTjZIR0h5Z0JQRmxhYmJ5b1Z2MmJnVEtKZ0JwN2taUEhhOUdCaldEWUc4UDc1UlVBNEVZYmpBa3dyMzQ1b3JRRHd3QU5UNGZxRUxZTFFNWTlLUVA1YlhTTFBVWVJNMGJTY3VUd05wekQwZmV3N19R&amp;file=The+Lord+of+the+Rings+The+Two+Towers+(2002)+2160p+BRRip+5.1+10Bit+x265+-YTS" length="11918534246" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="category" value="100046" />
+      <torznab:attr name="imdb" value="0167261" />
+      <torznab:attr name="imdbid" value="tt0167261" />
+      <torznab:attr name="year" value="2002" />
+      <torznab:attr name="seeders" value="88" />
+      <torznab:attr name="peers" value="101" />
+      <torznab:attr name="coverurl" value="http://127.0.0.1:9117/img/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0ckF1aldCR195M1U2dUI3N2RFUEhCN2l5TjJEcF82MlZOQU1ralM4WGxjdE5ZWjFYS2hCWV9QOGR4VFV1RWhvMjJpLTJWeHdBcHhPeDc4Vzc2VzJSTUhBVEdoeDBFTDg4OE5HUmhxaE9oZEFoZlNISnZDMVE5Vk92MGxEam1waFNWdlNQWmFqWmFUS3ExWUx2TXc4ZjVXMEM1MndROXBBNjFMdWZ5cVdCWlliVUpZcVRGMW9MVWFTcFo0Y09XVzBIZ0VNQUNNZ1VSTjNqVFFIYjVHdzBtNE1rQmhKcmNBQ1dtUmJ0TGZqNGM2Zw&amp;file=poster" />
+      <torznab:attr name="infohash" value="78993BC5A25D775B3EB87ECC71D4F3797E030F67" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:78993BC5A25D775B3EB87ECC71D4F3797E030F67&amp;dn=The+Lord+of+the+Rings+The+Two+Towers+(2002)+2160p+BRRip+5.1+10Bit+x265+-YTS&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Two Towers 2002 1080p DUAL NF WEB DL x264 AAC  H</title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Two-Towers-2002-1080p-DUAL-NF-WEB-DL-x264-AAC--H-torrent-19841141.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Two-Towers-2002-1080p-DUAL-NF-WEB-DL-x264-AAC--H-torrent-19841141.html</comments>
+      <pubDate>Sun, 19 Jul 2026 13:24:36 +0800</pubDate>
+      <size>7795365642</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1bDJSN3UwbGhYRGpLT1dKTWZISGYyb1VoNktfV3p4bGpteUI5NC1rR1RlQkVNOEtpVDROejVyN1Q1eGw1c3pKekVmaWkzM1ZWV1Z1U296VmVSMzh4SWZNREN3azlzZDh4dUtDeWxtRWpTdmJvTkt0VFpYbi1PQU5Zek8wOU5zR1kyY1NOYW05NFgzVDA2Q0ZZeWhfaGtDWkNpUzZLZlRDS1BmZGN4V3ZUYnh6eXI0ZzZ4UnhYX2xyblFodmUzU2RvalVmUmxycUdBTGV6Q2F2N09mMklDaldlSHd1LU1aUklOalB0TmxwN0xXai1keS15M3Rzb3YwRDVzaGhHVE05QQ&amp;file=The+Lord+of+the+Rings+The+Two+Towers+2002+1080p+DUAL+NF+WEB+DL+x264+AAC++H</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1bDJSN3UwbGhYRGpLT1dKTWZISGYyb1VoNktfV3p4bGpteUI5NC1rR1RlQkVNOEtpVDROejVyN1Q1eGw1c3pKekVmaWkzM1ZWV1Z1U296VmVSMzh4SWZNREN3azlzZDh4dUtDeWxtRWpTdmJvTkt0VFpYbi1PQU5Zek8wOU5zR1kyY1NOYW05NFgzVDA2Q0ZZeWhfaGtDWkNpUzZLZlRDS1BmZGN4V3ZUYnh6eXI0ZzZ4UnhYX2xyblFodmUzU2RvalVmUmxycUdBTGV6Q2F2N09mMklDaldlSHd1LU1aUklOalB0TmxwN0xXai1keS15M3Rzb3YwRDVzaGhHVE05QQ&amp;file=The+Lord+of+the+Rings+The+Two+Towers+2002+1080p+DUAL+NF+WEB+DL+x264+AAC++H" length="7795365642" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="127" />
+      <torznab:attr name="peers" value="135" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Rings.of.Power.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb</title>
+      <guid>magnet:?xt=urn:btih:A70A278AA8BC06CB7EF0F63FE4EF5942260AB6CA&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76399039</comments>
+      <pubDate>Wed, 28 Aug 2024 06:21:05 +0800</pubDate>
+      <size>48364161183</size>
+      <files>8</files>
+      <description>Uploader: Cybotage&lt;br&gt;The.Lord.of.the.Rings.The.Rings.of.Power.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb</description>
+      <link>magnet:?xt=urn:btih:A70A278AA8BC06CB7EF0F63FE4EF5942260AB6CA&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>5040</category>
+      <category>100208</category>
+      <enclosure url="magnet:?xt=urn:btih:A70A278AA8BC06CB7EF0F63FE4EF5942260AB6CA&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="48364161183" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5040" />
+      <torznab:attr name="category" value="100208" />
+      <torznab:attr name="seeders" value="19" />
+      <torznab:attr name="peers" value="22" />
+      <torznab:attr name="infohash" value="A70A278AA8BC06CB7EF0F63FE4EF5942260AB6CA" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:A70A278AA8BC06CB7EF0F63FE4EF5942260AB6CA&amp;dn=The.Lord.of.the.Rings.The.Rings.of.Power.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Return of the King 2003 1080p HBO Max WEB-DL H264</title>
+      <guid>magnet:?xt=urn:btih:79FFA33956BB80014ED6240E6F6A0368A308A604&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+1080p+HBO+Max+WEB-DL+H264&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=83208528</comments>
+      <pubDate>Thu, 21 May 2026 23:25:23 +0800</pubDate>
+      <size>8552619896</size>
+      <files>3</files>
+      <description>Uploader: TvTeam&lt;br&gt;The Lord of the Rings The Return of the King 2003 1080p HBO Max WEB-DL H264</description>
+      <link>magnet:?xt=urn:btih:79FFA33956BB80014ED6240E6F6A0368A308A604&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+1080p+HBO+Max+WEB-DL+H264&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:79FFA33956BB80014ED6240E6F6A0368A308A604&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+1080p+HBO+Max+WEB-DL+H264&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="8552619896" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="103" />
+      <torznab:attr name="peers" value="109" />
+      <torznab:attr name="infohash" value="79FFA33956BB80014ED6240E6F6A0368A308A604" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:79FFA33956BB80014ED6240E6F6A0368A308A604&amp;dn=The+Lord+of+the+Rings+The+Return+of+the+King+2003+1080p+HBO+Max+WEB-DL+H264&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>Lord of the Rings Trilogy BluRay Extended 1080p QEBS5 AAC51 PS3</title>
+      <guid>magnet:?xt=urn:btih:8D750BE6DE48066DA143FF8509FFD951B532D73E&amp;dn=Lord+of+the+Rings+Trilogy+BluRay+Extended+1080p+QEBS5+AAC51+PS3&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=6691941</comments>
+      <pubDate>Wed, 21 Sep 2011 22:50:37 +0800</pubDate>
+      <size>12924428518</size>
+      <files>29</files>
+      <description>Uploader: SaM&lt;br&gt;Lord of the Rings Trilogy BluRay Extended 1080p QEBS5 AAC51 PS3</description>
+      <link>magnet:?xt=urn:btih:8D750BE6DE48066DA143FF8509FFD951B532D73E&amp;dn=Lord+of+the+Rings+Trilogy+BluRay+Extended+1080p+QEBS5+AAC51+PS3&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:8D750BE6DE48066DA143FF8509FFD951B532D73E&amp;dn=Lord+of+the+Rings+Trilogy+BluRay+Extended+1080p+QEBS5+AAC51+PS3&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="12924428518" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="seeders" value="68" />
+      <torznab:attr name="peers" value="107" />
+      <torznab:attr name="infohash" value="8D750BE6DE48066DA143FF8509FFD951B532D73E" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:8D750BE6DE48066DA143FF8509FFD951B532D73E&amp;dn=Lord+of+the+Rings+Trilogy+BluRay+Extended+1080p+QEBS5+AAC51+PS3&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The War of the Rohirrim 2024 2160p MA WEB DL TrueHD Atmos </title>
+      <guid>https://www.limetorrents.fun/The%20Lord%20of%20the%20Rings%20The%20War%20of%20the%20Rohirrim%202024%202160p%20MA%20WEB-DL%20TrueHD%20Atmos%20-torrent-19500365.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The%20Lord%20of%20the%20Rings%20The%20War%20of%20the%20Rohirrim%202024%202160p%20MA%20WEB-DL%20TrueHD%20Atmos%20-torrent-19500365.html</comments>
+      <pubDate>Wed, 04 Mar 2026 13:24:36 +0800</pubDate>
+      <size>27273042329</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3Vm5jSzFBV0JiVDd4TkZmaldQSG5vSGdUSEJZV3VHeTFQOTVMTEV3TlhmRllrcXFTSkhXX2VUTG5vcjlVZW02VjgwQjJaVHk0MTJFMXBBTVR6UEU0MTd5dGJlVWtEbzlTNHQ4Ty0zZVVySzd1VGEwY2dhZmp4RUp0M3B4eG1uaWRPZktCZzFjanRTaHFPVmxWZlpmLXVNVTdTQjJoTGdhWG9xaGh1Q0h5V194SFhqZFRFaEQ4dGpPdEZnQUF2d0dmbWpPUGtWbnpIZ2N4UUhVeF8yanREc1dZVmppcm4yYm9rOEV3TkgyWnVselhGR2c2MWVDVHFTUXhrT2hxeFRuMm1XbkNjcHBveGhDNWF2azNpUGlCbA&amp;file=The+Lord+of+the+Rings+The+War+of+the+Rohirrim+2024+2160p+MA+WEB+DL+TrueHD+Atmos+</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3Vm5jSzFBV0JiVDd4TkZmaldQSG5vSGdUSEJZV3VHeTFQOTVMTEV3TlhmRllrcXFTSkhXX2VUTG5vcjlVZW02VjgwQjJaVHk0MTJFMXBBTVR6UEU0MTd5dGJlVWtEbzlTNHQ4Ty0zZVVySzd1VGEwY2dhZmp4RUp0M3B4eG1uaWRPZktCZzFjanRTaHFPVmxWZlpmLXVNVTdTQjJoTGdhWG9xaGh1Q0h5V194SFhqZFRFaEQ4dGpPdEZnQUF2d0dmbWpPUGtWbnpIZ2N4UUhVeF8yanREc1dZVmppcm4yYm9rOEV3TkgyWnVselhGR2c2MWVDVHFTUXhrT2hxeFRuMm1XbkNjcHBveGhDNWF2azNpUGlCbA&amp;file=The+Lord+of+the+Rings+The+War+of+the+Rohirrim+2024+2160p+MA+WEB+DL+TrueHD+Atmos+" length="27273042329" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="30" />
+      <torznab:attr name="peers" value="39" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Fellowship of the Ring THEATRICAL 2001    </title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Fellowship-of-the-Ring-THEATRICAL-2001-%20%20%20-torrent-19219615.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Fellowship-of-the-Ring-THEATRICAL-2001-%20%20%20-torrent-19219615.html</comments>
+      <pubDate>Sun, 05 Oct 2025 13:24:36 +0800</pubDate>
+      <size>31868657336</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3YlphMUMtT2FpRmVwTXdJS1VhVjZfTHhia3RlVHAyT0JjckZibWxFR3dqZ1ZaRjB5OFBxNFRhdzNRNUZVQU5FN0FFRjFkbVlCUDNhMjB0clBEREdwT1UyLWZ4U1pya1pNZ1g2RFJYaS1XODZGOExyZE9pcnBHNXFpeFBVdXR1LTVtLUtDU3lvUUxnSE5hVDB0SmFWSFhseUQ2enRqNW9PUHM3Ym9JNlJrazQ5cDVuQXRMZm9Gc3dRdFNhZlJwU0xrMWRIMVlzblZkR3ktLUlzWld0R0tzdzdwa2Q4dFkzbWFwYkFHVjN0NTJWeEhnT3lES1NEeHBObkdDQlJmUGVtVQ&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+THEATRICAL+2001++++</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3YlphMUMtT2FpRmVwTXdJS1VhVjZfTHhia3RlVHAyT0JjckZibWxFR3dqZ1ZaRjB5OFBxNFRhdzNRNUZVQU5FN0FFRjFkbVlCUDNhMjB0clBEREdwT1UyLWZ4U1pya1pNZ1g2RFJYaS1XODZGOExyZE9pcnBHNXFpeFBVdXR1LTVtLUtDU3lvUUxnSE5hVDB0SmFWSFhseUQ2enRqNW9PUHM3Ym9JNlJrazQ5cDVuQXRMZm9Gc3dRdFNhZlJwU0xrMWRIMVlzblZkR3ktLUlzWld0R0tzdzdwa2Q4dFkzbWFwYkFHVjN0NTJWeEhnT3lES1NEeHBObkdDQlJmUGVtVQ&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+THEATRICAL+2001++++" length="31868657336" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="25" />
+      <torznab:attr name="peers" value="28" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>Lord.of.the.Rings.Return.of.King.2003.EXTENDED.1080p.BluRay.HEVC</title>
+      <guid>magnet:?xt=urn:btih:EFC5FCBB3FB9DADA67ED0A39768D12EA9C45DB58&amp;dn=Lord.of.the.Rings.Return.of.King.2003.EXTENDED.1080p.BluRay.HEVC&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=30986573</comments>
+      <pubDate>Fri, 29 Mar 2019 23:57:40 +0800</pubDate>
+      <size>6487465552</size>
+      <files>1</files>
+      <description>Uploader: GoodFilms&lt;br&gt;Lord.of.the.Rings.Return.of.King.2003.EXTENDED.1080p.BluRay.HEVC</description>
+      <link>magnet:?xt=urn:btih:EFC5FCBB3FB9DADA67ED0A39768D12EA9C45DB58&amp;dn=Lord.of.the.Rings.Return.of.King.2003.EXTENDED.1080p.BluRay.HEVC&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:EFC5FCBB3FB9DADA67ED0A39768D12EA9C45DB58&amp;dn=Lord.of.the.Rings.Return.of.King.2003.EXTENDED.1080p.BluRay.HEVC&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="6487465552" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0167260" />
+      <torznab:attr name="imdbid" value="tt0167260" />
+      <torznab:attr name="seeders" value="122" />
+      <torznab:attr name="peers" value="125" />
+      <torznab:attr name="infohash" value="EFC5FCBB3FB9DADA67ED0A39768D12EA9C45DB58" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:EFC5FCBB3FB9DADA67ED0A39768D12EA9C45DB58&amp;dn=Lord.of.the.Rings.Return.of.King.2003.EXTENDED.1080p.BluRay.HEVC&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Return of the King Theatrical 2003 UHD    </title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Return-of-the-King-Theatrical-2003-UHD-%20%20%20-torrent-19219635.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Return-of-the-King-Theatrical-2003-UHD-%20%20%20-torrent-19219635.html</comments>
+      <pubDate>Sun, 05 Oct 2025 13:24:36 +0800</pubDate>
+      <size>35884451758</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0b05XajdDQk9EUTU5MnRERWU2M3NfLTVKYThGekpDeGczYjI0bzhNSUk2TTVmWEk5aE5HQUdXWW9Sa2Z4X2tBSldYcGZMV3dPUGUyUUs2VE9wdjBDUEFQMTYtZjd0YldycnVMUnl6OWxQc0xaVWFhdnROTTN5Wll5TTFHS1NFN2stTzhKbTE0enAwWFMxMDBtdW83TGZ2dml3RTNoaUZGaldGVnRHSndJb2RrX3dwVy00YjJHcEV0eDRHMFNhTnlVbzBGZTBoM2xySVRUWFBNb0w5RkNBVWpQTGNoN3JYZHB3b0xkTlUwM2pTWVV2NzlTaHBOVG51ZHl4NUpheFhCZw&amp;file=The+Lord+of+the+Rings+The+Return+of+the+King+Theatrical+2003+UHD++++</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0b05XajdDQk9EUTU5MnRERWU2M3NfLTVKYThGekpDeGczYjI0bzhNSUk2TTVmWEk5aE5HQUdXWW9Sa2Z4X2tBSldYcGZMV3dPUGUyUUs2VE9wdjBDUEFQMTYtZjd0YldycnVMUnl6OWxQc0xaVWFhdnROTTN5Wll5TTFHS1NFN2stTzhKbTE0enAwWFMxMDBtdW83TGZ2dml3RTNoaUZGaldGVnRHSndJb2RrX3dwVy00YjJHcEV0eDRHMFNhTnlVbzBGZTBoM2xySVRUWFBNb0w5RkNBVWpQTGNoN3JYZHB3b0xkTlUwM2pTWVV2NzlTaHBOVG51ZHl4NUpheFhCZw&amp;file=The+Lord+of+the+Rings+The+Return+of+the+King+Theatrical+2003+UHD++++" length="35884451758" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="22" />
+      <torznab:attr name="peers" value="29" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Fellowship of the Ring 2001 1080p HBO Max WEB DL H264 DUAL EAC3 TSRG</title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Fellowship-of-the-Ring-2001-1080p-HBO-Max-WEB-DL-H264-DUAL-EAC3-TSRG-torrent-19729684.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Fellowship-of-the-Ring-2001-1080p-HBO-Max-WEB-DL-H264-DUAL-EAC3-TSRG-torrent-19729684.html</comments>
+      <pubDate>Tue, 02 Jun 2026 13:24:36 +0800</pubDate>
+      <size>5905580032</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3LXE4SHhQNEZQdUJGVVpWY0tBSDRwTmp3VTFkWWhld1ZYd2hyU1FheW1vV3lCdkRWZjJNZHU0dUFHcGJpb2FqbjJJUzNLODZSaFc2UnhJVTZrM1QxM0w3ZG1JUzRWQUhxM1Bob2lEaU41ZGZUcURlM21Gck8taFJvZ2VEY1Y1dUlncWpZRlEtQ0xNSGVTSnhpYmVXWkd3RUlXNGx4MF9uMkNNS2xpSlJuMEFxYUpjd19OYkVsbDJUbjdTWXdkdnZ3S19xelI2UXI2TzV0b3MxUllIVUpRSkFOV2VTVXhsaThqeE8wRkMxY0F0a09CWTFjYTI1YTYtNTZZVDJkaFRWekNzenNsZzVmcjdzcjhSWWtWYnlhelYxSjNhYXdPa0pRck1KZDRhT2dNSHc&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+1080p+HBO+Max+WEB+DL+H264+DUAL+EAC3+TSRG</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3LXE4SHhQNEZQdUJGVVpWY0tBSDRwTmp3VTFkWWhld1ZYd2hyU1FheW1vV3lCdkRWZjJNZHU0dUFHcGJpb2FqbjJJUzNLODZSaFc2UnhJVTZrM1QxM0w3ZG1JUzRWQUhxM1Bob2lEaU41ZGZUcURlM21Gck8taFJvZ2VEY1Y1dUlncWpZRlEtQ0xNSGVTSnhpYmVXWkd3RUlXNGx4MF9uMkNNS2xpSlJuMEFxYUpjd19OYkVsbDJUbjdTWXdkdnZ3S19xelI2UXI2TzV0b3MxUllIVUpRSkFOV2VTVXhsaThqeE8wRkMxY0F0a09CWTFjYTI1YTYtNTZZVDJkaFRWekNzenNsZzVmcjdzcjhSWWtWYnlhelYxSjNhYXdPa0pRck1KZDRhT2dNSHc&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+1080p+HBO+Max+WEB+DL+H264+DUAL+EAC3+TSRG" length="5905580032" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="133" />
+      <torznab:attr name="peers" value="165" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.1080p</title>
+      <guid>magnet:?xt=urn:btih:41F694C75831ED34D6A2C6422E222A781DEC1955&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.1080p&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76280997</comments>
+      <pubDate>Fri, 16 Aug 2024 12:26:24 +0800</pubDate>
+      <size>8033937818</size>
+      <files>4</files>
+      <description>Uploader: GalaxyRG&lt;br&gt;The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.1080p</description>
+      <link>magnet:?xt=urn:btih:41F694C75831ED34D6A2C6422E222A781DEC1955&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.1080p&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:41F694C75831ED34D6A2C6422E222A781DEC1955&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.1080p&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="8033937818" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0167260" />
+      <torznab:attr name="imdbid" value="tt0167260" />
+      <torznab:attr name="seeders" value="97" />
+      <torznab:attr name="peers" value="114" />
+      <torznab:attr name="infohash" value="41F694C75831ED34D6A2C6422E222A781DEC1955" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:41F694C75831ED34D6A2C6422E222A781DEC1955&amp;dn=The.Lord.of.the.Rings.The.Return.of.the.King.2003.EXTENDED.1080p&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Two Towers THEATRICAL 2002 UHD BluRay 2   </title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Two-Towers-THEATRICAL-2002-UHD-BluRay-2%20%20%20-torrent-19220229.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings-The-Two-Towers-THEATRICAL-2002-UHD-BluRay-2%20%20%20-torrent-19220229.html</comments>
+      <pubDate>Sun, 05 Oct 2025 13:24:36 +0800</pubDate>
+      <size>32083405701</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0SFpaM2JkWkpwUzFrMTM1LWZwQ18xUWR4NWpHZXFuZVZTcDREcUtrbHBaWXhreFFUN2IxYS13alQ5TXhjTXhZX2VFT05OOGs1ZURyVFlxSDV6MTkwRVJ2QWlIWUhqUHpqOUhnMFdCRUF2bmNkTnBPRGhrRWRORzhxMVhjRi1RcmF6SWlHSFh0a3BrX3RxQkFvNkxGQ0Z6ZWVZa09SR3RvSTI0NjVSN0pLX1NjUEt0R0d0ZzhmZnlsMFJkMUlvZXNOVl9sMU5lcnA3WU1WLW0wQ0RrTWNGbWdUclBYZHZvb19JWGFwT194Q1puRGY3Nk5oaTVOaHNsT1E5VUtKRkpUMA&amp;file=The+Lord+of+the+Rings+The+Two+Towers+THEATRICAL+2002+UHD+BluRay+2+++</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU0SFpaM2JkWkpwUzFrMTM1LWZwQ18xUWR4NWpHZXFuZVZTcDREcUtrbHBaWXhreFFUN2IxYS13alQ5TXhjTXhZX2VFT05OOGs1ZURyVFlxSDV6MTkwRVJ2QWlIWUhqUHpqOUhnMFdCRUF2bmNkTnBPRGhrRWRORzhxMVhjRi1RcmF6SWlHSFh0a3BrX3RxQkFvNkxGQ0Z6ZWVZa09SR3RvSTI0NjVSN0pLX1NjUEt0R0d0ZzhmZnlsMFJkMUlvZXNOVl9sMU5lcnA3WU1WLW0wQ0RrTWNGbWdUclBYZHZvb19JWGFwT194Q1puRGY3Nk5oaTVOaHNsT1E5VUtKRkpUMA&amp;file=The+Lord+of+the+Rings+The+Two+Towers+THEATRICAL+2002+UHD+BluRay+2+++" length="32083405701" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="23" />
+      <torznab:attr name="peers" value="33" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Two Towers 2002 Extended Cut BluRay 108   </title>
+      <guid>https://www.limetorrents.fun/The%20Lord%20of%20the%20Rings%20The%20Two%20Towers%202002%20Extended%20Cut%20BluRay%20108%20%20%20-torrent-19090583.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The%20Lord%20of%20the%20Rings%20The%20Two%20Towers%202002%20Extended%20Cut%20BluRay%20108%20%20%20-torrent-19090583.html</comments>
+      <pubDate>Fri, 01 Aug 2025 13:24:36 +0800</pubDate>
+      <size>15171971973</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU2S1UtcVEtZlNZNnU4T1BpSnMxdXNkak9tWmlKX3VUYnlST3pQQ041c2F6Q2JVbnF3aTM2VWRnQlVhd1FKTVNlNzJhS1VfMVc5UWZxTTZpYWFyS0x6SHJLNzI2RUpFMENaOVpMakdWekpxQWZ6Z2xVZ01TYlVEVG1uVmx0TUxHVXhFdHpWRmFkckx3cG85M0M3eWMtS2tybnlHQ2p0NG5Ca3BpQ2JjWW8ydGs4d2xaRElLTm9XZ3lmbkx1UDR4N3pIUzV2OERVdFNvcDc2M19qT2VKcUVYem5HT05yRlEtWUdROFJHbDB5YlNBT1hTMm11c2ZQYTI2SVhMMXI2UEtTaw&amp;file=The+Lord+of+the+Rings+The+Two+Towers+2002+Extended+Cut+BluRay+108+++</link>
+      <category>2000</category>
+      <category>100467</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU2S1UtcVEtZlNZNnU4T1BpSnMxdXNkak9tWmlKX3VUYnlST3pQQ041c2F6Q2JVbnF3aTM2VWRnQlVhd1FKTVNlNzJhS1VfMVc5UWZxTTZpYWFyS0x6SHJLNzI2RUpFMENaOVpMakdWekpxQWZ6Z2xVZ01TYlVEVG1uVmx0TUxHVXhFdHpWRmFkckx3cG85M0M3eWMtS2tybnlHQ2p0NG5Ca3BpQ2JjWW8ydGs4d2xaRElLTm9XZ3lmbkx1UDR4N3pIUzV2OERVdFNvcDc2M19qT2VKcUVYem5HT05yRlEtWUdROFJHbDB5YlNBT1hTMm11c2ZQYTI2SVhMMXI2UEtTaw&amp;file=The+Lord+of+the+Rings+The+Two+Towers+2002+Extended+Cut+BluRay+108+++" length="15171971973" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="100467" />
+      <torznab:attr name="seeders" value="46" />
+      <torznab:attr name="peers" value="47" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings  Return to Moria  Collector  039 s Edition (v1 6   </title>
+      <guid>https://www.limetorrents.fun/The-Lord-of-the-Rings%20-Return-to-Moria%20-Collector%20%20039%20s-Edition-(v1%206%20%20%20-torrent-19348587.html</guid>
+      <jackettindexer id="limetorrents">LimeTorrents</jackettindexer>
+      <type>public</type>
+      <comments>https://www.limetorrents.fun/The-Lord-of-the-Rings%20-Return-to-Moria%20-Collector%20%20039%20s-Edition-(v1%206%20%20%20-torrent-19348587.html</comments>
+      <pubDate>Thu, 04 Dec 2025 13:24:36 +0800</pubDate>
+      <size>12766790287</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1NUlzWl9seVlib0taT0FfcjdQaFhIRE1EOFljd3FiY0pWYWc4RGhBNEI5S250N2ZrR1h1SkhCYm4tTm5DR0h3dE1CdTcyNTNzaDNjSUFOU19SYzZsbGxGbHp2bjB5SG5WWkJ3dXVDNEwxcnUtSUJUUGpvc1pXQ1ZtU1JHVVczNkIySHJ0S0htUWRndkdLYmNMWTJ4OTdMZ3RZb1RPTDlTMFpfaTFWLVh4QW8tdWE2UmY3MERHR1pHWXpWQVN5OWZBQW5GRDlXYVFJTFJHdklGWTRoSW9nOE50aEd3YndlRmVxS1liTkFaanJJaHBCX05mdWNPeHVvVjFxLW5DZnpyYw&amp;file=The+Lord+of+the+Rings++Return+to+Moria++Collector++039+s+Edition+(v1+6+++</link>
+      <category>1000</category>
+      <category>136409</category>
+      <enclosure url="http://127.0.0.1:9117/dl/limetorrents/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1NUlzWl9seVlib0taT0FfcjdQaFhIRE1EOFljd3FiY0pWYWc4RGhBNEI5S250N2ZrR1h1SkhCYm4tTm5DR0h3dE1CdTcyNTNzaDNjSUFOU19SYzZsbGxGbHp2bjB5SG5WWkJ3dXVDNEwxcnUtSUJUUGpvc1pXQ1ZtU1JHVVczNkIySHJ0S0htUWRndkdLYmNMWTJ4OTdMZ3RZb1RPTDlTMFpfaTFWLVh4QW8tdWE2UmY3MERHR1pHWXpWQVN5OWZBQW5GRDlXYVFJTFJHdklGWTRoSW9nOE50aEd3YndlRmVxS1liTkFaanJJaHBCX05mdWNPeHVvVjFxLW5DZnpyYw&amp;file=The+Lord+of+the+Rings++Return+to+Moria++Collector++039+s+Edition+(v1+6+++" length="12766790287" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="1000" />
+      <torznab:attr name="category" value="136409" />
+      <torznab:attr name="seeders" value="54" />
+      <torznab:attr name="peers" value="61" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Fellowship of the Ring 2001 1080p HBO Max WEB-DL</title>
+      <guid>magnet:?xt=urn:btih:C2F06E37E5C81533F2FEC1090011336CC6A49DD6&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+1080p+HBO+Max+WEB-DL&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=83208419</comments>
+      <pubDate>Thu, 21 May 2026 23:10:20 +0800</pubDate>
+      <size>5902152306</size>
+      <files>3</files>
+      <description>Uploader: TvTeam&lt;br&gt;The Lord of the Rings The Fellowship of the Ring 2001 1080p HBO Max WEB-DL</description>
+      <link>magnet:?xt=urn:btih:C2F06E37E5C81533F2FEC1090011336CC6A49DD6&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+1080p+HBO+Max+WEB-DL&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:C2F06E37E5C81533F2FEC1090011336CC6A49DD6&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+1080p+HBO+Max+WEB-DL&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="5902152306" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="115" />
+      <torznab:attr name="peers" value="140" />
+      <torznab:attr name="infohash" value="C2F06E37E5C81533F2FEC1090011336CC6A49DD6" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:C2F06E37E5C81533F2FEC1090011336CC6A49DD6&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+1080p+HBO+Max+WEB-DL&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.1</title>
+      <guid>magnet:?xt=urn:btih:66FDDFCCDB9DD8E32EF884368D74AA03FF39530F&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76177592</comments>
+      <pubDate>Tue, 06 Aug 2024 07:37:08 +0800</pubDate>
+      <size>6237127471</size>
+      <files>4</files>
+      <description>Uploader: GalaxyRG&lt;br&gt;The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.1</description>
+      <link>magnet:?xt=urn:btih:66FDDFCCDB9DD8E32EF884368D74AA03FF39530F&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:66FDDFCCDB9DD8E32EF884368D74AA03FF39530F&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="6237127471" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="seeders" value="107" />
+      <torznab:attr name="peers" value="116" />
+      <torznab:attr name="infohash" value="66FDDFCCDB9DD8E32EF884368D74AA03FF39530F" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:66FDDFCCDB9DD8E32EF884368D74AA03FF39530F&amp;dn=The.Lord.of.the.Rings.The.Fellowship.of.the.Ring.2001.EXTENDED.1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Fellowship of the Ring 2001 Extended Cut BluRay 1</title>
+      <guid>magnet:?xt=urn:btih:CE2279B546802321EAF95674249D869C3F833F25&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+Extended+Cut+BluRay+1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=79710916</comments>
+      <pubDate>Thu, 03 Jul 2025 18:57:50 +0800</pubDate>
+      <size>14643762600</size>
+      <files>4</files>
+      <description>Uploader: TvTeam&lt;br&gt;The Lord of the Rings The Fellowship of the Ring 2001 Extended Cut BluRay 1</description>
+      <link>magnet:?xt=urn:btih:CE2279B546802321EAF95674249D869C3F833F25&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+Extended+Cut+BluRay+1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:CE2279B546802321EAF95674249D869C3F833F25&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+Extended+Cut+BluRay+1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="14643762600" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="45" />
+      <torznab:attr name="peers" value="51" />
+      <torznab:attr name="infohash" value="CE2279B546802321EAF95674249D869C3F833F25" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:CE2279B546802321EAF95674249D869C3F833F25&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+2001+Extended+Cut+BluRay+1&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.x264.</title>
+      <guid>magnet:?xt=urn:btih:426EE2018722FAA3E998DAB4EDC0DA164C2AC149&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.x264.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76395453</comments>
+      <pubDate>Tue, 27 Aug 2024 21:39:16 +0800</pubDate>
+      <size>26849497279</size>
+      <files>2</files>
+      <description>Uploader: Cybotage&lt;br&gt;The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.x264.</description>
+      <link>magnet:?xt=urn:btih:426EE2018722FAA3E998DAB4EDC0DA164C2AC149&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.x264.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:426EE2018722FAA3E998DAB4EDC0DA164C2AC149&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.x264.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="26849497279" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="24" />
+      <torznab:attr name="peers" value="29" />
+      <torznab:attr name="infohash" value="426EE2018722FAA3E998DAB4EDC0DA164C2AC149" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:426EE2018722FAA3E998DAB4EDC0DA164C2AC149&amp;dn=The.Lord.of.the.Rings.The.Two.Towers.2002.EXTENDED.REMASTERED.1080p.BluRay.x264.&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings 1978 BluRay 1080p TrueHD 5 1 VC-1 REMUX-FraMeSToR</title>
+      <guid>magnet:?xt=urn:btih:B31187A0F1F0323AEFA29B4C2278DD410DA3F00A&amp;dn=The+Lord+of+the+Rings+1978+BluRay+1080p+TrueHD+5+1+VC-1+REMUX-FraMeSToR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=79607702</comments>
+      <pubDate>Tue, 24 Jun 2025 04:59:20 +0800</pubDate>
+      <size>22337144099</size>
+      <files>3</files>
+      <description>Uploader: TvTeam&lt;br&gt;The Lord of the Rings 1978 BluRay 1080p TrueHD 5 1 VC-1 REMUX-FraMeSToR</description>
+      <link>magnet:?xt=urn:btih:B31187A0F1F0323AEFA29B4C2278DD410DA3F00A&amp;dn=The+Lord+of+the+Rings+1978+BluRay+1080p+TrueHD+5+1+VC-1+REMUX-FraMeSToR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:B31187A0F1F0323AEFA29B4C2278DD410DA3F00A&amp;dn=The+Lord+of+the+Rings+1978+BluRay+1080p+TrueHD+5+1+VC-1+REMUX-FraMeSToR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="22337144099" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="seeders" value="26" />
+      <torznab:attr name="peers" value="29" />
+      <torznab:attr name="infohash" value="B31187A0F1F0323AEFA29B4C2278DD410DA3F00A" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:B31187A0F1F0323AEFA29B4C2278DD410DA3F00A&amp;dn=The+Lord+of+the+Rings+1978+BluRay+1080p+TrueHD+5+1+VC-1+REMUX-FraMeSToR&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord Of The Rings Trilogy Extended Edition 1080p 2001-2003</title>
+      <guid>magnet:?xt=urn:btih:53495DCD58F03ED379B8A7A0BDA2C1F183C93A5E&amp;dn=The+Lord+Of+The+Rings+Trilogy+Extended+Edition+1080p+2001-2003&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=17363778</comments>
+      <pubDate>Sun, 19 Mar 2017 20:18:47 +0800</pubDate>
+      <size>20709282077</size>
+      <files>35</files>
+      <description>Uploader: eyezin&lt;br&gt;The Lord Of The Rings Trilogy Extended Edition 1080p 2001-2003</description>
+      <link>magnet:?xt=urn:btih:53495DCD58F03ED379B8A7A0BDA2C1F183C93A5E&amp;dn=The+Lord+Of+The+Rings+Trilogy+Extended+Edition+1080p+2001-2003&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:53495DCD58F03ED379B8A7A0BDA2C1F183C93A5E&amp;dn=The+Lord+Of+The+Rings+Trilogy+Extended+Edition+1080p+2001-2003&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="20709282077" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="seeders" value="28" />
+      <torznab:attr name="peers" value="32" />
+      <torznab:attr name="infohash" value="53495DCD58F03ED379B8A7A0BDA2C1F183C93A5E" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:53495DCD58F03ED379B8A7A0BDA2C1F183C93A5E&amp;dn=The+Lord+Of+The+Rings+Trilogy+Extended+Edition+1080p+2001-2003&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Fellowship of the Ring (2001) 2160p BRRip 5.1 10Bit x265 -YTS</title>
+      <guid>https://yts.gg/torrent/download/671470450DC7D94C680B1574B938836C1C22194E</guid>
+      <jackettindexer id="yts">YTS</jackettindexer>
+      <type>public</type>
+      <comments>https://yts.gg/movies/the-lord-of-the-rings-the-fellowship-of-the-ring-2001</comments>
+      <pubDate>Tue, 21 Feb 2023 22:43:36 +0800</pubDate>
+      <size>11542724608</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU2Uk1SckFBU0Q0VjFTUEtaTm1EUXE3RjBKa3EtS2xWUS1PeVh6VmI1OWtkR3BraVlERFRJNmlRZElKeFZwRWpObllUbUs1bURRMlhzNk42VkdNVkRSMm04aWlxV2E1Qzk5Q2dzX1ZOV3pyU0RDd0EwUjdwbzNNNy1EYngtaFNpXzBaWTk3Z3RzQTZ2VVFLRDNMZV8yR2lQYkd5d2dtNXk5ZXo0TFh3YTJoN2tmM1NER1dIVGpXTFZoVENyMjVlQi1z&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+(2001)+2160p+BRRip+5.1+10Bit+x265+-YTS</link>
+      <category>2045</category>
+      <category>100046</category>
+      <enclosure url="http://127.0.0.1:9117/dl/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU2Uk1SckFBU0Q0VjFTUEtaTm1EUXE3RjBKa3EtS2xWUS1PeVh6VmI1OWtkR3BraVlERFRJNmlRZElKeFZwRWpObllUbUs1bURRMlhzNk42VkdNVkRSMm04aWlxV2E1Qzk5Q2dzX1ZOV3pyU0RDd0EwUjdwbzNNNy1EYngtaFNpXzBaWTk3Z3RzQTZ2VVFLRDNMZV8yR2lQYkd5d2dtNXk5ZXo0TFh3YTJoN2tmM1NER1dIVGpXTFZoVENyMjVlQi1z&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+(2001)+2160p+BRRip+5.1+10Bit+x265+-YTS" length="11542724608" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="category" value="100046" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="year" value="2001" />
+      <torznab:attr name="seeders" value="49" />
+      <torznab:attr name="peers" value="52" />
+      <torznab:attr name="coverurl" value="http://127.0.0.1:9117/img/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1MlpNT0F5WGJMTTFxZi12Q1N4cndYV1hoS2ltZE9Ud1BmXzBnMFJzNmtLei1nMTlVSjl3bHpGVzNFTlBPU2tEd2V2UDhTTHA3WlpkZ0dwZUJvZ3dqM21za0pQM1p1Um5SVDRwMVJSS2poNk50djV3ZlhFNUt6SmhIMDZwU0UyS0M4bVdxSWNrLWJCLVQzTml1dUV3WkVNS0poMzJYam5Yc09TLTllNnYyX205VVJ4NzMydW9LQlVUTWQ3c21ObVVReDg2Y0ZfanBaRE9pSHhfbWQzLUM0X0VIQWVMQUxuY2l6R3F0V2dnUElQVGE1MGpuYkRqNTBLWkkzMUNqWm1kMA&amp;file=poster" />
+      <torznab:attr name="infohash" value="671470450DC7D94C680B1574B938836C1C22194E" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:671470450DC7D94C680B1574B938836C1C22194E&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+(2001)+2160p+BRRip+5.1+10Bit+x265+-YTS&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.of.the.Rings.1978.1080p.BluRay.DDP5.1.x265.10bit-Galaxy</title>
+      <guid>magnet:?xt=urn:btih:C2C5FD91B8046C5F2FEB46E519C70AD1AB16A78D&amp;dn=The.Lord.of.the.Rings.1978.1080p.BluRay.DDP5.1.x265.10bit-Galaxy&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=76175371</comments>
+      <pubDate>Tue, 06 Aug 2024 02:35:01 +0800</pubDate>
+      <size>4744808244</size>
+      <files>4</files>
+      <description>Uploader: GalaxyRG&lt;br&gt;The.Lord.of.the.Rings.1978.1080p.BluRay.DDP5.1.x265.10bit-Galaxy</description>
+      <link>magnet:?xt=urn:btih:C2C5FD91B8046C5F2FEB46E519C70AD1AB16A78D&amp;dn=The.Lord.of.the.Rings.1978.1080p.BluRay.DDP5.1.x265.10bit-Galaxy&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2040</category>
+      <category>100207</category>
+      <enclosure url="magnet:?xt=urn:btih:C2C5FD91B8046C5F2FEB46E519C70AD1AB16A78D&amp;dn=The.Lord.of.the.Rings.1978.1080p.BluRay.DDP5.1.x265.10bit-Galaxy&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="4744808244" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100207" />
+      <torznab:attr name="imdb" value="0077869" />
+      <torznab:attr name="imdbid" value="tt0077869" />
+      <torznab:attr name="seeders" value="112" />
+      <torznab:attr name="peers" value="119" />
+      <torznab:attr name="infohash" value="C2C5FD91B8046C5F2FEB46E519C70AD1AB16A78D" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:C2C5FD91B8046C5F2FEB46E519C70AD1AB16A78D&amp;dn=The.Lord.of.the.Rings.1978.1080p.BluRay.DDP5.1.x265.10bit-Galaxy&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Lord.Of.The.Rings.The.War.Of.The.Rohirrim.2024.2160p.WEB.H265-GlaringBlondAd</title>
+      <guid>magnet:?xt=urn:btih:D25F6D6E7AE352D21EA38D90FDC5B5E8942E80E9&amp;dn=The.Lord.Of.The.Rings.The.War.Of.The.Rohirrim.2024.2160p.WEB.H265-GlaringBlondAd&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</guid>
+      <jackettindexer id="thepiratebay">The Pirate Bay</jackettindexer>
+      <type>public</type>
+      <comments>https://thepiratebay.org/description.php?id=77668125</comments>
+      <pubDate>Fri, 27 Dec 2024 20:10:40 +0800</pubDate>
+      <size>15294055982</size>
+      <files>1</files>
+      <description>Uploader: sotnikam&lt;br&gt;The.Lord.Of.The.Rings.The.War.Of.The.Rohirrim.2024.2160p.WEB.H265-GlaringBlondAd</description>
+      <link>magnet:?xt=urn:btih:D25F6D6E7AE352D21EA38D90FDC5B5E8942E80E9&amp;dn=The.Lord.Of.The.Rings.The.War.Of.The.Rohirrim.2024.2160p.WEB.H265-GlaringBlondAd&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce</link>
+      <category>2045</category>
+      <category>100211</category>
+      <enclosure url="magnet:?xt=urn:btih:D25F6D6E7AE352D21EA38D90FDC5B5E8942E80E9&amp;dn=The.Lord.Of.The.Rings.The.War.Of.The.Rohirrim.2024.2160p.WEB.H265-GlaringBlondAd&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" length="15294055982" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="category" value="100211" />
+      <torznab:attr name="imdb" value="14824600" />
+      <torznab:attr name="imdbid" value="tt14824600" />
+      <torznab:attr name="seeders" value="31" />
+      <torznab:attr name="peers" value="37" />
+      <torznab:attr name="infohash" value="D25F6D6E7AE352D21EA38D90FDC5B5E8942E80E9" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:D25F6D6E7AE352D21EA38D90FDC5B5E8942E80E9&amp;dn=The.Lord.Of.The.Rings.The.War.Of.The.Rohirrim.2024.2160p.WEB.H265-GlaringBlondAd&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Lord of the Rings The Fellowship of the Ring (2001) 1080p BRRip 5.1 x264 -YTS</title>
+      <guid>https://yts.gg/torrent/download/02259BFC5E0E9E87A54E398125244503098AEDCB</guid>
+      <jackettindexer id="yts">YTS</jackettindexer>
+      <type>public</type>
+      <comments>https://yts.gg/movies/the-lord-of-the-rings-the-fellowship-of-the-ring-2001</comments>
+      <pubDate>Sun, 19 Feb 2023 06:51:24 +0800</pubDate>
+      <size>4520453079</size>
+      <description />
+      <link>http://127.0.0.1:9117/dl/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1Q2J6RUdHNTBCR3cySkpyTEVVSnVpdVU5QXIxT0Z4TWNBMUNaakhFWHZhaWotd3J3ckZXanV6ekxHV3NELWcxeTdLY3hDTnIwUkVFbEpRRG5Wd25fckdDTGFRMU5USElmejQ2QUV4WXQ3V0dyWjMtaVNzMzZMRk1wNTZhblc5dzVXQkYxNFF5aGlwZkJYbVU2NVdoSG85RWRTWERidDhEa0pGMVhIdUxWTWlRcGZKMHJuc25wNEJJNS1HbGRzU2V3&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+(2001)+1080p+BRRip+5.1+x264+-YTS</link>
+      <category>2040</category>
+      <category>100044</category>
+      <enclosure url="http://127.0.0.1:9117/dl/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU1Q2J6RUdHNTBCR3cySkpyTEVVSnVpdVU5QXIxT0Z4TWNBMUNaakhFWHZhaWotd3J3ckZXanV6ekxHV3NELWcxeTdLY3hDTnIwUkVFbEpRRG5Wd25fckdDTGFRMU5USElmejQ2QUV4WXQ3V0dyWjMtaVNzMzZMRk1wNTZhblc5dzVXQkYxNFF5aGlwZkJYbVU2NVdoSG85RWRTWERidDhEa0pGMVhIdUxWTWlRcGZKMHJuc25wNEJJNS1HbGRzU2V3&amp;file=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+(2001)+1080p+BRRip+5.1+x264+-YTS" length="4520453079" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="category" value="100044" />
+      <torznab:attr name="imdb" value="0120737" />
+      <torznab:attr name="imdbid" value="tt0120737" />
+      <torznab:attr name="year" value="2001" />
+      <torznab:attr name="seeders" value="100" />
+      <torznab:attr name="peers" value="124" />
+      <torznab:attr name="coverurl" value="http://127.0.0.1:9117/img/yts/?jackett_apikey=REDACTED_APIKEY&amp;path=Q2ZESjhBZ0pQVGViV185THNHRnBfQ2NRUkU3R0JER2VKZUFhTHNGRzJJME56MFJqZHRsWEVKWVVyN1Z0TVVieTl5N1pCNDVmSGFENTlpRUdReVR1VFJPdlAwVFV4TFVGNHVRZDUwbjJTNEJDY1lLeTEwNnVSbkwwako2R21QMmZnV00xeDRpckJFdW5lQkZpWVFwUUd6X2hub1N4QzJiRjJnWU1vTkprNGx6czF6b2laUVJMUVVvbjRhTThkNC1seWZ5cXRSZWd5aXBJc2cwVm1WZWR5bUhBZHV1X3FpUWdyLWY3dnF5N2pSTWJTRUtJTEFPLWc3VTJDRmxEQW9PM042M2lrd1RQVDZEd1RqXzhOT2k0X241RkhWZw&amp;file=poster" />
+      <torznab:attr name="infohash" value="02259BFC5E0E9E87A54E398125244503098AEDCB" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:02259BFC5E0E9E87A54E398125244503098AEDCB&amp;dn=The+Lord+of+the+Rings+The+Fellowship+of+the+Ring+(2001)+1080p+BRRip+5.1+x264+-YTS&amp;tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&amp;tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.space%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Fvito-tracker.duckdns.org%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.theoks.net%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.srv00.com%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.qu.ax%3A6969%2Fannounce&amp;tr=udp%3A%2F%2Ftracker.corpscorp.online%3A80%2Fannounce" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+</channel>
+</rss>

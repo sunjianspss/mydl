@@ -160,6 +160,9 @@ Windows 侧对应的是 SmartScreen 和防火墙 4240 端口，见「Windows」�
 日志在 `~/Library/Logs/mydl/`（Windows 见「Windows」的表），配置和会话状态在
 `~/Library/Application Support/com.sun.mydl/` —— 要"恢复出厂"就删这个目录。
 
+**让别人发配置过来之前提醒一句：`settings.json` 里的 `searchUrl` 带着索引器
+的 apikey，先抹掉再发。** 模型的 API key 不在里面（在钥匙串里），不用管。
+
 另外记得说明这是跑在 **librqbit 9.0.0-rc.0 预发布版**上的自用级软件，
 见「已知取舍」。
 
@@ -517,6 +520,16 @@ Torznab 地址整条粘进来即可 —— 不拆成「地址 + key」是因为�
 无论链接来自索引器还是模型排序，加入任务前都要走 `preview_torrent` 真实
 探测一次 DHT/tracker —— 编造的 hash 在那一步必然超时暴露。
 
-API key 存**系统钥匙串**（macOS）/ **凭据管理器**（Windows），不落进
-settings.json：那个文件是明文的，而 README 的「分发」一节还在教人去翻那个
-目录排查问题。存进去就读不回来，界面只显示「已保存」，想换就重填。
+模型的 API key 存**系统钥匙串**（macOS）/ **凭据管理器**（Windows），不落进
+settings.json：那个文件是明文的，而下面「分发」一节还在教人去翻那个目录排查
+问题。存进去就读不回来，界面只显示「已保存」，想换就重填。
+
+**但索引器地址里的 apikey 仍然是明文存在 settings.json 里的。** 没跟着挪进
+钥匙串，是因为那条地址必须整条粘贴 —— Prowlarr 和 Jackett 的路径前缀不一样，
+拆成「地址 + key」两个字段我们就得去猜怎么拼，必错。所以：
+
+> **把 settings.json 发给别人之前，先把 `searchUrl` 里的 `apikey=` 抹掉。**
+
+风险本身不高（那是本机 Jackett 的 key，对方还得能访问你的 9117 端口），
+但值得知道。同理，**抓 Torznab 响应当测试样本时也要先脱敏** —— 响应里每条
+结果的链接都带着 apikey，`tests/fixtures/jackett_lotr.xml` 就是这么脱敏过的。

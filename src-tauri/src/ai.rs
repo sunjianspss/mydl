@@ -16,7 +16,12 @@ use crate::search::SearchResult;
 /// 送给模型的候选条数上限。给太多既费 token 又没意义，用户也不会翻到第 40 条。
 const MAX_CANDIDATES: usize = 25;
 
-const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
+/// 排序只是让模型读一段文本再吐个 JSON 数组，快。
+const RANK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// 联网搜索要慢得多：模型得先发几次检索、读网页、再整理。实测 45 秒根本不够，
+/// 直接超时。给到 3 分钟 —— 比干等着强，界面上也会说明这一步可能要等。
+const SEARCH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(180);
 
 pub struct AiConfig {
     pub base_url: String,
@@ -31,7 +36,13 @@ pub struct AiConfig {
 /// 联网搜索等工具调用」，没给出字段。所以带 tools 被拒时会**自动去掉 tools
 /// 重试一次**：第三方代理是靠模型 id（如 deepseek-v4-flash-search）开搜索的，
 /// 根本不需要这个参数，猜错了也不该让整个功能挂掉。
-async fn ask(cfg: &AiConfig, instructions: &str, input: &str, web_search: bool) -> Result<String> {
+async fn ask(
+    cfg: &AiConfig,
+    instructions: &str,
+    input: &str,
+    web_search: bool,
+    timeout: std::time::Duration,
+) -> Result<String> {
     let url = format!("{}/responses", cfg.base_url.trim_end_matches('/'));
 
     let build = |with_tools: bool| {
@@ -48,17 +59,48 @@ async fn ask(cfg: &AiConfig, instructions: &str, input: &str, web_search: bool) 
 
     let mut with_tools = web_search;
     loop {
+        let started = std::time::Instant::now();
+        tracing::info!(
+            model = %cfg.model,
+            tools = with_tools,
+            timeout_s = timeout.as_secs(),
+            "调用模型"
+        );
+
         let resp = reqwest::Client::new()
             .post(&url)
             .bearer_auth(&cfg.api_key)
             .json(&build(with_tools))
-            .timeout(TIMEOUT)
+            .timeout(timeout)
             .send()
             .await
             .context("连不上模型服务")?;
 
         let status = resp.status();
-        let text = resp.text().await.context("读取模型响应失败")?;
+        let text = resp.text().await.with_context(|| {
+            format!(
+                "读取模型响应失败（已等 {} 秒，上限 {} 秒）。联网搜索比较慢，\
+                 也可能是网络到不了 {}",
+                started.elapsed().as_secs(),
+                timeout.as_secs(),
+                cfg.base_url
+            )
+        })?;
+
+        tracing::info!(
+            status = %status,
+            elapsed_s = started.elapsed().as_secs(),
+            bytes = text.len(),
+            "模型返回"
+        );
+
+        // 出问题时最想知道的就是 output 里到底有哪些类型的条目。
+        if status.is_success() {
+            if let Ok(r) = serde_json::from_str::<ResponsesReply>(&text) {
+                let kinds: Vec<&str> = r.output.iter().map(|o| o.kind.as_str()).collect();
+                tracing::debug!(条目 = ?kinds, "响应结构");
+            }
+        }
 
         if status.is_success() {
             let parsed: ResponsesReply =
@@ -87,6 +129,7 @@ async fn ask(cfg: &AiConfig, instructions: &str, input: &str, web_search: bool) 
 /// 从网页上抄的真链接，也可能是编的 —— 我们无从分辨，只有加入任务时那次
 /// 真实 DHT 探测能给出答案。
 pub async fn search_web(cfg: &AiConfig, query: &str) -> Result<Vec<SearchResult>> {
+    tracing::info!(query = %query, "没有索引器，改让模型联网找");
     let input = format!(
         "帮我找这个资源的 BT 磁力链：{query}\n\n\
          只输出 JSON 数组，不要解释、不要围栏，最多 10 条：\n\
@@ -101,6 +144,7 @@ pub async fn search_web(cfg: &AiConfig, query: &str) -> Result<Vec<SearchResult>
         "你是一个资源检索助手。只输出 JSON，不要解释、不要围栏。",
         &input,
         true,
+        SEARCH_TIMEOUT,
     )
     .await?;
 
@@ -112,13 +156,33 @@ pub async fn search_web(cfg: &AiConfig, query: &str) -> Result<Vec<SearchResult>
         note: String,
     }
 
-    let found: Vec<Found> = serde_json::from_str(extract_json_array(&content))
-        .context("模型没有按要求只输出 JSON 数组")?;
+    // 压根没有 JSON 数组，说明模型根本没给出结构化结果 —— 多半是它在回复里
+    // 直说了「搜不到磁力链」。这时候报「JSON 解析失败」是答非所问，
+    // 应该把它的原话转述给用户。
+    if !content.contains('[') {
+        let words: String = content.trim().chars().take(200).collect();
+        tracing::warn!(原文 = %words, "模型没有给出任何结果");
+        bail!(
+            "模型没找到磁力链。通用搜索引擎基本索引不到种子站，这条路先天就弱 ——\
+             想要可靠结果请配 Prowlarr / Jackett。模型原话：{words}"
+        );
+    }
 
-    Ok(found
+    let found: Vec<Found> = serde_json::from_str(extract_json_array(&content))
+        .map_err(|e| parse_failure("搜索结果不是 JSON 数组", &content, e))?;
+
+    let total = found.len();
+    let kept: Vec<_> = found
         .into_iter()
         // 形状对不上的直接扔掉：至少得是 magnet:?xt=urn:btih: 加 40 位十六进制。
         .filter(|f| looks_like_magnet(&f.magnet))
+        .collect();
+    if kept.len() != total {
+        tracing::warn!(总数 = total, 保留 = kept.len(), "模型给的磁力链有格式不对的，已丢弃");
+    }
+
+    Ok(kept
+        .into_iter()
         .map(|f| SearchResult {
             title: f.title,
             magnet: Some(f.magnet),
@@ -155,6 +219,9 @@ struct ResponsesReply {
 
 #[derive(Deserialize)]
 struct OutputItem {
+    /// 开了联网搜索之后，output 里除了助手消息还会有工具调用的条目。
+    #[serde(rename = "type", default)]
+    kind: String,
     #[serde(default)]
     content: Vec<ContentItem>,
 }
@@ -166,11 +233,29 @@ struct ContentItem {
 }
 
 impl ResponsesReply {
+    /// 只取助手消息那部分。
+    ///
+    /// 开了联网搜索后，`output` 里会混进工具调用的条目（检索词、抓到的网页
+    /// 摘要等）。把它们一起拼进来，前面就会多出一堆散文，后面抠 JSON 时
+    /// 很容易抠到网页里的方括号上。
     fn text(&self) -> String {
         if let Some(t) = &self.output_text {
             return t.clone();
         }
-        self.output
+
+        // reasoning 是模型的思考过程，不是给用户的答案。开了联网搜索之后
+        // 它占了回复的绝大部分，混进来只会把后面抠 JSON 的逻辑带偏。
+        let msgs: Vec<&OutputItem> = self.output.iter().filter(|o| o.kind == "message").collect();
+        let items: Vec<&OutputItem> = if msgs.is_empty() {
+            self.output
+                .iter()
+                .filter(|o| o.kind != "reasoning" && !o.kind.ends_with("_call"))
+                .collect()
+        } else {
+            msgs
+        };
+
+        items
             .iter()
             .flat_map(|o| o.content.iter())
             .filter_map(|c| c.text.as_deref())
@@ -244,11 +329,12 @@ async fn rank_inner(
         "你是一个 BT 资源筛选助手。只输出 JSON，不要解释、不要围栏。",
         &prompt,
         false,
+        RANK_TIMEOUT,
     )
     .await?;
 
     let picks: Vec<Pick> = serde_json::from_str(extract_json_array(&content))
-        .context("模型没有按要求只输出 JSON 数组")?;
+        .map_err(|e| parse_failure("排序结果不是 JSON 数组", &content, e))?;
 
     // 关键的一步：**只按序号取我们自己的对象**。模型输出里如果夹带了链接、
     // 标题或者别的什么，到这里全部被丢掉；越界的序号也直接忽略。
@@ -276,14 +362,40 @@ async fn rank_inner(
     Ok(ordered)
 }
 
-/// 模型爱在 JSON 外面套 ```json 围栏或者加一句客套话，把中间那段抠出来。
+/// 从模型回复里抠出 JSON 数组，按「最可能正确」的顺序试几种。
+///
+/// 单纯取「第一个 `[` 到最后一个 `]`」不够：开了联网搜索之后回复里常带引用
+/// 标记（`[1]`、`[来源]`），一抠就抠到那上面去了。
 fn extract_json_array(s: &str) -> &str {
-    let start = s.find('[');
-    let end = s.rfind(']');
-    match (start, end) {
-        (Some(a), Some(b)) if b > a => &s[a..=b],
-        _ => s,
+    let t = s.trim();
+
+    // 1. 整段就是数组
+    if t.starts_with('[') && t.ends_with(']') {
+        return t;
     }
+
+    // 2. ```json 围栏里的内容
+    if let Some(rest) = t.split("```").nth(1) {
+        let inner = rest.strip_prefix("json").unwrap_or(rest).trim();
+        if inner.starts_with('[') {
+            return inner;
+        }
+    }
+
+    // 3. 退回原来的做法：第一个 `[` 到最后一个 `]`
+    match (t.find('['), t.rfind(']')) {
+        (Some(a), Some(b)) if b > a => &t[a..=b],
+        _ => t,
+    }
+}
+
+/// 解析失败时把模型原文截一段带进错误里。
+///
+/// 上一轮就是因为只记了「字节数」而不知道内容长什么样，白跑了一趟。
+fn parse_failure(what: &str, content: &str, e: impl std::fmt::Display) -> anyhow::Error {
+    let preview: String = content.chars().take(300).collect();
+    tracing::warn!(错误 = %e, 原文 = %preview, "{what}");
+    anyhow::anyhow!("{what}：{e}。模型原文开头：{preview}")
 }
 
 #[cfg(test)]
@@ -361,5 +473,23 @@ mod tests {
     fn strips_code_fence_and_prose() {
         assert_eq!(extract_json_array("好的：\n```json\n[{\"index\":1}]\n```\n"), "[{\"index\":1}]");
         assert_eq!(extract_json_array("[{\"index\":1}]"), "[{\"index\":1}]");
+    }
+
+    /// 联网搜索的回复里常有 [1] 这种引用标记，不能被它带偏。
+    #[test]
+    fn ignores_citation_brackets() {
+        let with_citation = "我查了几个站点[1][2]，结果如下：\n```json\n[{\"index\":0}]\n```";
+        assert_eq!(extract_json_array(with_citation), "[{\"index\":0}]");
+    }
+
+    /// 工具调用的条目不该被当成助手回复拼进来。
+    #[test]
+    fn takes_only_assistant_message() {
+        let raw = r#"{"output":[
+            {"type":"web_search_call","content":[{"type":"text","text":"检索：终结者2 磁力"}]},
+            {"type":"message","content":[{"type":"output_text","text":"[{\"index\":1}]"}]}
+        ]}"#;
+        let r: ResponsesReply = serde_json::from_str(raw).unwrap();
+        assert_eq!(r.text(), "[{\"index\":1}]");
     }
 }

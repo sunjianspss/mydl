@@ -102,27 +102,36 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
               不能产出链接</b> —— 磁力链的 hash 是内容摘要，模型只会编。API key
               <b>明文存在 settings.json</b> 里，介意就别填。
             </em>
+            {/* key 存在系统钥匙串里、读不回来，所以输入框永远是空的。
+                光靠灰色占位符太容易被当成「没保存」，这里给一行明确状态。 */}
+            <div className="key-status">
+              {hasKey ? (
+                <>
+                  <span className="key-ok">● 已保存到系统钥匙串</span>
+                  <button
+                    className="act-text"
+                    disabled={saving}
+                    onClick={async () => {
+                      await invoke("set_ai_key", { key: "" });
+                      setHasKey(false);
+                      setKeyInput("");
+                    }}
+                  >
+                    清除
+                  </button>
+                </>
+              ) : (
+                <span className="key-none">尚未保存</span>
+              )}
+            </div>
             <input
               className="setting-input"
               type="password"
               spellCheck={false}
-              placeholder={hasKey ? "已存在钥匙串里，留空表示不改" : "DeepSeek API key（留空则不排序）"}
+              placeholder={hasKey ? "要更换就填新的，留空表示不动" : "DeepSeek API key"}
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
             />
-            {hasKey && (
-              <button
-                className="act-text"
-                disabled={saving}
-                onClick={async () => {
-                  await invoke("set_ai_key", { key: "" });
-                  setHasKey(false);
-                  setKeyInput("");
-                }}
-              >
-                从钥匙串清除
-              </button>
-            )}
             <input
               className="setting-input"
               type="text"

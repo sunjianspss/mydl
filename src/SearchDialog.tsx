@@ -78,7 +78,9 @@ export default function SearchDialog({ onPick, onClose, configured, aiEnabled }:
 
         {busy && (
           <p className="dialog-sub">
-            正在查索引器{aiEnabled ? "，拿到结果后还要让模型排一次序" : ""}…
+            {configured
+              ? `正在查索引器${aiEnabled ? "，拿到结果后还要让模型排一次序" : ""}…`
+              : "正在让模型联网找…这一步要先检索再读网页，可能要等一两分钟。"}
           </p>
         )}
 
