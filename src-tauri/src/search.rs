@@ -41,6 +41,35 @@ impl SearchResult {
     }
 }
 
+/// 结果标题是否和关键词相关。
+///
+/// **有些索引器匹配不到时会返回自己的默认榜单**（实测 The Pirate Bay 搜中文
+/// 就这样，回 100 条当季新片），用户看到的就是「搜索坏了」。所以拿到结果后
+/// 自己再筛一道。
+///
+/// 规则和 RSS 订阅的「包含」一致：**关键词全部命中才算**。按空白分词，
+/// 单个拉丁字母的碎片忽略（`a`、`s` 这种匹配一切）；中日韩不分词，整段当
+/// 一个词 —— 「指环王」在英文标题里必然不命中，正好把无关结果筛掉。
+pub fn matches_query(title: &str, query: &str) -> bool {
+    let title = title.to_lowercase();
+
+    for token in query.split_whitespace() {
+        let token = token.trim_matches(|c: char| c.is_ascii_punctuation()).to_lowercase();
+        // 单字符的拉丁词没有区分度，跳过；中日韩单字有，所以只按字节长度判断
+        // 会误伤，这里用「是不是纯 ASCII 且只有一个字符」来区分。
+        if token.is_empty() || (token.len() == 1 && token.is_ascii()) {
+            continue;
+        }
+        if !title.contains(&token) {
+            return false;
+        }
+    }
+
+    // 走到这里说明所有有意义的词都命中了；关键词全是噪音（比如只输了个
+    // "a"）时一个都没检查过，那就不筛，交给索引器判断。
+    true
+}
+
 /// 请求索引器并解析结果。
 ///
 /// `base` 是用户从 Prowlarr / Jackett 界面上复制的那条 Torznab 地址，
@@ -80,7 +109,23 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
         bail!("索引器返回 {status}：{hint}");
     }
 
-    parse(&body)
+    let all = parse(&body)?;
+    let total = all.len();
+
+    let kept: Vec<SearchResult> = all
+        .into_iter()
+        .filter(|r| matches_query(&r.title, query))
+        .collect();
+
+    if kept.len() != total {
+        tracing::info!(
+            总数 = total,
+            保留 = kept.len(),
+            "过滤掉与关键词无关的结果（有些索引器匹配不到时会返回默认榜单）"
+        );
+    }
+
+    Ok(kept)
 }
 
 /// 只转义查询串里会破坏 URL 的字符。不引 urlencoding 依赖 —— 这里只处理
@@ -382,6 +427,30 @@ mod tests {
             r[0].link.as_deref(),
             Some("http://127.0.0.1:9117/dl/x/?apikey=abc&path=XYZ")
         );
+    }
+
+    /// 实测 The Pirate Bay 搜「指环王」会返回 100 条当季新片。
+    #[test]
+    fn filters_irrelevant_results() {
+        assert!(!matches_query("Disclosure.Day.2026.1080p.WEBRip", "指环王"));
+        assert!(matches_query("指环王1.加长版.1080p", "指环王"));
+
+        // 英文多词：全部命中才算
+        assert!(matches_query(
+            "The.Lord.of.the.Rings.The.Return.Of.The.King.2003",
+            "Lord of the Rings"
+        ));
+        assert!(!matches_query("The.Hobbit.2012.1080p", "Lord of the Rings"));
+
+        // 大小写无关
+        assert!(matches_query("THE.MATRIX.1999", "matrix"));
+
+        // 单个拉丁字母不参与判断，否则 "a" 会匹配一切
+        assert!(matches_query("Anything At All", "a"));
+
+        // 中日韩单字有区分度，要参与
+        assert!(!matches_query("Some English Title", "龙"));
+        assert!(matches_query("龙猫.1988", "龙"));
     }
 
     #[test]

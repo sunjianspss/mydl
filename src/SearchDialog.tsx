@@ -96,7 +96,13 @@ export default function SearchDialog({ onPick, onClose, configured, aiEnabled }:
             </div>
 
             <ul className="dialog-files search-results">
-              {results.length === 0 && <li className="files-hint">没搜到。换个关键词试试。</li>}
+              {results.length === 0 && (
+                <li className="files-hint">
+                  没搜到匹配的结果。已配置的索引器里可能没有这个内容 ——
+                  比如用中文片名搜只收录英文资源的站。换英文名，或者在 Jackett
+                  里加几个中文站再试。
+                </li>
+              )}
               {results.map((r, i) => (
                 <li key={i} className="search-item">
                   <div className="search-main">
