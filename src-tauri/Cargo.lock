@@ -3335,7 +3335,7 @@ dependencies = [
 
 [[package]]
 name = "mydl"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
