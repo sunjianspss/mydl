@@ -567,6 +567,12 @@ Torznab 地址整条粘进来即可 —— 不拆成「地址 + key」是因为�
 无论链接来自索引器还是模型排序，加入任务前都要走 `preview_torrent` 真实
 探测一次 DHT/tracker —— 编造的 hash 在那一步必然超时暴露。
 
+**索引器给的 `.torrent` 地址可能 302 跳到磁力链。** Jackett 的 `/dl/…` 端点
+对「只给磁力链的站」（LimeTorrents 之类）是个跳板，会重定向到 `magnet:`。
+librqbit 拿到 302 直接报错 —— 通用 HTTP 客户端确实不该跟到非 HTTP 协议上去。
+所以 `preview` 之前先用 `resolve_uri` 自己解一次：跳到磁力链就改用磁力链，
+跳到别的 http 地址（多半是真的 .torrent）或者不是重定向就原样交给 librqbit。
+
 **拿到结果后还会自己筛一道相关性。** 有些索引器匹配不到时会返回自己的默认
 榜单 —— 实测 The Pirate Bay 搜「指环王」会回 100 条当季新片，用户看到的就是
 「搜索坏了」。`matches_query` 的规则和 RSS 订阅的「包含」一致：关键词全部命中

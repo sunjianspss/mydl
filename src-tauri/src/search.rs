@@ -41,6 +41,51 @@ impl SearchResult {
     }
 }
 
+/// 把 http(s) 地址解成真正能用的那个。
+///
+/// Jackett 的 `/dl/…` 端点对「只给磁力链的站」会回 **302 跳到 `magnet:`**
+/// （它自己只是个跳板）。librqbit 拿到 302 直接报错 —— 通用 HTTP 客户端确实
+/// 不该跟到 `magnet:` 这种非 HTTP 协议上去，所以得我们自己解一次。
+///
+/// 不是重定向、或者跳到另一个 http 地址（那多半是真的 .torrent 文件），
+/// 就原样返回，交给 librqbit 自己下。解析失败也原样返回 —— 让后面真正的
+/// 添加流程去报错，比在这里编一个错误信息强。
+pub async fn resolve_uri(uri: &str) -> String {
+    if !uri.starts_with("http://") && !uri.starts_with("https://") {
+        return uri.to_string();
+    }
+
+    let client = match reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return uri.to_string(),
+    };
+
+    let Ok(resp) = client.get(uri).send().await else {
+        return uri.to_string();
+    };
+
+    if !resp.status().is_redirection() {
+        return uri.to_string();
+    }
+
+    let target = resp
+        .headers()
+        .get(reqwest::header::LOCATION)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default();
+
+    if target.starts_with("magnet:") {
+        tracing::info!("索引器把下载地址重定向到了磁力链，改用磁力链添加");
+        return target.to_string();
+    }
+
+    uri.to_string()
+}
+
 /// 结果标题是否和关键词相关。
 ///
 /// **有些索引器匹配不到时会返回自己的默认榜单**（实测 The Pirate Bay 搜中文

@@ -410,6 +410,11 @@ impl Engine {
 
         tracing::info!(uri = %uri, "预览种子");
 
+        // 索引器给的 .torrent 地址可能 302 跳到磁力链，先解开 —— librqbit
+        // 拿到重定向会直接报错。
+        let resolved = crate::search::resolve_uri(uri).await;
+        let uri = resolved.as_str();
+
         let cancel = Arc::new(tokio::sync::Notify::new());
         *self.preview_cancel.lock().unwrap() = Some(cancel.clone());
 
