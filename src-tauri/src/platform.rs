@@ -195,16 +195,19 @@ mod imp {
 
     /// 直接把流地址作为参数拉起播放器。不走 `cmd /c start`：那样 http://
     /// 会被交给系统默认程序，也就是浏览器。
+    ///
+    /// **必须用 `spawn` 而不是 `status`。** 这里是直接拉起播放器本体，`status`
+    /// 会一直等到播放器退出；而这个 Tauri 命令是同步的、跑在主线程上，于是
+    /// 整个界面卡死到用户关掉播放器为止 —— 看起来就是「点了播放没反应」。
+    /// macOS 那边碰不到这个坑，`open -a` 交给 LaunchServices 后立刻就返回了。
+    ///
+    /// 代价是拿不到播放器的退出码，但那本来也没用：我们只关心有没有拉起来。
     pub fn open_in_player(url: &str, app: &str) -> Result<()> {
         let exe = find(app).with_context(|| format!("没找到 {app} 的安装位置"))?;
-        let status = Command::new(&exe)
+        Command::new(&exe)
             .arg(url)
-            .status()
+            .spawn()
             .with_context(|| format!("启动 {app} 失败"))?;
-
-        if !status.success() {
-            bail!("{app} 退出码 {status}");
-        }
         Ok(())
     }
 

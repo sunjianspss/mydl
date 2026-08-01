@@ -139,10 +139,14 @@ body {
   background: var(--bg);
 }
 
+/* min-height: 0 不能少。.main 是网格项，默认 min-height: auto 意味着它不会
+   收缩到内容以下，于是 .list 的 flex: 1 永远拿不到受限的高度，overflow-y
+   形同虚设 —— 内容被 .app 的 overflow: hidden 裁掉，滚不动也看不见。 */
 .main {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 /* ---------- 侧边源列表 ---------- */
@@ -151,6 +155,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-height: 0;
   padding: 0 9px 10px;
   overflow-y: auto;
   user-select: none;
@@ -558,6 +563,8 @@ input[type="checkbox"] {
   flex: 1;
   flex-direction: column;
   gap: 8px;
+  /* 同上：flex 项也要显式允许收缩，否则 overflow 不起作用。 */
+  min-height: 0;
   padding: 12px 16px 20px;
   overflow-y: auto;
 }
@@ -676,14 +683,45 @@ input[type="checkbox"] {
   border-radius: 50%;
 }
 
+/* 信号源动画：圆点往外一圈圈扩散，像雷达在扫。只有真的在跟 peer 交换数据
+   的两种状态才动 —— 暂停和出错保持静止，否则「有没有在动」就失去信息量了。
+   下载扩得快一点，做种慢一点，一眼能分出哪个在耗带宽。 */
+@keyframes signal-ping {
+  0% {
+    box-shadow: 0 0 0 0 var(--signal);
+  }
+
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
 .state-dot-live::before {
+  --signal: color-mix(in srgb, var(--accent) 55%, transparent);
+
   background: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  animation: signal-ping 1.6s ease-out infinite;
 }
 
 .state-dot-seeding::before {
+  --signal: color-mix(in srgb, var(--success) 55%, transparent);
+
   background: var(--success);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+  animation: signal-ping 2.6s ease-out infinite;
+}
+
+/* 系统开了「减弱动态效果」就别扫了，静态光环照样能区分状态。 */
+@media (prefers-reduced-motion: reduce) {
+  .state-dot-live::before,
+  .state-dot-seeding::before {
+    animation: none;
+  }
 }
 
 .state-dot-error {
