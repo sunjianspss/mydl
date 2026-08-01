@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { FileView } from "./types";
 import { formatBytes, percent } from "./format";
+import { useWindowFocused } from "./useWindowFocused";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -33,12 +34,16 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
     }
   }, [torrentId, onError]);
 
+  // 文件列表展开在任务行里，窗口失焦时一样该停 —— 后台没人在看进度。
+  const windowFocused = useWindowFocused();
+
   useEffect(() => {
+    if (!windowFocused) return;
     refresh();
     // 文件进度变化比任务整体慢，用更低的频率轮询。
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [refresh]);
+  }, [refresh, windowFocused]);
 
   /// 把整份选择集发给后端 —— 后端接口就是「只下这些」，不是增量操作。
   async function applySelection(next: FileView[]) {

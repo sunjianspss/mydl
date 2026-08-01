@@ -7,6 +7,7 @@ import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
 import type { SessionStatus, Settings, TorrentPreview, TorrentView } from "./types";
 import { formatBytes, formatSpeed, percent } from "./format";
+import { useWindowFocused } from "./useWindowFocused";
 import FileList from "./FileList";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
@@ -36,7 +37,9 @@ import {
 } from "./icons";
 import "./App.css";
 
-const POLL_INTERVAL_MS = 1000;
+// 有任务在下载时轮询快一点，速度数字动得跟手；空闲时没必要刷那么勤。
+const POLL_ACTIVE_MS = 1000;
+const POLL_IDLE_MS = 5000;
 
 const STATE_LABEL: Record<string, string> = {
   initializing: "准备中",
@@ -121,9 +124,20 @@ export default function App() {
       })
       .catch(() => {});
     refresh();
-    const timer = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
   }, [refresh]);
+
+  // 轮询只在窗口有焦点时进行：后台每秒全量拉一遍列表纯属烧 CPU，切回来
+  // 立即刷一次比后台空转强得多。有任务在下载时刷新快些，空闲放慢。
+  const windowFocused = useWindowFocused();
+  const hasActive = torrents.some((t) => t.state === "live" && !t.finished);
+  const pollMs = windowFocused ? (hasActive ? POLL_ACTIVE_MS : POLL_IDLE_MS) : null;
+
+  useEffect(() => {
+    if (pollMs === null) return;
+    refresh();
+    const timer = setInterval(refresh, pollMs);
+    return () => clearInterval(timer);
+  }, [refresh, pollMs]);
 
   // 拖 .torrent 文件进窗口就直接进预览。
   //
