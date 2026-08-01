@@ -1,0 +1,15 @@
+# 一 Mac 一 Windows 两台机器改同一个仓库，行尾符会来回翻。表现是文件被标成
+# 「已修改」但 git diff 看不出改了什么，严重时整个文件显示为全行改动，把真正
+# 的改动淹掉。让 git 内部统一按 LF 存、检出时按平台习惯转换即可。
+* text=auto
+
+# 二进制别碰。图标和测试样本被当文本处理会直接损坏或产生巨大无意义的 diff。
+*.png binary
+*.ico binary
+*.icns binary
+*.torrent binary
+*.aiff binary
+
+# 锁文件强制 LF：两边格式不一致的话每次装依赖都会互相覆盖对方的整份文件。
+pnpm-lock.yaml text eol=lf
+Cargo.lock text eol=lf
