@@ -380,9 +380,9 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - **`Speed.mbps` 实际单位是 MiB/s**，不是兆比特。`engine.rs` 里统一换算成字节/秒了。
 - **播放器检测是硬编码的**：两个平台都是按固定名字查固定目录，见
   `platform.rs` 里的 `KNOWN`。装在别处就认不出来。
-- **Windows 只验到「能编译、能下载」。** 协议栈这条主链路实机跑通了，但
-  `platform.rs` 里那几处平台实现还没验：播放器路径（`KNOWN` 里的安装位置
-  是猜的）、日志目录、`SetThreadExecutionState` 到底拦没拦住休眠。
+- **Windows 已实机验过**：下载、播放器检测、日志目录、`SetThreadExecutionState`
+  阻止休眠都正常。播放器路径仍是硬编码的猜测（见 `platform.rs` 的 `KNOWN`），
+  装在别处照样认不出来 —— 只是说明常见安装位置猜对了。
 - **暂停中的任务不能起播。** 暂停状态不会有新数据进来，播放器只会卡住，
   所以按钮直接禁用，后端也会明确报错。
 - **取消勾选不会删已下的数据。** `update_only_files` 只改 chunk tracker，
