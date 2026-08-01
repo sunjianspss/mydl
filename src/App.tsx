@@ -37,7 +37,7 @@ import {
 } from "./icons";
 import "./App.css";
 
-// 有任务在下载时轮询快一点，速度数字动得跟手；空闲时没必要刷那么勤。
+// 有任务在跑时轮询快一点，速度数字动得跟手；空闲时没必要刷那么勤。
 const POLL_ACTIVE_MS = 1000;
 const POLL_IDLE_MS = 5000;
 
@@ -127,9 +127,11 @@ export default function App() {
   }, [refresh]);
 
   // 轮询只在窗口有焦点时进行：后台每秒全量拉一遍列表纯属烧 CPU，切回来
-  // 立即刷一次比后台空转强得多。有任务在下载时刷新快些，空闲放慢。
+  // 立即刷一次比后台空转强得多。有任务在跑时刷新快些，全都停着就放慢。
   const windowFocused = useWindowFocused();
-  const hasActive = torrents.some((t) => t.state === "live" && !t.finished);
+  // 下载和做种都算「在动」（live 覆盖两者，finished 只区分是哪一种）：做种时
+  // 上传速度一样在变，落到 5s 档会看着一顿一顿的。
+  const hasActive = torrents.some((t) => t.state === "live");
   const pollMs = windowFocused ? (hasActive ? POLL_ACTIVE_MS : POLL_IDLE_MS) : null;
 
   useEffect(() => {
@@ -138,6 +140,13 @@ export default function App() {
     const timer = setInterval(refresh, pollMs);
     return () => clearInterval(timer);
   }, [refresh, pollMs]);
+
+  // 停轮询还不够：状态圆点的扩散动画是 infinite 的，窗口在后台也照样让 webview
+  // 一帧帧合成，把省下来的 CPU 又还回去。挂个属性交给 CSS 停掉 —— 没人在看的
+  // 时候扫给谁看。跟 theme.ts / platform.ts 一样用 :root 的 data 属性。
+  useEffect(() => {
+    document.documentElement.dataset.focused = String(windowFocused);
+  }, [windowFocused]);
 
   // 拖 .torrent 文件进窗口就直接进预览。
   //

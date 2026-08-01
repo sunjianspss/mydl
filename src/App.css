@@ -747,6 +747,13 @@ input[type="checkbox"] {
   }
 }
 
+/* 窗口没焦点时同理。infinite 动画不会因为窗口在后台就停，webview 得一直合成
+   新帧 —— 那就把停轮询省下来的 CPU 又烧回去了。回焦时动画自己接着扫。 */
+:root[data-focused="false"] .state-dot-live::before,
+:root[data-focused="false"] .state-dot-seeding::before {
+  animation: none;
+}
+
 .state-dot-error {
   color: var(--danger);
 }

@@ -12,6 +12,7 @@ export function useWindowFocused(): boolean {
   const [focused, setFocused] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     let unlisten: UnlistenFn | null = null;
     const win = getCurrentWindow();
 
@@ -20,12 +21,19 @@ export function useWindowFocused(): boolean {
       .isFocused()
       .then(setFocused)
       .catch(() => {});
+    // 注册是异步的，effect 可能在 Promise 落地**之前**就卸载 —— 收起文件列表、
+    // 或 StrictMode 下 effect 双跑都会。那时 unlisten 还是 null，清理函数摘了个
+    // 空，之后监听器才注册上、从此再也摘不掉。cancelled 兜住这段时间差。
     win
       .onFocusChanged(({ payload }) => setFocused(payload))
-      .then((fn) => (unlisten = fn))
+      .then((fn) => {
+        if (cancelled) fn();
+        else unlisten = fn;
+      })
       .catch(() => {});
 
     return () => {
+      cancelled = true;
       unlisten?.();
     };
   }, []);
