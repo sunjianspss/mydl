@@ -111,12 +111,16 @@ fn decode_ref(content: &str) -> String {
         "gt" => ">".to_string(),
         "quot" => "\"".to_string(),
         "apos" => "'".to_string(),
-        hex if hex.starts_with("#x") || hex.starts_with("#X") => hex[2..]
-            .parse::<u32>()
-            .ok()
-            .and_then(char::from_u32)
-            .map(|c| c.to_string())
-            .unwrap_or_else(|| format!("&{hex};")),
+        // 十六进制要按 16 进制解析。用 parse::<u32>() 会把 "26" 当成十进制
+        // 26（控制字符 U+001A），而 &#x26; 本该是 `&` —— 正是这个字符在
+        // Jackett 下载地址里当参数分隔符，解错了链接照样是坏的。
+        hex if hex.starts_with("#x") || hex.starts_with("#X") => {
+            u32::from_str_radix(&hex[2..], 16)
+                .ok()
+                .and_then(char::from_u32)
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| format!("&{hex};"))
+        }
         dec if dec.starts_with('#') => dec[1..]
             .parse::<u32>()
             .ok()
@@ -349,6 +353,37 @@ mod tests {
         assert_eq!(r[0].uri(), r[0].link.as_deref());
     }
 
+    /// 三种实体写法都得解对。`&#x26;` 曾经被按十进制解析成 U+001A，
+    /// 于是链接里的参数分隔符变成了控制字符，种子照样下不下来。
+    #[test]
+    fn decodes_all_entity_forms() {
+        assert_eq!(decode_ref("amp"), "&");
+        assert_eq!(decode_ref("#38"), "&", "十进制");
+        assert_eq!(decode_ref("#x26"), "&", "十六进制小写");
+        assert_eq!(decode_ref("#X26"), "&", "十六进制大写");
+        assert_eq!(decode_ref("#x27"), "'");
+        assert_eq!(decode_ref("lt"), "<");
+        assert_eq!(decode_ref("gt"), ">");
+        // 认不出来的原样保留，不猜
+        assert_eq!(decode_ref("nbsp"), "&nbsp;");
+        assert_eq!(decode_ref("#xZZ"), "&#xZZ;");
+    }
+
+    /// 走完整解析链路，确认十六进制实体不会把链接切坏。
+    #[test]
+    fn hex_entity_in_link_is_decoded() {
+        let xml = r#"<rss><channel><item>
+            <title>Hex Entity</title>
+            <size>1024</size>
+            <link>http://127.0.0.1:9117/dl/x/?apikey=abc&#x26;path=XYZ</link>
+        </item></channel></rss>"#;
+        let r = parse(xml).unwrap();
+        assert_eq!(
+            r[0].link.as_deref(),
+            Some("http://127.0.0.1:9117/dl/x/?apikey=abc&path=XYZ")
+        );
+    }
+
     #[test]
     fn reports_torznab_error() {
         let xml = r#"<error code="100" description="Invalid API Key"/>"#;
@@ -361,3 +396,4 @@ mod tests {
         assert_eq!(urlencoding_lite("a&b=c"), "a%26b%3Dc");
     }
 }
+
