@@ -99,6 +99,34 @@ fn urlencoding_lite(s: &str) -> String {
     out
 }
 
+/// 解码 `GeneralRef` 事件的内容（`&` 和 `;` 之间的部分，如 `amp`、`#38`）。
+///
+/// quick-xml 把 `&amp;` 这类实体解析成独立的 `Event::GeneralRef`，不会并进
+/// 相邻的 Text 事件，所以得自己把实体名还原成字符。未知实体保留 `&name;`
+/// 原样，宁可显示原文也不猜。
+fn decode_ref(content: &str) -> String {
+    match content {
+        "amp" => "&".to_string(),
+        "lt" => "<".to_string(),
+        "gt" => ">".to_string(),
+        "quot" => "\"".to_string(),
+        "apos" => "'".to_string(),
+        hex if hex.starts_with("#x") || hex.starts_with("#X") => hex[2..]
+            .parse::<u32>()
+            .ok()
+            .and_then(char::from_u32)
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| format!("&{hex};")),
+        dec if dec.starts_with('#') => dec[1..]
+            .parse::<u32>()
+            .ok()
+            .and_then(char::from_u32)
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| format!("&{dec};")),
+        other => format!("&{other};"),
+    }
+}
+
 /// Torznab 报错时的 `<error description="...">`。
 fn extract_error(xml: &str) -> Option<String> {
     let mut reader = Reader::from_str(xml);
@@ -134,6 +162,10 @@ pub fn parse(xml: &str) -> Result<Vec<SearchResult>> {
     let mut cur: Option<SearchResult> = None;
     // 当前正在读哪个文本节点。Torznab 里 title/size/link 都是文本子节点。
     let mut field: Option<Vec<u8>> = None;
+    // quick-xml 遇到 `&amp;` 这类实体会把文本拆成多个 Text 事件，这里累积起来，
+    // 到元素结束时再拼成完整值 —— 直接按事件赋会给 link/title 留下半截（
+    // Jackett 的下载地址 `…?apikey=…&amp;path=…` 就是这么被截断的）。
+    let mut field_buf = String::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -141,7 +173,10 @@ pub fn parse(xml: &str) -> Result<Vec<SearchResult>> {
                 let name = e.name().as_ref().to_vec();
                 match name.as_slice() {
                     b"item" => cur = Some(SearchResult::default()),
-                    b"title" | b"size" | b"link" | b"jackettindexer" => field = Some(name),
+                    b"title" | b"size" | b"link" | b"jackettindexer" => {
+                        field = Some(name);
+                        field_buf.clear();
+                    }
                     _ => {}
                 }
             }
@@ -180,23 +215,16 @@ pub fn parse(xml: &str) -> Result<Vec<SearchResult>> {
                 }
             }
             Ok(Event::Text(t)) => {
-                let (Some(item), Some(f)) = (cur.as_mut(), field.as_ref()) else { continue };
-                let text = t.decode().unwrap_or_default().trim().to_string();
-                if text.is_empty() {
-                    continue;
+                // 只在关注字段内累积；quick-xml 会因实体分片，不能按事件直接赋值。
+                if field.is_some() {
+                    field_buf.push_str(&t.decode().unwrap_or_default());
                 }
-                match f.as_slice() {
-                    b"title" => item.title = text,
-                    b"size" if item.size == 0 => item.size = text.parse().unwrap_or(0),
-                    b"link" => {
-                        if text.starts_with("magnet:") {
-                            item.magnet = Some(text);
-                        } else if item.link.is_none() {
-                            item.link = Some(text);
-                        }
-                    }
-                    b"jackettindexer" => item.indexer = Some(text),
-                    _ => {}
+            }
+            // `&amp;` 之类的实体是独立事件，不累积进去的话 link 里的 `&`
+            // （Jackett 下载地址的参数分隔符）就会丢。
+            Ok(Event::GeneralRef(r)) => {
+                if field.is_some() {
+                    field_buf.push_str(&decode_ref(&String::from_utf8_lossy(&r)));
                 }
             }
             Ok(Event::End(e)) => {
@@ -207,8 +235,24 @@ pub fn parse(xml: &str) -> Result<Vec<SearchResult>> {
                             out.push(item);
                         }
                     }
+                } else if let Some(f) = field.take() {
+                    // 元素结束，把累积的完整文本提交给字段。
+                    let text = field_buf.trim().to_string();
+                    let Some(item) = cur.as_mut() else { continue };
+                    match f.as_slice() {
+                        b"title" => item.title = text,
+                        b"size" if item.size == 0 => item.size = text.parse().unwrap_or(0),
+                        b"link" => {
+                            if text.starts_with("magnet:") {
+                                item.magnet = Some(text);
+                            } else if item.link.is_none() {
+                                item.link = Some(text);
+                            }
+                        }
+                        b"jackettindexer" => item.indexer = Some(text),
+                        _ => {}
+                    }
                 }
-                field = None;
             }
             Ok(Event::Eof) => break,
             Err(e) => bail!("索引器返回的不是合法 XML：{e}"),
@@ -281,6 +325,28 @@ mod tests {
         // 只有 .torrent 的那条，uri() 要退回到 link
         assert!(r[2].magnet.is_none());
         assert_eq!(r[2].uri(), Some("https://example.invalid/dl/def.torrent"));
+    }
+
+    /// Jackett 的下载地址在 Torznab 里会把 `&` 写成 `&amp;`（如
+    /// `/dl/acgrip/?jackett_apikey=...&amp;path=...`）。quick-xml 遇到实体时
+    /// 会把文本拆成多个 Text 事件，`is_none()` 这个 guard 会漏掉后半段。
+    #[test]
+    fn link_with_entity_is_not_truncated() {
+        let xml = r#"<?xml version="1.0"?>
+<rss version="2.0"><channel>
+  <item>
+    <title>With Entity</title>
+    <size>1048576</size>
+    <link>http://127.0.0.1:9117/dl/acgrip/?jackett_apikey=abc&amp;path=XYZ</link>
+  </item>
+</channel></rss>"#;
+        let r = parse(xml).unwrap();
+        assert_eq!(
+            r[0].link.as_deref(),
+            Some("http://127.0.0.1:9117/dl/acgrip/?jackett_apikey=abc&path=XYZ"),
+            "link 不该被 &amp; 截断"
+        );
+        assert_eq!(r[0].uri(), r[0].link.as_deref());
     }
 
     #[test]

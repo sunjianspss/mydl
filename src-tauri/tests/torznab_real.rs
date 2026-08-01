@@ -32,3 +32,20 @@ fn parses_real_jackett_response() {
         r.len(), with_seeders, with_magnet, seeds[0]
     );
 }
+
+/// Jackett 的 .torrent 下载地址形如 `…/dl/acgrip/?apikey=…&amp;path=…&amp;file=…`，
+/// `&` 在 XML 里是 `&amp;`，解析时不能丢（丢了 path 就下不了种子文件）。
+#[test]
+fn dl_links_keep_path_param() {
+    let xml = include_str!("fixtures/jackett_lotr.xml");
+    let r = parse(xml).expect("真实响应应该解析成功");
+
+    let dl: Vec<&str> = r
+        .iter()
+        .filter_map(|x| x.link.as_deref().filter(|l| l.contains("/dl/")))
+        .collect();
+    assert!(!dl.is_empty(), "fixture 里该有 Jackett 的下载链接");
+    for l in &dl {
+        assert!(l.contains("&path="), "dl 链接缺 &path=：{l}");
+    }
+}
