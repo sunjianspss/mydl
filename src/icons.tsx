@@ -162,6 +162,15 @@ export function GearIcon(p: Props) {
   );
 }
 
+export function SearchIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <circle cx="7" cy="7" r="4.5" {...stroke} />
+      <path d="M10.4 10.4 14 14" {...stroke} />
+    </Svg>
+  );
+}
+
 export function SunIcon(p: Props) {
   return (
     <Svg {...p}>

@@ -11,6 +11,7 @@ import FileList from "./FileList";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
+import SearchDialog from "./SearchDialog";
 import { getTheme, setTheme, type Theme } from "./theme";
 import {
   CheckIcon,
@@ -23,6 +24,7 @@ import {
   PlayIcon,
   PlusIcon,
   RssIcon,
+  SearchIcon,
   StackIcon,
   SunIcon,
   TrashIcon,
@@ -84,6 +86,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showRss, setShowRss] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 哪一行正处于「确认删除」状态。用行内确认而不是系统弹窗，避免阻塞 webview。
   const [confirmingDelete, setConfirmingDelete] = useState<number | null>(null);
@@ -322,6 +325,15 @@ export default function App() {
             <button
               type="button"
               className="tb-icon"
+              title="搜索种子"
+              disabled={!settings}
+              onClick={() => setShowSearch(true)}
+            >
+              <SearchIcon />
+            </button>
+            <button
+              type="button"
+              className="tb-icon"
               title={theme === "dark" ? "切换到浅色" : "切换到深色"}
               onClick={() => {
                 const next: Theme = theme === "dark" ? "light" : "dark";
@@ -471,6 +483,18 @@ export default function App() {
           onSaved={setSettings}
           onClose={() => setShowSettings(false)}
           onError={setError}
+        />
+      )}
+
+      {showSearch && settings && (
+        <SearchDialog
+          configured={!!settings.searchUrl}
+          aiEnabled={settings.aiRank}
+          onClose={() => setShowSearch(false)}
+          onPick={(uri) => {
+            setShowSearch(false);
+            addTorrent(uri);
+          }}
         />
       )}
 

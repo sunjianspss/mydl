@@ -49,6 +49,20 @@ pub struct Settings {
     /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
     pub prevent_sleep_while_downloading: bool,
 
+    /// Prowlarr / Jackett 的 Torznab 地址（含 apikey），从它们界面上直接复制。
+    ///
+    /// 不拆成「地址 + key」两个字段：Prowlarr 和 Jackett 的路径前缀不一样，
+    /// 我们去拼必错，不如让用户把整条粘过来。
+    pub search_url: Option<String>,
+
+    /// 大模型服务地址。默认 DeepSeek 的 OpenAI 兼容端点。
+    pub ai_base_url: String,
+
+    pub ai_model: String,
+
+    /// 用模型给搜索结果排序。没填 key 时这个开关不起作用。
+    pub ai_rank: bool,
+
     /// 切回窗口时看一眼剪贴板里有没有磁力链，有就提示添加。
     ///
     /// **只在窗口重新获得焦点时读一次**，不在后台轮询：常驻读剪贴板既让人
@@ -127,6 +141,10 @@ impl Default for Settings {
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
             watch_clipboard: true,
+            search_url: None,
+            ai_base_url: "https://api.deepseek.com".into(),
+            ai_model: "deepseek-v4-flash".into(),
+            ai_rank: true,
             upload_limit_kbps: None,
         }
     }

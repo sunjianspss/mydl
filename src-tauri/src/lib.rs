@@ -1,8 +1,11 @@
+pub mod ai;
 pub mod automation;
 pub mod engine;
 pub mod keep_awake;
 pub mod platform;
 pub mod rss;
+pub mod search;
+pub mod secrets;
 pub mod settings;
 pub mod stream_server;
 
@@ -53,6 +56,59 @@ async fn add_previewed(
 #[tauri::command]
 fn list_torrents(engine: State<'_, Arc<Engine>>) -> Vec<TorrentView> {
     engine.list()
+}
+
+/// 按关键词搜索种子。
+///
+/// 结果里的链接**全部来自索引器**，我们不生成任何 info-hash。开了 AI 排序的话
+/// 模型也只能对这个列表重排，见 `ai.rs`。搜到的东西加进任务列表前仍然要走
+/// `preview_torrent` 真实探测一次，编造的 hash 在那一步必然暴露。
+#[tauri::command]
+async fn search_torrents(
+    store: State<'_, Arc<SettingsStore>>,
+    query: String,
+) -> Result<Vec<search::SearchResult>, String> {
+    let s = store.get();
+    // key 在系统钥匙串里，不在 settings.json。
+    let cfg = secrets::ai_key().map(|api_key| ai::AiConfig {
+        base_url: s.ai_base_url.clone(),
+        api_key,
+        model: s.ai_model.clone(),
+    });
+
+    let configured = s.search_url.as_deref().is_some_and(|u| !u.trim().is_empty());
+
+    // 有索引器就用索引器，它给的 info-hash 可信。没有才退而求其次让模型上网找 ——
+    // 那条路返回的每条都带 unverified 标记，界面会标出来。
+    if !configured {
+        let Some(cfg) = cfg else {
+            return Err("还没配置索引器地址，也没填 API key。至少要有一个".into());
+        };
+        return ai::search_web(&cfg, &query).await.map_err(err);
+    }
+
+    let results = search::search(s.search_url.as_deref().unwrap_or_default(), &query)
+        .await
+        .map_err(err)?;
+
+    match (s.ai_rank, cfg) {
+        (true, Some(cfg)) => Ok(ai::rank(&cfg, &query, results).await),
+        _ => Ok(results),
+    }
+}
+
+/// 把 API key 写进系统钥匙串。传空串等于删除。
+///
+/// 只写不读：界面上没有「显示 key」的入口，存进去就拿不回来了 —— 想换就重填。
+#[tauri::command]
+fn set_ai_key(key: String) -> Result<(), String> {
+    secrets::set_ai_key(key.trim()).map_err(err)
+}
+
+/// 界面用来决定输入框显示「已保存」还是空。
+#[tauri::command]
+fn has_ai_key() -> bool {
+    secrets::has_ai_key()
 }
 
 /// 底部状态栏用的会话信息（DHT 节点数、监听端口）。
@@ -339,6 +395,9 @@ pub fn run() {
             add_previewed,
             list_torrents,
             session_status,
+            search_torrents,
+            set_ai_key,
+            has_ai_key,
             pause_torrent,
             resume_torrent,
             delete_torrent,

@@ -18,6 +18,13 @@ interface Props {
 export default function SettingsDialog({ initial, onSaved, onClose, onError }: Props) {
   const [draft, setDraft] = useState<Settings>(initial);
   const [saving, setSaving] = useState(false);
+  // key 存在系统钥匙串里，读不回来 —— 只能知道有没有。空串 = 不改动。
+  const [keyInput, setKeyInput] = useState("");
+  const [hasKey, setHasKey] = useState(false);
+
+  useEffect(() => {
+    invoke<boolean>("has_ai_key").then(setHasKey).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -38,6 +45,8 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
     setSaving(true);
     try {
       await invoke("save_settings", { settings: draft });
+      // 输入框留空表示不动原来的；要清掉 key 得点「清除」。
+      if (keyInput) await invoke("set_ai_key", { key: keyInput });
       onSaved(draft);
       onClose();
     } catch (e) {
@@ -66,6 +75,64 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
             </em>
           </span>
         </label>
+
+        <div className="setting setting-block">
+          <span>
+            <b>搜索：索引器地址</b>
+            <em>
+              搜索结果来自你自己搭的 <b>Prowlarr 或 Jackett</b>，我们只是个客户端。
+              把它们界面上那条 Torznab 地址整条粘进来（含 apikey）。留空则搜索不可用。
+            </em>
+            <input
+              className="setting-input"
+              type="text"
+              spellCheck={false}
+              placeholder="http://localhost:9696/api/v1/indexer/all/results/torznab/api?apikey=…"
+              value={draft.searchUrl ?? ""}
+              onChange={(e) => patch({ searchUrl: e.target.value.trim() || null })}
+            />
+          </span>
+        </div>
+
+        <div className="setting setting-block">
+          <span>
+            <b>搜索：AI 排序</b>
+            <em>
+              让模型把结果按你的意图重排并给出理由。<b>模型只能对索引器给的列表重排，
+              不能产出链接</b> —— 磁力链的 hash 是内容摘要，模型只会编。API key
+              <b>明文存在 settings.json</b> 里，介意就别填。
+            </em>
+            <input
+              className="setting-input"
+              type="password"
+              spellCheck={false}
+              placeholder={hasKey ? "已存在钥匙串里，留空表示不改" : "DeepSeek API key（留空则不排序）"}
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+            />
+            {hasKey && (
+              <button
+                className="act-text"
+                disabled={saving}
+                onClick={async () => {
+                  await invoke("set_ai_key", { key: "" });
+                  setHasKey(false);
+                  setKeyInput("");
+                }}
+              >
+                从钥匙串清除
+              </button>
+            )}
+            <input
+              className="setting-input"
+              type="text"
+              spellCheck={false}
+              placeholder="模型 id"
+              value={draft.aiModel}
+              onChange={(e) => patch({ aiModel: e.target.value })}
+            />
+          </span>
+        </div>
 
         <label className="setting">
           <input

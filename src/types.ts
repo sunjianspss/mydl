@@ -42,6 +42,21 @@ export interface TorrentPreview {
   alreadyAdded: boolean;
 }
 
+/** 对应 search.rs 的 SearchResult。链接全部来自索引器，不是模型生成的。 */
+export interface SearchResult {
+  title: string;
+  magnet: string | null;
+  link: string | null;
+  size: number;
+  seeders: number | null;
+  leechers: number | null;
+  indexer: string | null;
+  /** AI 排序时给的挑选理由；没开 AI 就是 null。 */
+  reason: string | null;
+  /** true = 模型从网上找来的，不是索引器给的，可能无效。 */
+  unverified: boolean;
+}
+
 /** 对应 settings.rs 的 Settings。 */
 export interface Settings {
   /** null 表示跟随系统默认下载文件夹。 */
@@ -62,6 +77,12 @@ export interface Settings {
   preventSleepWhileDownloading: boolean;
   /** 切回窗口时看一眼剪贴板里有没有磁力链。只读一次，不后台轮询。 */
   watchClipboard: boolean;
+  /** Prowlarr / Jackett 的 Torznab 地址（含 apikey）。 */
+  searchUrl: string | null;
+  aiBaseUrl: string;
+  aiModel: string;
+  /** 用模型给搜索结果排序。没填 key 时不起作用。 */
+  aiRank: boolean;
   /** 全局上传限速，KiB/s。null 或 0 表示不限。改完立刻生效。 */
   uploadLimitKbps: number | null;
 }
