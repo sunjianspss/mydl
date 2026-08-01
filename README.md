@@ -281,6 +281,10 @@ cargo test --test stream_smoke -- --ignored --nocapture   # 边下边播 + Range
 src/                     React 界面
 ├── App.tsx              主界面，1 秒轮询一次任务列表
 ├── FileList.tsx         展开的文件列表 + 播放按钮
+├── AddDialog.tsx        添加前预览文件列表并勾选
+├── SearchDialog.tsx     搜索种子 + 结果列表
+├── SettingsDialog.tsx   设置
+├── RssDialog.tsx        RSS 订阅管理
 ├── icons.tsx            内联 SVG 图标 + 按文件名判类型
 ├── theme.ts             深浅主题（localStorage，默认深色）
 ├── platform.ts          把平台写到 <html data-platform>
@@ -289,10 +293,22 @@ src/                     React 界面
 
 src-tauri/src/
 ├── engine.rs            librqbit 会话的封装，不含 Tauri 类型
-├── platform.rs          平台差异（日志目录、播放器、阻止休眠）
+├── platform.rs          平台差异（日志目录、播放器、阻止休眠、提示音）
+├── search.rs            Torznab 客户端（Prowlarr / Jackett）
+├── ai.rs                大模型排序；只认序号，不接受它产出的链接
+├── secrets.rs           API key 存系统钥匙串 / 凭据管理器
+├── rss.rs               RSS 订阅按关键词自动加种
+├── automation.rs        完成后：通知、解压、移动
+├── keep_awake.rs        下载期间阻止休眠
 ├── stream_server.rs     本地 HTTP 流媒体服务（Range 支持）
 ├── settings.rs          持久化设置（JSON，原子写）
 └── lib.rs               Tauri 命令 + 应用入口
+
+src-tauri/tests/
+├── engine_smoke.rs      子目录、只下选中文件、取消预览、重启后记得目录
+├── torznab_real.rs      拿真实 Jackett 响应验解析（fixture 已脱敏）
+├── stream_smoke.rs      边下边播 + Range（联网，默认跳过）
+└── magnet_diag.rs       磁力链诊断工具（手动跑）
 ```
 
 设置存在 `~/Library/Application Support/com.sun.mydl/settings.json`，
