@@ -12,7 +12,7 @@ pub mod stream_server;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use engine::{Engine, FileView, TorrentId, TorrentPreview, TorrentView};
+use engine::{Engine, FileView, SessionSetup, TorrentId, TorrentPreview, TorrentView};
 use settings::{Settings, SettingsStore};
 use stream_server::StreamServer;
 use tauri::{Manager, State};
@@ -165,7 +165,9 @@ fn save_settings(
     settings: Settings,
 ) -> Result<(), String> {
     store.update(settings).map_err(err)?;
-    engine.set_upload_limit(store.get().upload_limit_bps());
+    let s = store.get();
+    engine.set_upload_limit(s.upload_limit_bps());
+    engine.set_download_limit(s.download_limit_bps());
     Ok(())
 }
 
@@ -273,21 +275,34 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
 
     // Session 启动包含读取持久化状态和绑定监听端口，必须在窗口出现前完成，
     // 否则前端第一次 list_torrents 会拿不到 State。
-    let trackers = if store.get().use_public_trackers {
-        settings::PUBLIC_TRACKERS.iter().map(|s| s.to_string()).collect()
-    } else {
-        Vec::new()
+    let s = store.get();
+    let setup = SessionSetup {
+        extra_trackers: if s.use_public_trackers {
+            settings::PUBLIC_TRACKERS.iter().map(|t| t.to_string()).collect()
+        } else {
+            Vec::new()
+        },
+        proxy_url: s.proxy_url.clone().filter(|u| !u.trim().is_empty()),
+        blocklist_url: s.blocklist_url.clone().filter(|u| !u.trim().is_empty()),
+        peer_limit: s.peer_limit,
     };
-    tracing::info!(公共tracker = trackers.len(), "会话 tracker 配置");
+    tracing::info!(
+        公共tracker = setup.extra_trackers.len(),
+        代理 = setup.proxy_url.is_some(),
+        黑名单 = setup.blocklist_url.is_some(),
+        peer上限 = ?setup.peer_limit,
+        "会话配置"
+    );
 
     let (engine, server) = tauri::async_runtime::block_on(async {
-        let engine = Arc::new(Engine::new(download_dir, None, config_dir.clone(), trackers).await?);
+        let engine = Arc::new(Engine::new(download_dir, None, config_dir.clone(), setup).await?);
         let server = StreamServer::start(engine.clone()).await?;
         Ok::<_, anyhow::Error>((engine, server))
     })?;
 
     // 限速只存在设置里，会话本身不持久化它，所以每次启动都要重新应用。
     engine.set_upload_limit(store.get().upload_limit_bps());
+    engine.set_download_limit(store.get().download_limit_bps());
 
     let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
 

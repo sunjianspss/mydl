@@ -32,7 +32,7 @@ async fn downloads_real_torrent() {
     let state = tmp.join("state");
     std::fs::create_dir_all(&state).unwrap();
 
-    let engine = Engine::new(downloads, Some(state.clone()), state, Vec::new())
+    let engine = Engine::new(downloads, Some(state.clone()), state, Default::default())
         .await
         .expect("创建 Engine 失败");
 
@@ -157,7 +157,7 @@ async fn multifile_torrent_gets_its_own_subfolder() {
         tmp.join("default-downloads"),
         Some(tmp.join("state")),
         tmp.join("state"),
-        Vec::new(),
+        Default::default(),
     )
         .await
         .expect("创建 Engine 失败");
@@ -207,7 +207,7 @@ async fn output_folder_survives_restart() {
         tmp.join("default-downloads"),
         Some(state.clone()),
         state.clone(),
-        Vec::new(),
+        Default::default(),
     )
     .await
     .expect("创建 Engine 失败");
@@ -225,7 +225,7 @@ async fn output_folder_survives_restart() {
         tmp.join("default-downloads"),
         Some(state.clone()),
         state,
-        Vec::new(),
+        Default::default(),
     )
     .await
     .expect("重启后创建 Engine 失败");
@@ -263,7 +263,7 @@ async fn single_file_torrent_has_no_subfolder() {
         tmp.join("default-downloads"),
         Some(tmp.join("state")),
         tmp.join("state"),
-        Vec::new(),
+        Default::default(),
     )
         .await
         .expect("创建 Engine 失败");
@@ -304,7 +304,7 @@ async fn dead_magnet_times_out_instead_of_hanging() {
         tmp.join("downloads"),
         Some(tmp.join("state")),
         tmp.join("state"),
-        Vec::new(),
+        Default::default(),
     )
         .await
         .expect("创建 Engine 失败");
@@ -352,7 +352,7 @@ async fn preview_can_be_cancelled() {
             tmp.join("downloads"),
             Some(tmp.join("state")),
             tmp.join("state"),
-            Vec::new(),
+            Default::default(),
         )
         .await
         .expect("创建 Engine 失败"),
@@ -410,7 +410,7 @@ async fn deselected_files_are_excluded() {
         tmp.join("downloads"),
         Some(tmp.join("state")),
         tmp.join("state"),
-        Vec::new(),
+        Default::default(),
     )
         .await
         .expect("创建 Engine 失败");
@@ -479,7 +479,7 @@ async fn preview_then_add_only_selected() {
         tmp.join("default-downloads"),
         Some(tmp.join("state")),
         tmp.join("state"),
-        Vec::new(),
+        Default::default(),
     )
         .await
         .expect("创建 Engine 失败");

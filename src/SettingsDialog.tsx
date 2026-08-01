@@ -208,6 +208,83 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
           </div>
         )}
 
+        {draft.uploadLimitKbps !== null && (
+          <div className="setting-sub">
+            <input
+              type="number"
+              min={1}
+              step={256}
+              value={draft.downloadLimitKbps ?? 0}
+              disabled={saving}
+              onChange={(e) =>
+                patch({
+                  downloadLimitKbps:
+                    Math.max(0, Math.floor(Number(e.target.value) || 0)) || null,
+                })
+              }
+            />
+            <span className="path">KB/s 下载限速（0 = 不限；很少需要，除非在共享网络里）</span>
+          </div>
+        )}
+
+        <div className="setting setting-block">
+          <span>
+            <b>SOCKS5 代理</b>
+            <em>
+              格式 <code>socks5://[用户名:密码@]主机:端口</code>。
+              <b>只代理出站 TCP 连接</b> —— DHT、uTP、UDP tracker 走的是 UDP，
+              代理不了，仍然直连。所以这**不等于「BT 全程匿名」**，别拿它当
+              隐私保障的全部。改完<b>需要重启 App</b>。
+            </em>
+            <input
+              className="setting-input"
+              type="text"
+              spellCheck={false}
+              placeholder="留空 = 不用代理"
+              value={draft.proxyUrl ?? ""}
+              onChange={(e) => patch({ proxyUrl: e.target.value.trim() || null })}
+            />
+          </span>
+        </div>
+
+        <div className="setting setting-block">
+          <span>
+            <b>IP 黑名单</b>
+            <em>
+              一个列表文件的地址，会话启动时拉取，命中的 IP 不再连接。
+              常见来源是 iblocklist 那类公开列表。改完<b>需要重启 App</b>。
+            </em>
+            <input
+              className="setting-input"
+              type="text"
+              spellCheck={false}
+              placeholder="留空 = 不启用"
+              value={draft.blocklistUrl ?? ""}
+              onChange={(e) => patch({ blocklistUrl: e.target.value.trim() || null })}
+            />
+          </span>
+        </div>
+
+        <div className="setting setting-block">
+          <span>
+            <b>每个任务的 peer 上限</b>
+            <em>
+              留空用 librqbit 的默认值。弱网或老路由器上连接数太多会打爆 NAT
+              表，表现为整个网络变卡。改完<b>需要重启 App</b>。
+            </em>
+            <input
+              className="setting-input"
+              type="number"
+              min={1}
+              placeholder="留空 = 默认"
+              value={draft.peerLimit ?? ""}
+              onChange={(e) =>
+                patch({ peerLimit: Math.max(0, Math.floor(Number(e.target.value) || 0)) || null })
+              }
+            />
+          </span>
+        </div>
+
         <label className="setting">
           <input
             type="checkbox"

@@ -70,6 +70,22 @@ pub struct Settings {
     /// 显示一个横幅，绝不自动添加。
     pub watch_clipboard: bool,
 
+    /// SOCKS5 代理，格式 `socks5://[用户名:密码@]主机:端口`。
+    ///
+    /// **只代理出站 TCP 连接。** DHT、uTP、UDP tracker 走的是 UDP，SOCKS5
+    /// 代理不了，仍然是直连 —— 也就是说这不等于「BT 全程匿名」。改了要重启。
+    pub proxy_url: Option<String>,
+
+    /// IP 黑名单地址（如 iblocklist 那类列表）。会话启动时拉取。改了要重启。
+    pub blocklist_url: Option<String>,
+
+    /// 每个任务最多连多少 peer。弱网或老路由器上连接数太多会打爆 NAT 表。
+    /// None = 用 librqbit 的默认值。改了要重启。
+    pub peer_limit: Option<usize>,
+
+    /// 全局下载限速，单位 KiB/s。None 或 0 表示不限。和上传限速一样运行时可改。
+    pub download_limit_kbps: Option<u32>,
+
     /// 全局上传限速，单位 KiB/s。None 或 0 表示不限。
     ///
     /// 默认不限是因为限速会拖慢自己的下载（BT 靠上传换下载），但一旦上行
@@ -80,9 +96,11 @@ pub struct Settings {
 impl Settings {
     /// 换算成字节/秒给 Engine 用。0 和 None 一样当作不限速。
     pub fn upload_limit_bps(&self) -> Option<u32> {
-        self.upload_limit_kbps
-            .filter(|k| *k > 0)
-            .map(|k| k.saturating_mul(1024))
+        kbps_to_bps(self.upload_limit_kbps)
+    }
+
+    pub fn download_limit_bps(&self) -> Option<u32> {
+        kbps_to_bps(self.download_limit_kbps)
     }
 }
 
@@ -146,8 +164,16 @@ impl Default for Settings {
             ai_model: "deepseek-v4-flash".into(),
             ai_rank: true,
             upload_limit_kbps: None,
+            download_limit_kbps: None,
+            proxy_url: None,
+            blocklist_url: None,
+            peer_limit: None,
         }
     }
+}
+
+fn kbps_to_bps(kbps: Option<u32>) -> Option<u32> {
+    kbps.filter(|k| *k > 0).map(|k| k.saturating_mul(1024))
 }
 
 pub struct SettingsStore {

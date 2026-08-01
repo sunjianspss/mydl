@@ -10,9 +10,9 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use librqbit::{
-    AddTorrent, AddTorrentOptions, AddTorrentResponse, ByteBufOwned, DhtSessionConfig,
-    ListOnlyResponse, ListenerMode, ListenerOptions, ManagedTorrent, Session, SessionOptions,
-    SessionPersistenceConfig, ValidatedTorrentMetaV1Info,
+    AddTorrent, AddTorrentOptions, AddTorrentResponse, ByteBufOwned, ConnectionOptions,
+    DhtSessionConfig, ListOnlyResponse, ListenerMode, ListenerOptions, ManagedTorrent, Session,
+    SessionOptions, SessionPersistenceConfig, ValidatedTorrentMetaV1Info,
 };
 use serde::Serialize;
 use tokio::io::{AsyncRead, AsyncSeek};
@@ -32,6 +32,18 @@ const INIT_WAIT: Duration = Duration::from_secs(30);
 /// （`session.rs` 的 `read_metainfo_from_peer_receiver`），冷门磁力链会一直挂着，
 /// 命令永不返回，界面就跟着卡死。
 const ADD_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// 只在建会话时生效的那些选项。改了必须重启 App —— 单独拎出来是为了让
+/// 「哪些能热改、哪些要重启」在类型上就看得出来。
+#[derive(Default, Clone)]
+pub struct SessionSetup {
+    /// 补充给所有任务的 tracker。
+    pub extra_trackers: Vec<String>,
+    /// `socks5://[用户名:密码@]主机:端口`。只代理出站 TCP。
+    pub proxy_url: Option<String>,
+    pub blocklist_url: Option<String>,
+    pub peer_limit: Option<usize>,
+}
 
 pub struct Engine {
     session: Arc<Session>,
@@ -202,14 +214,15 @@ impl Engine {
         download_dir: PathBuf,
         state_dir: Option<PathBuf>,
         data_dir: PathBuf,
-        extra_trackers: Vec<String>,
+        setup: SessionSetup,
     ) -> Result<Self> {
         std::fs::create_dir_all(&download_dir)
             .with_context(|| format!("无法创建下载目录 {}", download_dir.display()))?;
 
         let isolated = state_dir.is_some();
 
-        let trackers = extra_trackers
+        let trackers = setup
+            .extra_trackers
             .iter()
             .filter_map(|t| match t.parse() {
                 Ok(u) => Some(u),
@@ -251,6 +264,13 @@ impl Engine {
                 }),
                 // 会话级补充 tracker，对只有裸 info-hash 的磁力链多一条找源的路。
                 trackers,
+                // SOCKS5 只包出站 TCP；DHT / uTP / UDP tracker 仍然直连。
+                connect: setup.proxy_url.clone().map(|proxy_url| ConnectionOptions {
+                    proxy_url: Some(proxy_url),
+                    ..Default::default()
+                }),
+                blocklist_url: setup.blocklist_url.clone(),
+                peer_limit: setup.peer_limit,
                 ..Default::default()
             },
         )
@@ -282,6 +302,18 @@ impl Engine {
         match limit {
             Some(v) => tracing::info!("上传限速：{} 字节/秒", v.get()),
             None => tracing::info!("上传限速：不限"),
+        }
+    }
+
+    /// 下载限速。和上传一样运行时可改。
+    ///
+    /// 默认不限 —— 限制自己的下载速度只在共享网络等少数场景才有意义。
+    pub fn set_download_limit(&self, bps: Option<u32>) {
+        let limit = bps.and_then(NonZeroU32::new);
+        self.session.ratelimits.set_download_bps(limit);
+        match limit {
+            Some(v) => tracing::info!("下载限速：{} 字节/秒", v.get()),
+            None => tracing::info!("下载限速：不限"),
         }
     }
 

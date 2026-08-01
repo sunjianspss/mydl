@@ -85,6 +85,14 @@ export interface Settings {
   aiRank: boolean;
   /** 全局上传限速，KiB/s。null 或 0 表示不限。改完立刻生效。 */
   uploadLimitKbps: number | null;
+  /** 全局下载限速，KiB/s。改完立刻生效。 */
+  downloadLimitKbps: number | null;
+  /** socks5://[用户名:密码@]主机:端口。只代理出站 TCP。改了要重启。 */
+  proxyUrl: string | null;
+  /** IP 黑名单地址。改了要重启。 */
+  blocklistUrl: string | null;
+  /** 每个任务的 peer 上限。改了要重启。 */
+  peerLimit: number | null;
 }
 
 /** 对应 settings.rs 的 RssFeed。 */
