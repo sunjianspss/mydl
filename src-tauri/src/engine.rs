@@ -592,6 +592,43 @@ impl Engine {
         self.session.pause(&handle).await.context("暂停失败")
     }
 
+    /// 暂停/继续所有任务。返回实际操作了几个。
+    ///
+    /// 单个失败不中断其余 —— 批量操作里一个坏任务不该拖垮整批。
+    pub async fn pause_all(&self) -> usize {
+        let ids: Vec<TorrentId> = self
+            .list()
+            .into_iter()
+            .filter(|t| t.state == "live")
+            .map(|t| t.id)
+            .collect();
+        let mut n = 0;
+        for id in ids {
+            match self.pause(id).await {
+                Ok(()) => n += 1,
+                Err(e) => tracing::warn!(id, "暂停失败：{e:#}"),
+            }
+        }
+        n
+    }
+
+    pub async fn resume_all(&self) -> usize {
+        let ids: Vec<TorrentId> = self
+            .list()
+            .into_iter()
+            .filter(|t| t.state == "paused")
+            .map(|t| t.id)
+            .collect();
+        let mut n = 0;
+        for id in ids {
+            match self.resume(id).await {
+                Ok(()) => n += 1,
+                Err(e) => tracing::warn!(id, "继续失败：{e:#}"),
+            }
+        }
+        n
+    }
+
     pub async fn resume(&self, id: TorrentId) -> Result<()> {
         let handle = self.handle(id)?;
         self.session.unpause(&handle).await.context("继续失败")

@@ -35,6 +35,13 @@ pub struct Settings {
     /// 完成后解压内容里的 .zip。原压缩包保留。
     pub extract_archives: bool,
 
+    /// 同时最多几个任务在下载。None = 不限。
+    ///
+    /// 超出的会被自动暂停，前面的下完再自动放出来。**只认这个进程自己暂停的
+    /// 那些** —— 用户手动暂停的任务永远不会被自动恢复。代价是这份记录只在
+    /// 内存里，重启后被自动暂停的任务需要手动继续。
+    pub max_active_downloads: Option<usize>,
+
     /// 分享率到这个值就自动停止做种。None = 不限。
     ///
     /// **分享率每次重启会归零** —— librqbit 的 `uploaded_bytes` 只统计本次
@@ -165,6 +172,7 @@ impl Default for Settings {
             sound_on_complete: true,
             move_to: None,
             extract_archives: false,
+            max_active_downloads: None,
             seed_ratio_limit: None,
             sleep_when_all_done: false,
             rss_feeds: Vec::new(),

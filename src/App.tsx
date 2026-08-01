@@ -20,7 +20,9 @@ import {
   FolderIcon,
   GearIcon,
   MoonIcon,
+  PauseAllIcon,
   PauseIcon,
+  PlayAllIcon,
   PlayIcon,
   PlusIcon,
   RssIcon,
@@ -321,6 +323,24 @@ export default function App() {
             />
             <button type="button" className="tb-btn" onClick={pickTorrentFile} disabled={adding}>
               打开种子…
+            </button>
+            <button
+              type="button"
+              className="tb-icon"
+              title="全部暂停"
+              disabled={!torrents.some((t) => t.state === "live")}
+              onClick={() => run(() => invoke("pause_all"))}
+            >
+              <PauseAllIcon />
+            </button>
+            <button
+              type="button"
+              className="tb-icon"
+              title="全部继续"
+              disabled={!torrents.some((t) => t.state === "paused")}
+              onClick={() => run(() => invoke("resume_all"))}
+            >
+              <PlayAllIcon />
             </button>
             <button
               type="button"

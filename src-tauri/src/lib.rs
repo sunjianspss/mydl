@@ -127,6 +127,21 @@ async fn resume_torrent(engine: State<'_, Arc<Engine>>, id: TorrentId) -> Result
     engine.resume(id).await.map_err(err)
 }
 
+/// 暂停所有正在跑的任务，返回操作了几个。
+#[tauri::command]
+async fn pause_all(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
+    Ok(engine.pause_all().await)
+}
+
+/// 继续所有暂停的任务。
+///
+/// 注意它会把「被并发上限自动暂停」的也一起放出来 —— 用户明确点了「全部继续」，
+/// 那就该听他的；下一轮轮询会重新按上限收敛。
+#[tauri::command]
+async fn resume_all(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
+    Ok(engine.resume_all().await)
+}
+
 #[tauri::command]
 async fn delete_torrent(
     engine: State<'_, Arc<Engine>>,
@@ -415,6 +430,8 @@ pub fn run() {
             has_ai_key,
             pause_torrent,
             resume_torrent,
+            pause_all,
+            resume_all,
             delete_torrent,
             default_download_dir,
             get_settings,

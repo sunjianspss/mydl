@@ -69,6 +69,8 @@ export interface Settings {
   moveTo: string | null;
   /** 完成后解压内容里的 .zip。 */
   extractArchives: boolean;
+  /** 同时最多几个任务在下载。null = 不限。 */
+  maxActiveDownloads: number | null;
   /** 分享率到这个值就停止做种。null = 不限。注意每次重启会归零。 */
   seedRatioLimit: number | null;
   /** 所有任务完成后让电脑睡眠。 */

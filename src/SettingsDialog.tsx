@@ -339,6 +339,30 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
           </span>
         </label>
 
+        <div className="setting setting-block">
+          <span>
+            <b>同时最多下载几个</b>
+            <em>
+              超出的自动排队，前面下完再放出来。做种不占名额。
+              <b>只会恢复它自己暂停的那些</b> —— 你手动暂停的任务不会被擅自放出来。
+              这份记录只在内存里，重启后排队中的任务要手动继续。留空 = 不限。
+            </em>
+            <input
+              className="setting-input"
+              type="number"
+              min={1}
+              placeholder="留空 = 不限"
+              value={draft.maxActiveDownloads ?? ""}
+              onChange={(e) =>
+                patch({
+                  maxActiveDownloads:
+                    Math.max(0, Math.floor(Number(e.target.value) || 0)) || null,
+                })
+              }
+            />
+          </span>
+        </div>
+
         <label className="setting">
           <input
             type="checkbox"

@@ -22,6 +22,52 @@ const POLL: Duration = Duration::from_secs(5);
 /// 立刻睡下去可能被它拦住；顺便也给「最后一个任务刚完成」的通知留出时间。
 const SLEEP_DELAY: Duration = Duration::from_secs(20);
 
+/// 按并发上限算出该暂停谁、该放出谁。
+///
+/// 返回 `(要暂停的, 要恢复的)`。`auto_paused` 是本进程之前自动暂停过的集合 ——
+/// **只从这里面挑要恢复的**，用户手动暂停的任务绝不擅自放出来。
+///
+/// 超额时暂停 id 最大的（最后加进来的），保证先来的先下完。
+pub fn plan_concurrency(
+    torrents: &[TorrentView],
+    limit: Option<usize>,
+    auto_paused: &HashSet<TorrentId>,
+) -> (Vec<TorrentId>, Vec<TorrentId>) {
+    let Some(limit) = limit.filter(|l| *l > 0) else {
+        // 取消了上限，就把自己暂停过的全放出来。
+        let resume = torrents
+            .iter()
+            .filter(|t| t.state == "paused" && auto_paused.contains(&t.id))
+            .map(|t| t.id)
+            .collect();
+        return (Vec::new(), resume);
+    };
+
+    let mut active: Vec<TorrentId> = torrents
+        .iter()
+        .filter(|t| t.state == "live" && !t.finished)
+        .map(|t| t.id)
+        .collect();
+    active.sort_unstable();
+
+    let mut pause = Vec::new();
+    if active.len() > limit {
+        // 从后往前砍：先加进来的留着。
+        pause = active.split_off(limit);
+    }
+
+    let free = limit.saturating_sub(active.len());
+    let mut resume: Vec<TorrentId> = torrents
+        .iter()
+        .filter(|t| t.state == "paused" && !t.finished && auto_paused.contains(&t.id))
+        .map(|t| t.id)
+        .collect();
+    resume.sort_unstable();
+    resume.truncate(free);
+
+    (pause, resume)
+}
+
 /// 到达分享率上限的任务要不要停。
 ///
 /// 只看还在做种的（已完成 + live）。总大小为 0 时不判断 —— 除不了。
@@ -44,12 +90,38 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
             .filter(|t| t.finished)
             .map(|t| t.id)
             .collect();
+        // 被并发上限自动暂停的任务。只在内存里 —— 重启后这份记录就没了，
+        // 那些任务会停在暂停状态等用户手动继续，总比擅自恢复用户暂停的好。
+        let mut auto_paused: HashSet<TorrentId> = HashSet::new();
+
         tracing::info!(已完成 = done.len(), "完成后自动化已启动");
 
         loop {
             tokio::time::sleep(POLL).await;
 
             let all = engine.list();
+
+            // 并发上限。放在最前面：刚有任务下完就该立刻放下一个进来。
+            let (to_pause, to_resume) =
+                plan_concurrency(&all, store.get().max_active_downloads, &auto_paused);
+            for id in to_pause {
+                match engine.pause(id).await {
+                    Ok(()) => {
+                        auto_paused.insert(id);
+                        tracing::info!(id, "超出并发上限，已排队");
+                    }
+                    Err(e) => tracing::warn!(id, "排队暂停失败：{e:#}"),
+                }
+            }
+            for id in to_resume {
+                match engine.resume(id).await {
+                    Ok(()) => {
+                        auto_paused.remove(&id);
+                        tracing::info!(id, "轮到它了，已开始下载");
+                    }
+                    Err(e) => tracing::warn!(id, "出队继续失败：{e:#}"),
+                }
+            }
 
             // 分享率到顶就停做种。放在完成处理之前：刚下完的那一轮分享率
             // 必然是 0，不会被误停。
@@ -370,6 +442,40 @@ mod ratio_tests {
         // 没设上限
         assert!(!over_ratio(&t(true, "live", 999, 100), None));
         assert!(!over_ratio(&t(true, "live", 999, 100), Some(0.0)));
+    }
+
+    #[test]
+    fn concurrency_pauses_newest_and_resumes_only_own() {
+        let live = |id: TorrentId| TorrentView { id, ..t(false, "live", 0, 100) };
+        let paused = |id: TorrentId| TorrentView { id, ..t(false, "paused", 0, 100) };
+
+        // 3 个在下，上限 2 → 暂停 id 最大的那个
+        let list = vec![live(1), live(2), live(3)];
+        let (p, r) = plan_concurrency(&list, Some(2), &HashSet::new());
+        assert_eq!(p, vec![3]);
+        assert!(r.is_empty());
+
+        // 1 个在下、2 个暂停，其中只有 id=2 是我们停的 → 只放它
+        let list = vec![live(1), paused(2), paused(9)];
+        let mine: HashSet<TorrentId> = [2].into_iter().collect();
+        let (p, r) = plan_concurrency(&list, Some(2), &mine);
+        assert!(p.is_empty());
+        assert_eq!(r, vec![2], "用户手动暂停的 9 号不能被擅自恢复");
+
+        // 取消上限 → 把自己停的全放出来，别人停的不动
+        let (p, r) = plan_concurrency(&list, None, &mine);
+        assert!(p.is_empty());
+        assert_eq!(r, vec![2]);
+    }
+
+    #[test]
+    fn concurrency_ignores_finished() {
+        // 做种中的不占下载名额
+        let seeding = TorrentView { id: 1, ..t(true, "live", 0, 100) };
+        let downloading = TorrentView { id: 2, ..t(false, "live", 0, 100) };
+        let (p, r) = plan_concurrency(&[seeding, downloading], Some(1), &HashSet::new());
+        assert!(p.is_empty(), "做种不该被算进并发数");
+        assert!(r.is_empty());
     }
 
     #[test]

@@ -208,6 +208,25 @@ export function PlayIcon(p: Props) {
   );
 }
 
+/// 全部暂停：两条竖杠外面套个圈，和单任务的暂停区分开。
+export function PauseAllIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <circle cx="8" cy="8" r="6" {...stroke} />
+      <path d="M6.4 5.8v4.4M9.6 5.8v4.4" {...stroke} />
+    </Svg>
+  );
+}
+
+export function PlayAllIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <circle cx="8" cy="8" r="6" {...stroke} />
+      <path d="M6.6 5.5v5l4-2.5z" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
 export function TrashIcon(p: Props) {
   return (
     <Svg {...p}>
