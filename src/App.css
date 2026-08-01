@@ -1105,6 +1105,65 @@ input[type="checkbox"] {
   color: var(--warn);
 }
 
+/* 搜索历史：一行胶囊，多了横向滚动，不把对话框撑高。 */
+.search-history {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-bottom: 2px;
+  margin-top: 10px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+
+.search-history-label {
+  flex: none;
+  color: var(--faint);
+}
+
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  background: var(--fill);
+  border-radius: 999px;
+}
+
+.chip-text {
+  max-width: 18ch;
+  padding: 3px 4px 3px 10px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  border-radius: 999px 0 0 999px;
+  box-shadow: none;
+}
+
+.chip-text:hover:not(:disabled) {
+  color: var(--accent);
+  background: none;
+}
+
+.chip-x {
+  padding: 3px 8px 3px 4px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--faint);
+  background: none;
+  border: none;
+  border-radius: 0 999px 999px 0;
+  box-shadow: none;
+}
+
+.chip-x:hover:not(:disabled) {
+  color: var(--danger);
+  background: none;
+}
+
 /* AI 给的理由压一档，别喧宾夺主 —— 它是建议，不是事实。 */
 .search-reason {
   font-size: 11.5px;

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { SearchResult } from "./types";
 import { formatBytes } from "./format";
+import { clearHistory, forget, history, remember } from "./history";
 
 interface Props {
   /** 选中一条后交给外面走正常的预览-确认流程。 */
@@ -18,6 +19,7 @@ export default function SearchDialog({ onPick, onClose, configured, aiEnabled }:
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recent, setRecent] = useState<string[]>(history);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,12 +31,19 @@ export default function SearchDialog({ onPick, onClose, configured, aiEnabled }:
     return () => window.removeEventListener("keydown", onKey);
   }, [busy, onClose]);
 
-  async function run() {
-    if (!query.trim() || busy) return;
+  /// `q` 显式传入而不是读 state：点历史时要「设置输入框 + 立刻搜」，
+  /// 而 setQuery 是异步的，这一轮读到的还是旧值。
+  async function run(q: string = query) {
+    const text = q.trim();
+    if (!text || busy) return;
+
+    setQuery(text);
     setBusy(true);
     setError(null);
+    // 搜之前就记下来 —— 搜失败的词往往正是要改一改再试的那个。
+    setRecent(remember(text));
     try {
-      setResults(await invoke<SearchResult[]>("search_torrents", { query }));
+      setResults(await invoke<SearchResult[]>("search_torrents", { query: text }));
     } catch (e) {
       setError(String(e));
       setResults(null);
@@ -67,6 +76,34 @@ export default function SearchDialog({ onPick, onClose, configured, aiEnabled }:
             {busy ? "搜索中…" : "搜索"}
           </button>
         </form>
+
+        {recent.length > 0 && (
+          <div className="search-history">
+            <span className="search-history-label">最近</span>
+            {recent.map((q) => (
+              <span key={q} className="chip">
+                <button
+                  className="chip-text"
+                  disabled={busy}
+                  title={`再搜一次「${q}」`}
+                  onClick={() => run(q)}
+                >
+                  {q}
+                </button>
+                <button
+                  className="chip-x"
+                  title="从历史中删除"
+                  onClick={() => setRecent(forget(q))}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <button className="act-text" onClick={() => setRecent(clearHistory())}>
+              清空
+            </button>
+          </div>
+        )}
 
         {!configured && (
           <p className="dialog-warn">
