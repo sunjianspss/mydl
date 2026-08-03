@@ -5,7 +5,7 @@
 //! 整个搜索功能的地基：磁力链的 hash 是内容摘要，编不出来也猜不出来。
 //! AI 排序（`ai.rs`）只允许对下面这个列表重新排序，不允许它产出链接。
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::Serialize;
@@ -92,14 +92,22 @@ pub async fn resolve_uri(uri: &str) -> String {
 /// 就这样，回 100 条当季新片），用户看到的就是「搜索坏了」。所以拿到结果后
 /// 自己再筛一道。
 ///
-/// 规则和 RSS 订阅的「包含」一致：**关键词全部命中才算**。按空白分词，
-/// 单个拉丁字母的碎片忽略（`a`、`s` 这种匹配一切）；中日韩不分词，整段当
-/// 一个词 —— 「指环王」在英文标题里必然不命中，正好把无关结果筛掉。
+/// 规则：**关键词全部命中才算**。按「非字母数字」切词 —— 空白、ASCII 标点、
+/// 全角标点都算分隔符；单个拉丁字母的碎片忽略（`a`、`s` 这种匹配一切），
+/// 中日韩单字有区分度所以保留 —— 「指环王」在英文标题里必然不命中，正好把
+/// 无关结果筛掉。
+///
+/// 标点必须切，中文片名尤其吃这个亏：「碟中谍8：最终清算」不切就是**一个词**，
+/// 标题里只要把全角冒号写成点（「碟中谍8.最终清算」）就再也匹配不上 —— 而各站
+/// 的命名习惯本来就不统一。切开之后两段分别判断，既宽松够用又不会放进无关的。
+///
+/// （RSS 订阅的「包含」仍按空白分词：那边的词是用户一个个敲进去的，
+/// 他写了什么就是什么，不该替他再切一刀。）
 pub fn matches_query(title: &str, query: &str) -> bool {
     let title = title.to_lowercase();
 
-    for token in query.split_whitespace() {
-        let token = token.trim_matches(|c: char| c.is_ascii_punctuation()).to_lowercase();
+    for token in query.split(|c: char| !c.is_alphanumeric()) {
+        let token = token.to_lowercase();
         // 单字符的拉丁词没有区分度，跳过；中日韩单字有，所以只按字节长度判断
         // 会误伤，这里用「是不是纯 ASCII 且只有一个字符」来区分。
         if token.is_empty() || (token.len() == 1 && token.is_ascii()) {
@@ -114,6 +122,11 @@ pub fn matches_query(title: &str, query: &str) -> bool {
     // "a"）时一个都没检查过，那就不筛，交给索引器判断。
     true
 }
+
+/// 聚合地址（Jackett 的 `indexers/all`）要把所有索引器挨个问一遍才回，站点一多
+/// 就很慢：12 个站实测 35~40 秒，比单独查一遍的总和还长。原来给 30 秒，结果是
+/// 索引器明明正常返回了，却每次都被我们自己掐断。
+const SEARCH_TIMEOUT_SECS: u64 = 60;
 
 /// 请求索引器并解析结果。
 ///
@@ -140,10 +153,22 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
 
     let resp = reqwest::Client::new()
         .get(&url)
-        .timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(SEARCH_TIMEOUT_SECS))
         .send()
         .await
-        .context("连不上索引器。检查地址对不对、服务在不在跑")?;
+        // 超时和连不上得分开说。reqwest 把两者装在同一个错误里，混着报会
+        // 把人支去查地址和进程 —— 而超时时地址通常是对的，只是索引器太慢。
+        .map_err(|e| {
+            if e.is_timeout() {
+                anyhow!(
+                    "索引器 {SEARCH_TIMEOUT_SECS} 秒没响应。\
+                     索引器太多会拖慢聚合查询，可以在 Prowlarr / Jackett 里减掉几个（尤其是搜不出结果的），\
+                     或者把地址换成单个索引器的"
+                )
+            } else {
+                anyhow::Error::new(e).context("连不上索引器。检查地址对不对、服务在不在跑")
+            }
+        })?;
 
     let status = resp.status();
     let body = resp.text().await.context("读取索引器响应失败")?;
@@ -496,6 +521,26 @@ mod tests {
         // 中日韩单字有区分度，要参与
         assert!(!matches_query("Some English Title", "龙"));
         assert!(matches_query("龙猫.1988", "龙"));
+    }
+
+    /// 中文片名里的全角标点要当分隔符。
+    ///
+    /// 实测：搜「碟中谍8：最终清算」时索引器回了 217 条，一条都没留下。整串当一
+    /// 个词的话，标题只要换个分隔符就匹配不上，而各站的写法本来就五花八门。
+    #[test]
+    fn splits_on_cjk_punctuation() {
+        let q = "碟中谍8：最终清算";
+
+        // 分隔符跟关键词写得一样
+        assert!(matches_query("梦幻天堂.BluRay.1080p.碟中谍8：最终清算.IMAX版", q));
+        // 换成点、换成空格，一样该命中
+        assert!(matches_query("碟中谍8.最终清算.2025.1080p.WEB-DL", q));
+        assert!(matches_query("碟中谍8 最终清算 2025", q));
+
+        // 但每一段都要在：上一部不算
+        assert!(!matches_query("碟中谍7.致命清算.2023.1080p", q));
+        // 默认榜单那种无关结果照样筛掉
+        assert!(!matches_query("Disclosure.Day.2026.1080p.WEBRip", q));
     }
 
     #[test]
