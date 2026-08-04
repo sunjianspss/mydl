@@ -256,7 +256,7 @@ MYDL_PROBE_MAGNET='magnet:?xt=...' \
 |---|---|
 | 对照组也查不到 peer | DHT 本身有问题（网络、路由表） |
 | 对照几百个 peer、待查 0 个 | 这个 swarm 不在 DHT 里：私有种子（`private` 标志会禁用 DHT/PEX，必须用带 passkey 的 .torrent），或者真没人做种 |
-| 待查有几个 peer 但仍超时 | swarm 太瘦。`read_metainfo_from_peer_receiver` 用 `seen` 集合保证每个地址只试一次，如果只有两三个 peer 且都不给元信息，就没有别的可试了 —— 这种情况开公共 tracker 开关能多找到一些源 |
+| 待查有几个 peer 但仍超时 | swarm 太瘦。`read_metainfo_from_peer_receiver` 用 `seen` 集合保证每个地址只试一次，如果只有两三个 peer 且都不给元信息，就没有别的可试了 —— 这种情况确认一下公共 tracker 开关是开着的（默认开），只靠 DHT 找源太窄 |
 
 ## 日志
 
@@ -457,7 +457,10 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - **v9 用固定监听端口取代了 8.x 的端口范围。** 隔离实例（测试）必须用
   端口 0 让系统随机分配，否则并行跑测试会互相抢 4240。
 - **公共 tracker 开关要重启才生效**：`SessionOptions.trackers` 只在建会话时
-  读，而 v9 的 `AddTorrentOptions` 已经没有按任务设 tracker 的字段了。
+  读，而 v9 的 `AddTorrentOptions` 已经没有按任务设 tracker 的字段了。好处是
+  它是**会话级**的，打开后对已经在列表里的老任务一样生效，不用重新添加。
+  另外改默认值只影响没写过配置的新安装 —— `settings.json` 里已经存了
+  `usePublicTrackers: false` 的老用户得自己去设置里勾上。
 - **只能跑一个实例。** BT 会话独占监听端口（DHT 持久化还会把端口钉死），
   两份一起跑既起不来也会互相写坏 session。第二次启动改成把已有窗口拉到前面。
   注意 `tauri dev` 重建时偶尔会留下孤儿进程，占着 4240 / 50522，

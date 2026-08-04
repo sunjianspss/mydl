@@ -60,9 +60,11 @@ pub struct Settings {
 
     /// 给所有任务补充一组公共 tracker。
     ///
-    /// 只有裸 info-hash 的磁力链没有自带 tracker，纯靠 DHT 找源；补上公共
-    /// tracker 能多一条路。代价是你的 IP 会被上报给这些 tracker，所有任务
-    /// 都会 —— 所以默认关闭。改了要重启 App 才生效（会话创建时才读）。
+    /// 只有裸 info-hash 的磁力链没有自带 tracker，纯靠 DHT 找源。默认开着：
+    /// 从搜索/剪贴板进来的磁力链绝大多数都是裸 hash，只靠 DHT 的话即使
+    /// tracker 上明明有做种者也连不上，表现为任务挂着几天不动。
+    /// 代价是你的 IP 会被上报给这些 tracker，所有任务都会 —— 介意就关掉。
+    /// 改了要重启 App 才生效（会话创建时才读）。
     pub use_public_trackers: bool,
 
     /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
@@ -177,7 +179,7 @@ impl Default for Settings {
             sleep_when_all_done: false,
             rss_feeds: Vec::new(),
             rss_interval_minutes: 30,
-            use_public_trackers: false,
+            use_public_trackers: true,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
             watch_clipboard: true,
