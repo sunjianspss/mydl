@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
@@ -105,6 +106,9 @@ export default function App() {
   const [clipMagnet, setClipMagnet] = useState<string | null>(null);
   // 主题存在 localStorage 里，theme.ts 在首帧前就应用好了，这里只是拿来渲染图标。
   const [theme, setThemeState] = useState<Theme>(getTheme);
+  // 来自 tauri.conf.json，也就是 .app 实际打包出来的版本号。不在前端另存一份，
+  // 否则迟早和 Cargo.toml / package.json 对不上，报 bug 时给的版本就是错的。
+  const [version, setVersion] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -116,6 +120,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    getVersion().then(setVersion).catch(() => {});
     invoke<string>("default_download_dir").then(setDefaultDir).catch(() => {});
     // 上次选的目录存在 Rust 侧，重启后要读回来，否则会静悄悄地下到别处去。
     invoke<Settings>("get_settings")
@@ -519,6 +524,11 @@ export default function App() {
             <DocIcon />
             日志
           </button>
+          {version && (
+            <span className="sb-item sb-version" title="mydl 版本，报问题时带上这个">
+              v{version}
+            </span>
+          )}
         </footer>
       </div>
 

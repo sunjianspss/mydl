@@ -339,7 +339,15 @@ src-tauri/tests/
 扩展名，认不出来再看名字里有没有 `2160p`、`WEB-DL`、`x265` 这类标记 ——
 多文件种子的名字是目录名，本来就没有扩展名。`icons.tsx` 里的 `iconKindFor`。
 
-**底部状态栏**：任务数、全局速度、上传限速、DHT 节点数、监听端口、日志入口。
+**底部状态栏**：「N 下载 · M 做种」、全局速度、上传限速、DHT 节点数、监听
+端口、日志入口、版本号。计数分开写而不是一个总数：下完了还在做种的任务看起来
+和还在下的一模一样，一个「5 个任务」会让人以为 5 个都卡了好几天。判定复用
+侧边栏那份 `matchesFilter`，两处永远一致。
+
+版本号走 `@tauri-apps/api/app` 的 `getVersion()`，读的是 `tauri.conf.json`，
+也就是 `.app` 实际打包出来的那个版本 —— 前端不另存一份常量，否则迟早和
+`Cargo.toml` / `package.json` 对不上，用户报 bug 时给的版本就是错的。
+（三处 `version` 字段仍然要手动保持同步，发版时一起改。）
 后两项来自 `session_status` 命令（`get_dht().stats().routing_table_size` 和
 `listen_addr()`）。**没有「端口已映射」** —— librqbit 不暴露 UPnP 映射结果，
 状态栏写一个猜的结论比不写更糟。

@@ -280,6 +280,12 @@ body {
   color: var(--warn);
 }
 
+/* 版本号是查问题时才看的信息，压得比其余状态项更淡，不跟速度数字抢注意力。 */
+.sb-version {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
 .sb-btn {
   display: inline-flex;
   gap: 5px;
