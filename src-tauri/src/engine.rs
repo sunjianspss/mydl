@@ -617,6 +617,28 @@ impl Engine {
         n
     }
 
+    /// 只暂停做种（下完了还挂在 live 上的），下载中的任务不动。
+    ///
+    /// 上传带宽是全局共享的一份预算（`set_upload_limit`），做种的任务会把它
+    /// 吃光，下载中的任务就没有可回报给对方的上行，容易被 choke 到零速。
+    /// 「全部暂停」在这时候没用 —— 它会把还在下的一起停掉。
+    pub async fn pause_seeding(&self) -> usize {
+        let ids: Vec<TorrentId> = self
+            .list()
+            .into_iter()
+            .filter(|t| t.state == "live" && t.finished)
+            .map(|t| t.id)
+            .collect();
+        let mut n = 0;
+        for id in ids {
+            match self.pause(id).await {
+                Ok(()) => n += 1,
+                Err(e) => tracing::warn!(id, "暂停做种失败：{e:#}"),
+            }
+        }
+        n
+    }
+
     pub async fn resume_all(&self) -> usize {
         let ids: Vec<TorrentId> = self
             .list()

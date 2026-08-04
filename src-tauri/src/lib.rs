@@ -133,6 +133,12 @@ async fn pause_all(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
     Ok(engine.pause_all().await)
 }
 
+/// 只暂停做种中的任务，返回操作了几个。下载中的不动。
+#[tauri::command]
+async fn pause_seeding(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
+    Ok(engine.pause_seeding().await)
+}
+
 /// 继续所有暂停的任务。
 ///
 /// 注意它会把「被并发上限自动暂停」的也一起放出来 —— 用户明确点了「全部继续」，
@@ -434,6 +440,7 @@ pub fn run() {
             pause_torrent,
             resume_torrent,
             pause_all,
+            pause_seeding,
             resume_all,
             delete_torrent,
             default_download_dir,

@@ -218,6 +218,17 @@ export function PauseAllIcon(p: Props) {
   );
 }
 
+/** 上传箭头 + 暂停条：只停做种。和「全部暂停」的圆圈款刻意长得不一样。 */
+export function PauseSeedIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="M4.6 12.4v-8M2 7 4.6 4.4 7.2 7" {...stroke} />
+      <rect x="9.6" y="4.4" width="1.9" height="8" rx="0.95" fill="currentColor" />
+      <rect x="12.6" y="4.4" width="1.9" height="8" rx="0.95" fill="currentColor" />
+    </Svg>
+  );
+}
+
 export function PlayAllIcon(p: Props) {
   return (
     <Svg {...p}>

@@ -530,3 +530,95 @@ async fn preview_then_add_only_selected() {
     assert!(selected[0].name.contains("keep"), "选中的该是 keep.bin");
     assert!(reuse.is_err(), "预览 token 用完就该失效");
 }
+
+/// 回归测试：「暂停做种」只停做种的任务，还在下的必须原样跑着。
+///
+/// 这个区分是有实际后果的：上传带宽是全局共享的一份预算，做种会把它吃光，
+/// 下载中的任务就没有可回报给对方的上行，容易被 choke 到零速。要是这里
+/// 退化成「全部暂停」，用户想腾出上行反而把下载也停了。
+///
+/// 不联网：做种那个任务的数据预先放在输出目录里，librqbit 校验后直接判完成；
+/// 下载中那个的数据不存在，没有 tracker 也连不上 DHT 里的谁，会一直是 0%。
+#[tokio::test(flavor = "multi_thread")]
+async fn pause_seeding_leaves_downloads_running() {
+    let tmp = std::env::temp_dir().join(format!("mydl-pauseseed-{}", std::process::id()));
+    let downloads = tmp.join("downloads");
+    std::fs::create_dir_all(&downloads).unwrap();
+
+    // 已完成的那个：先把内容写进下载目录，再按它造种子。
+    let done_data = downloads.join("已下完.bin");
+    std::fs::write(&done_data, vec![7u8; 64 * 1024]).unwrap();
+    let done_torrent = make_local_torrent(&tmp, &done_data, "已下完.bin").await;
+
+    // 还在下的那个：内容造在别处，下载目录里没有，永远下不动。
+    let pending_src = tmp.join("别处.bin");
+    std::fs::write(&pending_src, vec![9u8; 64 * 1024]).unwrap();
+    let pending_torrent = make_local_torrent(&tmp, &pending_src, "还在下.bin").await;
+    std::fs::remove_file(&pending_src).unwrap();
+
+    let engine = Engine::new(
+        downloads.clone(),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        Default::default(),
+    )
+    .await
+    .expect("创建 Engine 失败");
+
+    let done = engine
+        .add(&done_torrent.to_string_lossy(), None)
+        .await
+        .expect("添加做种任务失败");
+    let pending = engine
+        .add(&pending_torrent.to_string_lossy(), None)
+        .await
+        .expect("添加下载任务失败");
+
+    // 等校验跑完，两个都离开 initializing。
+    let started = Instant::now();
+    let ready = loop {
+        let list = engine.list();
+        let states: Vec<_> = list.iter().map(|t| (t.id, t.state.clone(), t.finished)).collect();
+        if states.iter().all(|(_, s, _)| s != "initializing") {
+            break Ok(states);
+        }
+        if started.elapsed() > Duration::from_secs(30) {
+            break Err(format!("30s 内没初始化完：{states:?}"));
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    };
+
+    let outcome = match ready {
+        Err(e) => Err(e),
+        Ok(states) => {
+            let seeding_before = states.iter().any(|(id, s, f)| *id == done && s == "live" && *f);
+            if !seeding_before {
+                Err(format!("预置数据的任务没被判成做种中：{states:?}"))
+            } else {
+                let n = engine.pause_seeding().await;
+                let after = engine.list();
+                let done_view = after.iter().find(|t| t.id == done).unwrap();
+                let pending_view = after.iter().find(|t| t.id == pending).unwrap();
+                if n != 1 {
+                    // 退化成「全部暂停」时就是这条 —— 带上进度，一眼能看出
+                    // 是判定写错了还是那个「还在下」的种子意外下完了。
+                    Err(format!(
+                        "该只暂停 1 个，实际 {n} 个。做种 {}/{}，下载中 {}/{}",
+                        done_view.progress_bytes, done_view.total_bytes,
+                        pending_view.progress_bytes, pending_view.total_bytes,
+                    ))
+                } else if done_view.state != "paused" {
+                    Err(format!("做种任务没被暂停：{}", done_view.state))
+                } else if pending_view.state == "paused" {
+                    Err("下载中的任务被误停了".to_string())
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    };
+
+    engine.shutdown().await;
+    let _ = std::fs::remove_dir_all(&tmp);
+    outcome.unwrap_or_else(|e| panic!("{e}"));
+}

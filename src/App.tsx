@@ -23,6 +23,7 @@ import {
   MoonIcon,
   PauseAllIcon,
   PauseIcon,
+  PauseSeedIcon,
   PlayAllIcon,
   PlayIcon,
   PlusIcon,
@@ -356,6 +357,18 @@ export default function App() {
             >
               <PauseAllIcon />
             </button>
+            {/* 上传带宽是全局一份预算，做种会把它吃光，下载中的任务就没有可
+                回报给对方的上行，容易被 choke 到零速。「全部暂停」在这时候没用
+                —— 它会把还在下的一起停掉。 */}
+            <button
+              type="button"
+              className="tb-icon"
+              title="暂停做种（下载中的任务不动）"
+              disabled={counts.seeding === 0}
+              onClick={() => run(() => invoke("pause_seeding"))}
+            >
+              <PauseSeedIcon />
+            </button>
             <button
               type="button"
               className="tb-icon"
@@ -475,7 +488,11 @@ export default function App() {
         </section>
 
         <footer className="statusbar">
-          <span className="sb-item">{torrents.length} 个任务</span>
+          {/* 只写「N 个任务」会让下完在做种的看起来还在下 —— 这几个字曾经
+              让人以为任务卡了好几天。分开数，和侧边栏用同一套判定。 */}
+          <span className="sb-item" title={`共 ${torrents.length} 个任务`}>
+            {counts.downloading} 下载 · {counts.seeding} 做种
+          </span>
           <span className="sb-item">↓ {formatSpeed(totalDown)}</span>
           <span className="sb-item">↑ {formatSpeed(totalUp)}</span>
           {settings?.uploadLimitKbps ? (
