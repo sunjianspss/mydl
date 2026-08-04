@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 核对版本号
         run: |
           tag="${GITHUB_REF#refs/tags/v}"
@@ -53,15 +53,15 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # 跟开发机保持同一个大版本，免得 --frozen-lockfile 因为 lockfile
       # 格式差异跑挂。换开发机 pnpm 版本时记得同步这里。
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -111,7 +111,7 @@ jobs:
 
       # 手动触发不建 release，产物就没地方拿了 —— 挂到这次 run 上，
       # 在 Actions 页面直接下载来试。保留 7 天，不占额度。
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch'
         with:
           name: mydl-${{ matrix.platform }}
