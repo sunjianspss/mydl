@@ -67,6 +67,16 @@ pub struct Settings {
     /// 改了要重启 App 才生效（会话创建时才读）。
     pub use_public_trackers: bool,
 
+    /// 定期向公共 tracker scrape，记录每个任务的做种/下载人数走势。
+    ///
+    /// 单独一个开关而不是跟着 `use_public_trackers` 走：那个开关意味着
+    /// 「向 tracker 汇报我在下载什么」，这个只是查询，暴露程度不同，但
+    /// **同样会把 info-hash 发给这几个 tracker**，所以关掉时一个包都不发。
+    pub swarm_health_check: bool,
+
+    /// 多久采一次健康度。下限 10 分钟，见 `health::spawn`。
+    pub swarm_health_interval_minutes: u64,
+
     /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
     pub prevent_sleep_while_downloading: bool,
 
@@ -180,6 +190,8 @@ impl Default for Settings {
             rss_feeds: Vec::new(),
             rss_interval_minutes: 30,
             use_public_trackers: true,
+            swarm_health_check: true,
+            swarm_health_interval_minutes: 30,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
             watch_clipboard: true,

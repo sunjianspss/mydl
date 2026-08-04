@@ -25,7 +25,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 librqbit = "9.0.0-rc.0"
 anyhow = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "time", "sync"] }
+# net：health.rs 要用 UdpSocket 做 BEP15 scrape。别指望从 tauri/axum 那边
+# 靠 feature 合并蹭到，它们哪天去掉这个 feature 我们就编不过了。
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "net"] }
 # 本地流媒体服务：把 FileStream 包成带 Range 支持的 HTTP 端点
 axum = "0.8"
 tokio-util = { version = "0.7", features = ["io"] }

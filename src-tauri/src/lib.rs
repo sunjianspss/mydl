@@ -1,6 +1,7 @@
 pub mod ai;
 pub mod automation;
 pub mod engine;
+pub mod health;
 pub mod keep_awake;
 pub mod platform;
 pub mod rss;
@@ -137,6 +138,25 @@ async fn pause_all(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
 #[tauri::command]
 async fn pause_seeding(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
     Ok(engine.pause_seeding().await)
+}
+
+/// 某个任务的 swarm 健康度结论。纯读本地历史，不发包，所以可以随便调。
+#[tauri::command]
+fn torrent_health(
+    health: State<'_, Arc<health::HealthStore>>,
+    info_hash: String,
+) -> health::Verdict {
+    health::verdict(&health.history(&info_hash))
+}
+
+/// 立刻采一轮，不等定时器。返回覆盖了几个种子。
+#[tauri::command]
+async fn check_health_now(
+    engine: State<'_, Arc<Engine>>,
+    store: State<'_, Arc<SettingsStore>>,
+    health: State<'_, Arc<health::HealthStore>>,
+) -> Result<usize, String> {
+    Ok(health::sample_once(&engine, &store, &health).await)
 }
 
 /// 继续所有暂停的任务。
@@ -329,15 +349,18 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     engine.set_download_limit(store.get().download_limit_bps());
 
     let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
+    let health = Arc::new(health::HealthStore::load(health::health_path(&config_dir)));
 
     automation::spawn(app.handle().clone(), engine.clone(), store.clone());
     rss::spawn(engine.clone(), store.clone(), seen.clone());
     keep_awake::spawn(engine.clone(), store.clone());
+    health::spawn(engine.clone(), store.clone(), health.clone());
 
     app.manage(engine);
     app.manage(server);
     app.manage(store);
     app.manage(seen);
+    app.manage(health);
     Ok(())
 }
 
@@ -441,6 +464,8 @@ pub fn run() {
             resume_torrent,
             pause_all,
             pause_seeding,
+            torrent_health,
+            check_health_now,
             resume_all,
             delete_torrent,
             default_download_dir,
