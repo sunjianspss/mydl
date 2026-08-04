@@ -10,6 +10,7 @@ import type { SessionStatus, Settings, TorrentPreview, TorrentView } from "./typ
 import { formatBytes, formatSpeed, percent } from "./format";
 import { useWindowFocused } from "./useWindowFocused";
 import FileList from "./FileList";
+import SwarmHealth from "./SwarmHealth";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
@@ -698,7 +699,10 @@ function TorrentRow({
         {t.error && <p className="task-error">{t.error}</p>}
 
         {expanded && (
-          <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
+          <>
+            <SwarmHealth infoHash={t.infoHash} onError={onError} />
+            <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
+          </>
         )}
       </div>
     </article>

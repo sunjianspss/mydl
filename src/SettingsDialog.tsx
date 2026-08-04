@@ -178,6 +178,24 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.swarmHealthCheck}
+            onChange={(e) => patch({ swarmHealthCheck: e.target.checked })}
+          />
+          <span>
+            <b>记录 swarm 健康度走势</b>
+            <em>
+              每 {draft.swarmHealthIntervalMinutes} 分钟向公共 tracker 查一次各任务的
+              做种/下载人数，攒成曲线，展开任务时显示。用来判断一个种子是
+              <b>还在变好还是已经没人做了</b> —— 卡住时不用再靠猜。
+              会把 info-hash 发给这几个 tracker（只是查询，不汇报你在下载），
+              <b>关掉就一个包都不发</b>。改完立刻生效。
+            </em>
+          </span>
+        </label>
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.uploadLimitKbps !== null}
             onChange={(e) => patch({ uploadLimitKbps: e.target.checked ? DEFAULT_UPLOAD_LIMIT : null })}
           />

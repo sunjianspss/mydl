@@ -907,6 +907,76 @@ input[type="checkbox"] {
   border-radius: var(--r-md);
 }
 
+/* ---------- swarm 健康度 ---------- */
+
+.health {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0 2px;
+  margin-top: 11px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--hairline);
+}
+
+/* 状态用一个小色块而不是整行染色：这一行是给人扫一眼的，
+   整行变红会盖过下面的文件列表。 */
+.health-badge {
+  flex: none;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--fill);
+  border-radius: var(--r-sm);
+}
+
+.health-dead .health-badge {
+  color: #fff;
+  background: var(--danger);
+}
+
+.health-starving .health-badge {
+  color: #fff;
+  background: var(--warn);
+}
+
+.health-ok .health-badge {
+  color: #fff;
+  background: var(--success);
+}
+
+.health-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-trend {
+  flex: none;
+  font-size: 13px;
+}
+
+.health-dead .health-trend,
+.health-falling .health-trend {
+  color: var(--danger);
+}
+
+/* 走势图只有形状有意义，压淡一点，别跟数字抢。 */
+.health-spark {
+  flex: none;
+  width: 64px;
+  height: 14px;
+  color: var(--faint);
+}
+
+.health-samples {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
 /* ---------- 展开的文件列表 ---------- */
 
 .files-panel {

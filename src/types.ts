@@ -79,6 +79,10 @@ export interface Settings {
   rssIntervalMinutes: number;
   /** 给所有任务补充公共 tracker。改了要重启 App 才生效。 */
   usePublicTrackers: boolean;
+  /** 定期 scrape 公共 tracker，记录做种/下载人数走势。关掉就一个包都不发。 */
+  swarmHealthCheck: boolean;
+  /** 多久采一次健康度，下限 10 分钟。 */
+  swarmHealthIntervalMinutes: number;
   /** 有任务在下载时阻止电脑休眠。 */
   preventSleepWhileDownloading: boolean;
   /** 切回窗口时看一眼剪贴板里有没有磁力链。只读一次，不后台轮询。 */
@@ -120,6 +124,34 @@ export interface CheckReport {
   matched: number;
   added: number;
   errors: string[];
+}
+
+/** 对应 health.rs 的 Sample。一轮采样对一个种子的合并结果。 */
+export interface HealthSample {
+  /** Unix 秒。 */
+  ts: number;
+  seeders: number;
+  leechers: number;
+  /** 这轮有几个 tracker 应答了。0 表示样本不可信，后端判定时会跳过。 */
+  trackersOk: number;
+}
+
+/** 对应 health.rs 的 Status / Trend。 */
+export type HealthStatus = "unknown" | "dead" | "starving" | "ok";
+export type HealthTrend = "unknown" | "rising" | "falling" | "flat";
+
+/** 对应 health.rs 的 Verdict。 */
+export interface HealthVerdict {
+  status: HealthStatus;
+  trend: HealthTrend;
+  /** 最近一个可信样本；一个都没有就是 null。 */
+  latest: HealthSample | null;
+  /** 可信样本个数。 */
+  samples: number;
+  /** 一句话结论，措辞在 Rust 那边定死。 */
+  summary: string;
+  /** 做种人数曲线，按时间先后。画迷你走势图用。 */
+  seedersSeries: number[];
 }
 
 /** 对应 engine.rs 的 FileView。 */
