@@ -55,6 +55,8 @@ pub struct Engine {
     ///
     /// 按 **info-hash** 而不是 TorrentId 索引：id 是会话重启后重新分配的，
     /// 只有 info-hash 跨重启稳定。整份内容落在 [`Self::folders_path`]。
+    /// 真正绑上的网卡（已经过 `usable_bind_device` 解析）。None = 跟随系统。
+    bind_device: Option<String>,
     output_folders: Mutex<HashMap<String, PathBuf>>,
     /// `output_folders` 的落盘位置。
     folders_path: PathBuf,
@@ -109,6 +111,14 @@ pub struct SessionStatus {
     /// DHT 路由表里的节点数。None = DHT 没启用或还没起来。
     pub dht_nodes: Option<usize>,
     pub listen_port: Option<u16>,
+    /// BT 实际绑定的网卡。None = 跟随系统默认路由。
+    pub bind_device: Option<String>,
+    /// 绑定的那张网卡现在还在不在。
+    ///
+    /// **绑定是建会话时定死的**，网卡没了不会自动切换 —— Wi-Fi 换有线、
+    /// 拔网线、换网络环境之后 BT 会静默停摆到重启为止。这个字段就是为了
+    /// 让它别再「静默」：界面看到 false 就该报警。没绑定时恒为 true。
+    pub bind_device_up: bool,
 }
 
 /// 单个任务在界面上需要的全部信息。
@@ -204,23 +214,27 @@ fn is_playable(name: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// 得出要绑给会话的网卡名。None = 没配置。
+/// 得出真正要绑给会话的网卡名。None = 跟随系统默认路由。
 ///
-/// 其余平台：**没配置时自动选第一张物理网卡**（`netif::first_physical`，
-/// macOS 上就是 `en0`）。开着 VPN 时默认路由指向 `utun*`，BT 跟着走隧道
-/// 就是白费（被屏蔽、做种没入站）；绑物理网卡绕过默认路由直出，而
-/// **完全不动 VPN 本身** —— 浏览器照旧走隧道。
+/// 三种输入（见 `settings::bind_device`）：没配置 → 自动挑一张物理网卡；
+/// [`FOLLOW_SYSTEM_ROUTE`] → 明确不绑；具体名字 → 绑那张。
 ///
-/// Windows 上没有绑定网卡这回事，把值丢掉而不是让会话建不起来：
-/// librqbit 那边是 `BindDevice::new_from_name` 直接返回
-/// `BindDeviceNotSupported`，再被 `?` 抛成 `Session::new` 的错误 —— 也就是
-/// **App 整个起不来**。而 settings.json 完全可能是从 macOS 拷过去的，或者
-/// 用户在别的机器上改过，不能假设它在 Windows 上一定是空的。
+/// # 两个都会让 App 起不来的坑，都在这里挡掉
 ///
-/// 宁可静默降级也不能起不来：绑不上顶多是 BT 跟着系统路由走（和这个功能
-/// 出现之前的行为一致），而起不来是彻底不能用。
+/// librqbit 的 `BindDevice::new_from_name` 失败时是被 `?` 抛成
+/// `Session::new` 的错误的 —— 也就是**整个 App 起不来**。两条路会失败：
+///
+/// 1. **Windows**：那边的实现直接返回 `BindDeviceNotSupported`。而
+///    `settings.json` 完全可能是从 macOS 拷过去的。
+/// 2. **网卡没了**：配置里写着 `en5`（USB 网卡），网卡一拔
+///    `if_nametoindex` 就返回 0。**macOS 上同样会起不来**，不是 Windows
+///    独有的问题。
+///
+/// 两种情况都降级成「跟随系统路由」并打 WARN。宁可静默降级（顶多回到这个
+/// 功能出现之前的行为）也不能起不来 —— 后者是彻底不能用。
 fn usable_bind_device(name: Option<String>) -> Option<String> {
     let name = name.filter(|n| !n.trim().is_empty());
+
     if cfg!(windows) {
         if let Some(name) = name {
             tracing::warn!(
@@ -231,7 +245,27 @@ fn usable_bind_device(name: Option<String>) -> Option<String> {
         }
         return None;
     }
-    name.or_else(crate::netif::first_physical)
+
+    match name.as_deref() {
+        // 用户明确要求跟着系统走 —— 通常是想让 BT 也走 VPN。
+        Some(crate::settings::FOLLOW_SYSTEM_ROUTE) => {
+            tracing::info!("按设置跟随系统默认路由，BT 不绑定网卡");
+            None
+        }
+        Some(configured) => {
+            if crate::netif::exists(configured) {
+                return Some(configured.to_string());
+            }
+            // 拔了网卡 / 换了环境。不降级的话 App 直接起不来。
+            tracing::warn!(
+                网卡 = %configured,
+                "设置里指定的网卡不存在了（拔掉了？换网络了？），\
+                 改用自动挑选；都挑不到就跟随系统路由"
+            );
+            crate::netif::first_physical()
+        }
+        None => crate::netif::first_physical(),
+    }
 }
 
 impl Engine {
@@ -264,6 +298,8 @@ impl Engine {
                 }
             })
             .collect();
+
+        let bind_device = usable_bind_device(setup.bind_device.clone());
 
         let session = Session::new_with_opts(
             download_dir.clone(),
@@ -309,7 +345,7 @@ impl Engine {
                 // 在 Windows 分支里直接返回 `BindDeviceNotSupported`，而它是用
                 // `?` 往上抛的 —— 值非空就意味着 `Session::new` 失败、**App 起
                 // 不来**。配置文件可能是从 macOS 上拷过来的，不能指望它一定为空。
-                bind_device_name: usable_bind_device(setup.bind_device.clone()),
+                bind_device_name: bind_device.clone(),
                 ..Default::default()
             },
         )
@@ -319,6 +355,7 @@ impl Engine {
         let folders_path = data_dir.join("output_folders.json");
         Ok(Self {
             session,
+            bind_device,
             download_dir,
             output_folders: Mutex::new(read_folders(&folders_path)),
             folders_path,
@@ -623,6 +660,13 @@ impl Engine {
         SessionStatus {
             dht_nodes: self.session.get_dht().map(|d| d.stats().routing_table_size),
             listen_port: self.session.listen_addr().map(|a| a.port()),
+            // 每次轮询都查一遍。getifaddrs 是微秒级的，而这条信息必须实时 ——
+            // 网卡掉了 BT 就停摆，早一秒看见早一秒重启。
+            bind_device_up: self
+                .bind_device
+                .as_deref()
+                .is_none_or(crate::netif::exists),
+            bind_device: self.bind_device.clone(),
         }
     }
 

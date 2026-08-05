@@ -519,6 +519,22 @@ export default function App() {
               端口 {status.listenPort}
             </span>
           )}
+          {/* 绑定是建会话时定死的：网卡没了不会自动切换，BT 会静默停摆到重启
+              为止。所以这条必须常驻可见，失效时还要变红 —— 否则症状和「没源」
+              长得一模一样，没人会想到是网卡掉了。 */}
+          {status?.bindDevice && (
+            <span
+              className={`sb-item${status.bindDeviceUp ? "" : " sb-broken"}`}
+              title={
+                status.bindDeviceUp
+                  ? `BT 绑定在 ${status.bindDevice}，绕过系统默认路由（VPN 不受影响）`
+                  : `网卡 ${status.bindDevice} 已经不在了 —— BT 连不上任何 peer。重启 App 会自动重选`
+              }
+            >
+              网卡 {status.bindDevice}
+              {!status.bindDeviceUp && " 已失效"}
+            </span>
+          )}
           <button
             className="sb-btn"
             title="出问题时把日志目录翻出来"

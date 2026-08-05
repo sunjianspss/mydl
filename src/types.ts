@@ -22,6 +22,15 @@ export interface SessionStatus {
   /** DHT 路由表里的节点数；null 表示 DHT 没启用或还没起来。 */
   dhtNodes: number | null;
   listenPort: number | null;
+  /** BT 实际绑定的网卡；null = 跟随系统默认路由。 */
+  bindDevice: string | null;
+  /**
+   * 绑定的网卡现在还在不在。
+   *
+   * 绑定是建会话时定死的，网卡没了不会自动切换 —— 换网络环境后 BT 会静默
+   * 停摆到重启为止。false 时状态栏要报警。没绑定时恒为 true。
+   */
+  bindDeviceUp: boolean;
 }
 
 /** 对应 engine.rs 的 PreviewFile。 */
@@ -91,6 +100,11 @@ export interface Settings {
    * 绑到物理网卡能绕过默认路由直出，同时不影响 VPN 本身。改了要重启。
    */
   bindDevice: string | null;
+  /**
+   * BT 绑哪张网卡。null = 自动挑一张物理网卡（默认）；
+   * "<system>" = 明确跟随系统路由（有 VPN 时 BT 也走 VPN）；
+   * 其他 = 具体接口名。见 settings.rs 的 FOLLOW_SYSTEM_ROUTE。
+   */
   /** 有任务在下载时阻止电脑休眠。 */
   preventSleepWhileDownloading: boolean;
   /** 切回窗口时看一眼剪贴板里有没有磁力链。只读一次，不后台轮询。 */

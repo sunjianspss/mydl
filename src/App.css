@@ -1613,3 +1613,9 @@ input[type="checkbox"] {
   background: var(--fill);
   border-radius: var(--r-sm);
 }
+
+/* 绑定的网卡掉了 —— BT 会静默停摆，这条必须扎眼。 */
+.sb-broken {
+  font-weight: 600;
+  color: var(--danger);
+}

@@ -77,7 +77,13 @@ pub struct Settings {
     /// 多久采一次健康度。下限 10 分钟，见 `health::spawn`。
     pub swarm_health_interval_minutes: u64,
 
-    /// BT 流量绑定到哪张网卡。None = 跟随系统默认路由。
+    /// BT 流量绑定到哪张网卡。三种取值：
+    ///
+    /// - `None`（默认）—— **自动挑一张物理网卡**，见 `netif::first_physical`
+    /// - [`FOLLOW_SYSTEM_ROUTE`] —— 明确要求跟随系统默认路由，也就是
+    ///   **有 VPN 时 BT 也走 VPN**。有人装 VPN 恰恰是为了让 BT 走它，
+    ///   得留一条路让他说出来 —— 选某条 `utun*` 不等价，隧道重连后编号会变。
+    /// - 具体接口名 —— 绑那一张
     ///
     /// 开着全局 VPN / 规则代理（TUN 模式）时默认路由指向 `utun*`，BT 也跟着
     /// 走隧道。后果是结构性的：隧道出口多半是机房 IP，会被大量 BT 客户端
@@ -146,6 +152,13 @@ impl Settings {
         kbps_to_bps(self.download_limit_kbps)
     }
 }
+
+/// `bind_device` 的保留值：明确要求跟随系统默认路由。
+///
+/// 用尖括号是因为**真实网卡名里不可能有它** —— Linux 的 ifname 不允许空白和
+/// `/`，实际命名也从来不用尖括号；macOS 的更是清一色 `en0` / `utun6` 这种。
+/// 所以它和任何真接口名都不会撞。
+pub const FOLLOW_SYSTEM_ROUTE: &str = "<system>";
 
 /// 几个长期在运行的开放 tracker。开启后对所有任务生效。
 pub const PUBLIC_TRACKERS: &[&str] = &[

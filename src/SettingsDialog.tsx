@@ -5,6 +5,9 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type { NetIf, Settings } from "./types";
 import { IS_MAC } from "./platform";
 
+/// 对应 settings.rs 的 FOLLOW_SYSTEM_ROUTE。真实网卡名里不会有尖括号。
+const FOLLOW_SYSTEM_ROUTE = "<system>";
+
 // 勾上「限制上传速度」时的初始值，KB/s。约 1 Mbps —— 基本任何家用上行都
 // 感觉不到，同时不至于低到让 tit-for-tat 把下载速度也拖下去。
 const DEFAULT_UPLOAD_LIMIT = 128;
@@ -190,7 +193,13 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
               value={draft.bindDevice ?? ""}
               onChange={(e) => patch({ bindDevice: e.target.value || null })}
             >
-              <option value="">自动绑第一张物理网卡（绕过 VPN 隧道，默认）</option>
+              <option value="">自动挑一张物理网卡（绕过 VPN 隧道，默认）</option>
+              {/* 有人装 VPN 恰恰是为了让 BT 走它。不留这条路的话，升级之后
+                  他们会静默用真实 IP 裸奔，而且没有任何办法要回原来的行为
+                  —— 选某条 utun* 不等价，隧道重连后编号会变。 */}
+              <option value={FOLLOW_SYSTEM_ROUTE}>
+                跟随系统默认路由（有 VPN 时 BT 也走 VPN）
+              </option>
               {ifaces.map((i) => (
                 <option key={i.name} value={i.name}>
                   {i.name}
