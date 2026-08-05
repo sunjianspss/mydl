@@ -1602,3 +1602,14 @@ input[type="checkbox"] {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
 }
+
+/* 平台不支持某项设置时的说明。和 <em> 同级，但要更明确一点。 */
+.setting-unsupported {
+  padding: 6px 8px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--fill);
+  border-radius: var(--r-sm);
+}

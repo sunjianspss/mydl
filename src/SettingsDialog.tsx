@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
 import type { NetIf, Settings } from "./types";
+import { IS_MAC } from "./platform";
 
 // 勾上「限制上传速度」时的初始值，KB/s。约 1 Mbps —— 基本任何家用上行都
 // 感觉不到，同时不至于低到让 tit-for-tat 把下载速度也拖下去。
@@ -25,6 +26,8 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
   const [ifaces, setIfaces] = useState<NetIf[]>([]);
 
   useEffect(() => {
+    // Windows 上 librqbit 的 BindDevice 直接报错，列出来也没用。
+    if (!IS_MAC) return;
     invoke<NetIf[]>("network_interfaces").then(setIfaces).catch(() => {});
   }, []);
 
@@ -179,20 +182,29 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
               —— 浏览器照旧走隧道。改完<b>需要重启 App</b>。
             </em>
           </span>
-          <select
-            className="setting-select"
-            value={draft.bindDevice ?? ""}
-            onChange={(e) => patch({ bindDevice: e.target.value || null })}
-          >
-            <option value="">跟随系统默认路由（有 VPN 时就走 VPN）</option>
-            {ifaces.map((i) => (
-              <option key={i.name} value={i.name}>
-                {i.name}
-                {i.ipv4 ? ` — ${i.ipv4}` : ""}
-                {i.isTunnel ? "（隧道，绑了等于没绕过去）" : ""}
-              </option>
-            ))}
-          </select>
+          {IS_MAC ? (
+            <select
+              className="setting-select"
+              value={draft.bindDevice ?? ""}
+              onChange={(e) => patch({ bindDevice: e.target.value || null })}
+            >
+              <option value="">跟随系统默认路由（有 VPN 时就走 VPN）</option>
+              {ifaces.map((i) => (
+                <option key={i.name} value={i.name}>
+                  {i.name}
+                  {i.ipv4 ? ` — ${i.ipv4}` : ""}
+                  {i.isTunnel ? "（隧道，绑了等于没绕过去）" : ""}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="setting-unsupported">
+              Windows 上不可用 —— librqbit 的绑定网卡只实现了 macOS 的
+              <code> IP_BOUND_IF </code>和 Linux 的<code> SO_BINDTODEVICE </code>，
+              Windows 分支直接返回不支持。想让 BT 绕过 VPN，只能在代理客户端的
+              规则里给 mydl 加一条直连。
+            </p>
+          )}
         </label>
 
         <label className="setting">

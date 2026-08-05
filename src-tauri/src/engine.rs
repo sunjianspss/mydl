@@ -204,6 +204,28 @@ fn is_playable(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Windows 上没有绑定网卡这回事，把值丢掉而不是让会话建不起来。
+///
+/// librqbit 那边是 `BindDevice::new_from_name` 直接返回
+/// `BindDeviceNotSupported`，再被 `?` 抛成 `Session::new` 的错误 —— 也就是
+/// **App 整个起不来**。而 settings.json 完全可能是从 macOS 拷过去的，或者
+/// 用户在别的机器上改过，不能假设它在 Windows 上一定是空的。
+///
+/// 宁可静默降级也不能起不来：绑不上顶多是 BT 跟着系统路由走（和这个功能
+/// 出现之前的行为一致），而起不来是彻底不能用。
+fn usable_bind_device(name: Option<String>) -> Option<String> {
+    let name = name.filter(|n| !n.trim().is_empty())?;
+    if cfg!(windows) {
+        tracing::warn!(
+            网卡 = %name,
+            "Windows 不支持绑定网卡（librqbit 的 BindDevice 在 Windows 上直接报错），\
+             这项设置已忽略，BT 仍然跟随系统默认路由"
+        );
+        return None;
+    }
+    Some(name)
+}
+
 impl Engine {
     /// `state_dir` 为 None 时用 librqbit 的系统默认配置目录（正常运行）；
     /// 传了目录就代表这是个隔离实例（测试），此时连 DHT 也不共用全局缓存 ——
@@ -274,7 +296,12 @@ impl Engine {
                 blocklist_url: setup.blocklist_url.clone(),
                 peer_limit: setup.peer_limit,
                 // 覆盖 DHT、BT-UDP、BT-TCP、tracker 和 LSD —— 一个开关就够。
-                bind_device_name: setup.bind_device.clone(),
+                //
+                // Windows 上必须丢掉：librqbit 的 `BindDevice::new_from_name`
+                // 在 Windows 分支里直接返回 `BindDeviceNotSupported`，而它是用
+                // `?` 往上抛的 —— 值非空就意味着 `Session::new` 失败、**App 起
+                // 不来**。配置文件可能是从 macOS 上拷过来的，不能指望它一定为空。
+                bind_device_name: usable_bind_device(setup.bind_device.clone()),
                 ..Default::default()
             },
         )
@@ -876,5 +903,30 @@ fn view_of(id: TorrentId, handle: &TorrentHandle) -> TorrentView {
         // v9 把这个字段从 usize 改成了 u32。
         peers_live: live.map_or(0, |l| l.snapshot.peer_stats.live as usize),
         eta: live.and_then(|l| l.time_remaining.as_ref().map(|t| t.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod bind_device_tests {
+    use super::usable_bind_device;
+
+    /// 空值和空白一律当成「没设置」，别把空串传给 librqbit。
+    #[test]
+    fn empty_is_none() {
+        assert_eq!(usable_bind_device(None), None);
+        assert_eq!(usable_bind_device(Some(String::new())), None);
+        assert_eq!(usable_bind_device(Some("   ".into())), None);
+    }
+
+    /// Windows 上必须丢掉，否则 `Session::new` 会失败、App 起不来。
+    /// 配置文件可能是从 macOS 拷过去的，不能假设它一定为空。
+    #[test]
+    fn dropped_on_windows_kept_elsewhere() {
+        let got = usable_bind_device(Some("en0".into()));
+        if cfg!(windows) {
+            assert_eq!(got, None, "Windows 上必须忽略，否则 App 起不来");
+        } else {
+            assert_eq!(got.as_deref(), Some("en0"));
+        }
     }
 }

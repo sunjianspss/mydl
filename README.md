@@ -53,6 +53,7 @@ ditto src-tauri/target/release/bundle/macos/mydl.app /Applications/mydl.app
 | | macOS | Windows |
 |---|---|---|
 | 阻止休眠 | `caffeinate -i -m -s -w <pid>` 子进程 | `SetThreadExecutionState` |
+| BT 绑定网卡 | `IP_BOUND_IF`，可用 | **不支持**，设置项会被忽略，见「BT 走哪张网卡」 |
 | 日志目录 | `~/Library/Logs/mydl` | `%LOCALAPPDATA%\mydl\logs` |
 | 播放器 | 扫 `/Applications` 找 `.app` | 扫 Program Files 找 VLC / mpv / PotPlayer / MPC-HC |
 | 起播 | `open -a <播放器> <地址>` | 直接 `播放器.exe <地址>` |
@@ -272,7 +273,17 @@ hardened runtime 签名并送 Apple 公证，对方双击零提示。没做之�
 `wg*`）保留在列表里但标注出来 —— 有人确实想绑到某条特定隧道上，但绑错了
 等于没绕过去。
 
-Windows 不支持（librqbit 那边直接返回 `BindDeviceNotSupported`）。
+**Windows 上不可用，而且要小心。** librqbit 的 `BindDevice::new_from_name`
+在 Windows 分支里直接返回 `BindDeviceNotSupported`，而它是用 `?` 往上抛的
+—— 值只要非空，`Session::new` 就失败，**App 整个起不来**。而 `settings.json`
+完全可能是从 macOS 拷过去的。
+
+所以 `engine.rs` 里有个 `usable_bind_device()` 兜底：Windows 上直接把值丢掉
+并打 WARN，宁可静默降级（BT 跟随系统路由，和这个功能出现之前一样）也不能
+起不来。界面上那一栏在 Windows 也换成说明文字，不给下拉。
+
+Windows 其实有对应的 `IP_UNICAST_IF`，只是 librqbit 没实现。想在 Windows
+上让 BT 绕过 VPN，目前只能在代理客户端的规则里给 mydl 加一条直连。
 
 验证：
 
