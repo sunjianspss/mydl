@@ -93,3 +93,34 @@ fn format_size(bytes: u64) -> String {
     const GB: f64 = 1024.0 * 1024.0 * 1024.0;
     format!("{:.2} GB", bytes as f64 / GB)
 }
+
+/// 回归：从真索引器拿回来的磁力链必须带着 tracker。
+///
+/// XML 属性里的 `&` 一律写成 `&amp;`，不解码的话 `&tr=` 变成 `&amp;tr=`，
+/// 参数名成了 `amp;tr`，磁力链自带的 tracker 全部失效 —— 表现是
+/// 「解析磁力链超时（120 秒）」，而同一条链接在别的客户端里能秒开。
+///
+/// 单测用的是手写 fixture，这条打真索引器，确保真实响应也过。
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "需要本地索引器（Prowlarr / Jackett）"]
+async fn magnet_from_real_indexer_has_trackers() {
+    let Ok(base) = std::env::var("MYDL_SEARCH_URL") else {
+        eprintln!("没设 MYDL_SEARCH_URL，跳过");
+        return;
+    };
+
+    let results = search::search(&base, "The Odyssey").await.expect("搜索失败");
+    let with_magnet: Vec<_> = results.iter().filter_map(|r| r.magnet.as_deref()).collect();
+    assert!(!with_magnet.is_empty(), "一条带磁力链的结果都没有，没法验");
+
+    let mut checked = 0;
+    for m in &with_magnet {
+        assert!(!m.contains("&amp;"), "实体没解码，tracker 会全部失效：{m}");
+        if m.contains("tr=") {
+            assert!(m.contains("&tr="), "tracker 参数名被 &amp; 破坏了：{m}");
+            checked += 1;
+        }
+    }
+    eprintln!("检查了 {} 条磁力链，其中 {checked} 条自带 tracker", with_magnet.len());
+    assert!(checked > 0, "没有一条磁力链自带 tracker，这个用例验不到东西");
+}

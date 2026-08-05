@@ -262,6 +262,7 @@ MYDL_PROBE_MAGNET='magnet:?xt=...' \
 | 对照组也查不到 peer | DHT 本身有问题（网络、路由表） |
 | 对照几百个 peer、待查 0 个 | 这个 swarm 不在 DHT 里：私有种子（`private` 标志会禁用 DHT/PEX，必须用带 passkey 的 .torrent），或者真没人做种 |
 | 待查有几个 peer 但仍超时 | swarm 太瘦。`read_metainfo_from_peer_receiver` 用 `seen` 集合保证每个地址只试一次，如果只有两三个 peer 且都不给元信息，就没有别的可试了 —— 这种情况确认一下公共 tracker 开关是开着的（默认开），只靠 DHT 找源太窄 |
+| 索引器说几千个做种，加进来却超时 | **先看日志里那条 `预览种子 uri=` 的磁力链带不带 `&amp;`**。XML 属性里的 `&` 一律写成 `&amp;`，不解码的话 `&tr=` 变成 `&amp;tr=`，参数名成了 `amp;tr`，磁力链自带的 tracker 全部失效，退化成裸 info-hash。v0.7.1 修了（`search.rs` 的 `attr()` 改用 `quick_xml::escape::unescape`）——**属性和文本节点的实体解码是两套机制**，quick-xml 把文本里的实体拆成独立 `GeneralRef` 事件，属性里的要显式解，之前只做了文本那一半 |
 
 ## swarm 健康度
 

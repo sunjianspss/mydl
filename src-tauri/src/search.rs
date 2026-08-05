@@ -262,9 +262,25 @@ fn extract_error(xml: &str) -> Option<String> {
     }
 }
 
+/// 读一个 XML 属性，**并解码里面的实体**。
+///
+/// 必须解码：磁力链写在 `<enclosure url="...">` 属性里，而 XML 属性里的 `&`
+/// 一律是 `&amp;`。不解码的话 `&tr=` 会变成 `&amp;tr=`，磁力链解析器读到的
+/// 参数名是 `amp;tr`，**自带的 tracker 全部失效**，退化成一条裸 info-hash，
+/// 只能靠 DHT 找源 —— 表现就是「解析磁力链超时（120 秒）」，而同一条链接
+/// 在别的客户端里能秒开。
+///
+/// 文本节点走的是另一条路（`decode_ref`）：quick-xml 把文本里的实体拆成独立
+/// 的 `GeneralRef` 事件，属性里的却要显式调 `unescape_value`。两处都得管。
 fn attr(e: &quick_xml::events::BytesStart, key: &[u8]) -> Option<String> {
     e.attributes().flatten().find_map(|a| {
-        (a.key.as_ref() == key).then(|| String::from_utf8_lossy(&a.value).into_owned())
+        (a.key.as_ref() == key).then(|| {
+            let raw = String::from_utf8_lossy(&a.value);
+            // 解不开就退回原文：坏链接总比没有强，后面添加时会明确报错。
+            quick_xml::escape::unescape(&raw)
+                .map(|v| v.into_owned())
+                .unwrap_or_else(|_| raw.into_owned())
+        })
     })
 }
 
@@ -554,5 +570,33 @@ mod tests {
         assert_eq!(urlencoding_lite("星球 大战"), "%E6%98%9F%E7%90%83+%E5%A4%A7%E6%88%98");
         assert_eq!(urlencoding_lite("a&b=c"), "a%26b%3Dc");
     }
+    /// 回归：属性值里的 XML 实体必须解码。
+    ///
+    /// Torznab 的 enclosure url 是 XML 属性，磁力链里的 `&` 在里面一律写成
+    /// `&amp;`。不解码的话参数名会变成 `amp;tr`，**磁力链自带的 tracker
+    /// 全部失效**，退化成一条裸 info-hash，只能靠 DHT 找源 —— 表现就是
+    /// 「解析磁力链超时（120 秒）」，而同一条链接在别的客户端里能秒开。
+    ///
+    /// 原来的 fixture 里磁力链不含 `&`，所以这个 bug 一直没被测到。
+    #[test]
+    fn magnet_attribute_entities_are_decoded() {
+        let xml = r#"<rss xmlns:torznab="http://torznab.com/schemas/2015/feed"><channel>
+          <item>
+            <title>Some Release</title>
+            <enclosure url="magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&amp;dn=x&amp;tr=udp%3A%2F%2Ftracker.example.org%3A1337%2Fannounce" length="1"/>
+          </item>
+        </channel></rss>"#;
+
+        let magnet = parse(xml).unwrap()[0].magnet.clone().unwrap();
+        assert!(
+            !magnet.contains("&amp;"),
+            "实体没解码，tracker 会全部失效：{magnet}"
+        );
+        assert!(
+            magnet.contains("&tr=udp"),
+            "tracker 参数没了：{magnet}"
+        );
+    }
+
 }
 
