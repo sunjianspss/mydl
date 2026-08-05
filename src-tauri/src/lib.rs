@@ -3,6 +3,7 @@ pub mod automation;
 pub mod engine;
 pub mod health;
 pub mod keep_awake;
+pub mod netif;
 pub mod platform;
 pub mod release;
 pub mod rss;
@@ -260,6 +261,12 @@ async fn find_sources(
     })
 }
 
+/// 可以绑定的网卡列表。给设置里的下拉用。
+#[tauri::command]
+fn network_interfaces() -> Vec<netif::NetIf> {
+    netif::list()
+}
+
 /// 继续所有暂停的任务。
 ///
 /// 注意它会把「被并发上限自动暂停」的也一起放出来 —— 用户明确点了「全部继续」，
@@ -430,8 +437,10 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
         proxy_url: s.proxy_url.clone().filter(|u| !u.trim().is_empty()),
         blocklist_url: s.blocklist_url.clone().filter(|u| !u.trim().is_empty()),
         peer_limit: s.peer_limit,
+        bind_device: s.bind_device.clone().filter(|d| !d.trim().is_empty()),
     };
     tracing::info!(
+        网卡 = setup.bind_device.as_deref().unwrap_or("跟随系统"),
         公共tracker = setup.extra_trackers.len(),
         代理 = setup.proxy_url.is_some(),
         黑名单 = setup.blocklist_url.is_some(),
@@ -568,6 +577,7 @@ pub fn run() {
             torrent_health,
             check_health_now,
             find_sources,
+            network_interfaces,
             resume_all,
             delete_torrent,
             default_download_dir,

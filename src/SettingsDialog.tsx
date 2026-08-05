@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
-import type { Settings } from "./types";
+import type { NetIf, Settings } from "./types";
 
 // 勾上「限制上传速度」时的初始值，KB/s。约 1 Mbps —— 基本任何家用上行都
 // 感觉不到，同时不至于低到让 tit-for-tat 把下载速度也拖下去。
@@ -21,6 +21,12 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
   // key 存在系统钥匙串里，读不回来 —— 只能知道有没有。空串 = 不改动。
   const [keyInput, setKeyInput] = useState("");
   const [hasKey, setHasKey] = useState(false);
+  // 可绑定的网卡。名字写错会让整个会话建不起来，所以做成下拉不让手输。
+  const [ifaces, setIfaces] = useState<NetIf[]>([]);
+
+  useEffect(() => {
+    invoke<NetIf[]>("network_interfaces").then(setIfaces).catch(() => {});
+  }, []);
 
   useEffect(() => {
     invoke<boolean>("has_ai_key").then(setHasKey).catch(() => {});
@@ -157,6 +163,36 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
               不安，macOS 15 起还会弹「某某读取了剪贴板」的系统提示。
             </em>
           </span>
+        </label>
+
+        <label className="setting setting-block">
+          <span>
+            <b>BT 走哪张网卡</b>
+            <em>
+              开着全局 VPN / 规则代理（TUN 模式）时，默认路由指向 <code>utun*</code>，
+              <b>BT 流量也会跟着走隧道</b>。后果不是慢一点，是结构性的：隧道出口
+              多半是机房 IP，会被大量 BT 客户端和 tracker 屏蔽（表现为连得上、
+              握手立刻被断）；UPnP 的多播出不了隧道，端口映射必然失败，
+              <b>没有入站连接，做种就是无效劳动</b>。
+              <br />
+              绑到物理网卡就能绕过默认路由直出，而<b>完全不动 VPN 本身</b>
+              —— 浏览器照旧走隧道。改完<b>需要重启 App</b>。
+            </em>
+          </span>
+          <select
+            className="setting-select"
+            value={draft.bindDevice ?? ""}
+            onChange={(e) => patch({ bindDevice: e.target.value || null })}
+          >
+            <option value="">跟随系统默认路由（有 VPN 时就走 VPN）</option>
+            {ifaces.map((i) => (
+              <option key={i.name} value={i.name}>
+                {i.name}
+                {i.ipv4 ? ` — ${i.ipv4}` : ""}
+                {i.isTunnel ? "（隧道，绑了等于没绕过去）" : ""}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="setting">

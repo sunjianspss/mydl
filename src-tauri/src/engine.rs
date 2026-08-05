@@ -43,6 +43,8 @@ pub struct SessionSetup {
     pub proxy_url: Option<String>,
     pub blocklist_url: Option<String>,
     pub peer_limit: Option<usize>,
+    /// 把所有 BT 流量绑到这张网卡，绕开默认路由的隧道。见 `netif.rs`。
+    pub bind_device: Option<String>,
 }
 
 pub struct Engine {
@@ -271,6 +273,8 @@ impl Engine {
                 }),
                 blocklist_url: setup.blocklist_url.clone(),
                 peer_limit: setup.peer_limit,
+                // 覆盖 DHT、BT-UDP、BT-TCP、tracker 和 LSD —— 一个开关就够。
+                bind_device_name: setup.bind_device.clone(),
                 ..Default::default()
             },
         )

@@ -77,6 +77,18 @@ pub struct Settings {
     /// 多久采一次健康度。下限 10 分钟，见 `health::spawn`。
     pub swarm_health_interval_minutes: u64,
 
+    /// BT 流量绑定到哪张网卡。None = 跟随系统默认路由。
+    ///
+    /// 开着全局 VPN / 规则代理（TUN 模式）时默认路由指向 `utun*`，BT 也跟着
+    /// 走隧道。后果是结构性的：隧道出口多半是机房 IP，会被大量 BT 客户端
+    /// 屏蔽；UPnP 的多播出不了隧道，端口映射必然失败，**没有入站连接做种
+    /// 就是无效劳动**。绑到物理网卡（macOS 走 IP_BOUND_IF）能绕过默认路由
+    /// 直出，而**完全不动 VPN 本身**，浏览器照旧走隧道。
+    ///
+    /// 名字写错会让整个会话建不起来，所以界面上做成下拉，见 `netif.rs`。
+    /// 改了要重启 App 才生效（会话创建时才读）。Windows 不支持。
+    pub bind_device: Option<String>,
+
     /// 有任务在下载时阻止电脑休眠，下完自动解除。做种不算。
     pub prevent_sleep_while_downloading: bool,
 
@@ -192,6 +204,7 @@ impl Default for Settings {
             use_public_trackers: true,
             swarm_health_check: true,
             swarm_health_interval_minutes: 30,
+            bind_device: None,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
             watch_clipboard: true,

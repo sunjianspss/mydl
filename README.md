@@ -236,6 +236,54 @@ hardened runtime 签名并送 Apple 公证，对方双击零提示。没做之�
 **合盖仍然会睡**，这是系统行为，任何软件都拦不住。想挂整夜别合盖。
 接电源时 `-s` 才有效；用电池时靠 `-i`，电量耗尽照样会睡。
 
+## BT 走哪张网卡（开着 VPN 时必看）
+
+设置里「BT 走哪张网卡」。`netif.rs` 枚举候选，`SessionOptions::bind_device_name`
+落地（macOS 走 `IP_BOUND_IF`，Linux 走 `SO_BINDTODEVICE`）。
+
+**开着全局 VPN / 规则代理（TUN 模式）时，默认路由指向 `utun*`，BT 流量也会
+跟着走隧道。** 后果不是慢一点，是结构性的。同一条 Ubuntu 官方种子，同一台
+机器，各跑 45 秒：
+
+| | 峰值 peer | 下载量 |
+|---|---|---|
+| 默认路由（走隧道） | 1 | 0.5 MB |
+| 绑 `en0` 直出 | **62** | **588 MB** |
+
+三个独立原因叠在一起：
+
+- **出口是机房 IP。** 隧道落地多半在 IDC，大量 BT 客户端和 tracker 屏蔽或
+  限速数据中心 IP 段。表现很有欺骗性：**TCP 连得上，握手立刻被 RST 或关闭**
+  —— 看起来像「没源」，其实是被对方踢了。
+- **没有入站连接。** UPnP 的 SSDP 多播出不了隧道（日志里是
+  `failed to send SSDP search request to 239.255.255.250:1900: No route to host`），
+  端口映射必然失败，VPN 也不会把端口转发给你。而**做种完全靠别人连进来**
+  —— 这就是做种任务常年 `0 peers` 的原因。下载也受影响：只能连那些自己有
+  公网端口的 peer。
+- **出口是共享的。** 别人怎么用这个 IP 你控制不了，成功率会毫无规律地波动
+  （实测同一条磁力链，几分钟内从 1.3 秒到 120 秒超时都有）。
+
+绑到物理网卡就绕过默认路由直出，而**完全不动 VPN 本身** —— 浏览器照旧走
+隧道。`bind_device_name` 覆盖 DHT、BT-UDP、BT-TCP、tracker 和 LSD，一个开关
+全包。
+
+**界面上做成下拉而不是文本框**：名字写错的话 `BindDevice::new_from_name`
+会失败，整个会话建不起来，App 直接起不来。隧道接口（`utun*` / `ppp*` /
+`wg*`）保留在列表里但标注出来 —— 有人确实想绑到某条特定隧道上，但绑错了
+等于没绕过去。
+
+Windows 不支持（librqbit 那边直接返回 `BindDeviceNotSupported`）。
+
+验证：
+
+```bash
+cd src-tauri
+MYDL_BIND_DEVICE=en0 cargo test --test bind_device_live -- --ignored --nocapture
+```
+
+用例**不断言谁更快** —— 这是特定机器上的网络测量，结果本来就会变。它只保证
+绑定这条路真的生效，不是配了个不起作用的开关。
+
 ## 磁力链下不动时怎么查
 
 三个诊断工具，都是 `#[ignore]`，手动跑：
@@ -439,6 +487,7 @@ src-tauri/src/
 ├── rss.rs               RSS 订阅按关键词自动加种
 ├── health.rs            swarm 健康度采样（BEP15 scrape + 时间序列）
 ├── release.rs           压制名解析 + 候选相关度打分
+├── netif.rs             网卡枚举（给「BT 走哪张网卡」列候选）
 ├── automation.rs        完成后：通知、解压、移动
 ├── keep_awake.rs        下载期间阻止休眠
 ├── stream_server.rs     本地 HTTP 流媒体服务（Range 支持）
@@ -451,7 +500,8 @@ src-tauri/tests/
 ├── stream_smoke.rs      边下边播 + Range（联网，默认跳过）
 ├── magnet_diag.rs       磁力链诊断工具（手动跑）
 ├── scrape_live.rs       拿真 tracker 验 BEP15 scrape（联网，默认跳过）
-└── find_sources_live.rs 拿真索引器验找替代源（联网，默认跳过）
+├── find_sources_live.rs 拿真索引器验找替代源（联网，默认跳过）
+└── bind_device_live.rs  绑网卡 vs 走隧道的 A/B（联网，默认跳过）
 ```
 
 设置存在 `~/Library/Application Support/com.sun.mydl/settings.json`，
@@ -642,6 +692,7 @@ QuickTime）。点一下就 `open -a <播放器> <本地流地址>`。
 - [x] 并发下载上限（自动排队）、全部暂停/继续、单独暂停做种
 - [x] swarm 健康度走势（多 tracker scrape，判「还在变好还是没人做了」）
 - [x] 给已有任务找替代源（压制名解析 + 实查做种数，只列不自动换）
+- [x] BT 绑定网卡，绕过 VPN 隧道直出（不影响 VPN 本身）
 
 按规则重命名**没做**：想做好要解析剧集编号、季数、发布组等等，是一整套
 匹配规则，没有明确需求的情况下做出来多半是猜错方向。真需要时再说。

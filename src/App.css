@@ -1585,3 +1585,20 @@ input[type="checkbox"] {
 .source-unknown {
   color: var(--faint);
 }
+
+/* 「BT 走哪张网卡」那种「说明在上、控件在下」的设置项。 */
+.setting-block {
+  display: block;
+}
+
+.setting-select {
+  width: 100%;
+  padding: 5px 8px;
+  margin-top: 6px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}

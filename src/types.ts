@@ -83,6 +83,14 @@ export interface Settings {
   swarmHealthCheck: boolean;
   /** 多久采一次健康度，下限 10 分钟。 */
   swarmHealthIntervalMinutes: number;
+  /**
+   * BT 流量绑到哪张网卡。null = 跟随系统默认路由。
+   *
+   * 开着全局 VPN（TUN 模式）时默认路由指向 utun*，BT 也跟着走隧道 ——
+   * 隧道出口多半是机房 IP 会被 BT 客户端屏蔽，UPnP 也映射不上导致没有入站。
+   * 绑到物理网卡能绕过默认路由直出，同时不影响 VPN 本身。改了要重启。
+   */
+  bindDevice: string | null;
   /** 有任务在下载时阻止电脑休眠。 */
   preventSleepWhileDownloading: boolean;
   /** 切回窗口时看一眼剪贴板里有没有磁力链。只读一次，不后台轮询。 */
@@ -152,6 +160,15 @@ export interface HealthVerdict {
   summary: string;
   /** 做种人数曲线，按时间先后。画迷你走势图用。 */
   seedersSeries: number[];
+}
+
+/** 对应 netif.rs 的 NetIf。 */
+export interface NetIf {
+  /** 接口名，写进设置的就是这个（en0）。 */
+  name: string;
+  ipv4: string | null;
+  /** 看着像隧道接口。绑到隧道上等于没绕过去，界面要标出来。 */
+  isTunnel: boolean;
 }
 
 /** 对应 release.rs 的 Candidate。 */
