@@ -4,6 +4,7 @@ pub mod engine;
 pub mod health;
 pub mod keep_awake;
 pub mod platform;
+pub mod release;
 pub mod rss;
 pub mod search;
 pub mod secrets;
@@ -157,6 +158,106 @@ async fn check_health_now(
     health: State<'_, Arc<health::HealthStore>>,
 ) -> Result<usize, String> {
     Ok(health::sample_once(&engine, &store, &health).await)
+}
+
+/// 给一个已有任务找替代源的结果。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FoundSources {
+    /// 实际拿去搜的词。界面要显示出来并允许改 —— 中文压制名解析不可能全对，
+    /// 让用户一眼看出「它搜错了」比默默返回坏结果强。
+    query: String,
+    /// 从任务名解析出的完整标题，用来打分的那个。
+    full_title: String,
+    candidates: Vec<release::Candidate>,
+}
+
+/// 给任务 `id` 找别的源。
+///
+/// `query` 传 null 就用从任务名解析出来的词；传了就用传的，这样界面上改词
+/// 能立刻重搜。
+///
+/// **不做任何自动切换**，只返回候选。换不换、什么时候换是有代价的决定
+/// （换源意味着已下的字节全部作废），必须由人来做。
+///
+/// 这里刻意不走 AI 排序：`relevance` 是确定性的，而模型这条路要多等最多
+/// 60 秒、实测还超时过。找替代源是个交互动作，不能让人干等。
+#[tauri::command]
+async fn find_sources(
+    engine: State<'_, Arc<Engine>>,
+    store: State<'_, Arc<SettingsStore>>,
+    id: TorrentId,
+    query: Option<String>,
+) -> Result<FoundSources, String> {
+    let torrent = engine
+        .list()
+        .into_iter()
+        .find(|t| t.id == id)
+        .ok_or_else(|| format!("找不到任务 {id}"))?;
+
+    let parsed = release::parse(&torrent.name);
+    let query = query
+        .map(|q| q.trim().to_string())
+        .filter(|q| !q.is_empty())
+        .unwrap_or(parsed.search_query);
+
+    let s = store.get();
+    let base = s.search_url.clone().unwrap_or_default();
+    if base.trim().is_empty() {
+        return Err("还没配置索引器地址。在设置里填 Prowlarr 或 Jackett 的 Torznab 地址".into());
+    }
+
+    let results = search::search(&base, &query).await.map_err(err)?;
+    let mut candidates = release::rank(results, &parsed.full_title, &torrent.info_hash);
+
+    // 索引器给的做种数不能信：实测某些中文索引器给**所有**条目都填
+    // `seeders=1, size=0.01GB` 这种占位值，照着它挑源等于抛硬币。
+    // 所以拿候选的 info-hash 去真 tracker 实查一遍。
+    // 一个 UDP 包能带 74 个 hash，二十来个候选就是一个包，很便宜。
+    let hashes: Vec<(String, [u8; 20])> = candidates
+        .iter()
+        .filter_map(|c| c.magnet.as_deref().and_then(release::info_hash_of))
+        .filter_map(|h| health::parse_info_hash(&h).map(|raw| (h, raw)))
+        .collect();
+
+    if !hashes.is_empty() {
+        let live = health::scrape_many(&hashes).await;
+        for c in &mut candidates {
+            let Some(h) = c.magnet.as_deref().and_then(release::info_hash_of) else {
+                continue;
+            };
+            // trackers_ok 为 0 表示这轮一个 tracker 都没应答，那就是「没查到」，
+            // 不能当成「0 个做种」——否则一次网络抖动会让所有候选都显示成死的。
+            if let Some((s, l, ok)) = live.get(&h) {
+                if *ok > 0 {
+                    c.live_seeders = Some(*s);
+                    c.live_leechers = Some(*l);
+                }
+            }
+        }
+        // 实查到的做种数才是有意义的排序依据，重排一次。相关度仍然优先。
+        candidates.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(b.live_seeders.unwrap_or(0).cmp(&a.live_seeders.unwrap_or(0)))
+                .then(b.seeders.unwrap_or(0).cmp(&a.seeders.unwrap_or(0)))
+        });
+    }
+
+    tracing::info!(
+        任务 = %torrent.name,
+        查询 = %query,
+        候选 = candidates.len(),
+        实查到做种数 = candidates.iter().filter(|c| c.live_seeders.is_some()).count(),
+        "找替代源"
+    );
+
+    Ok(FoundSources {
+        query,
+        full_title: parsed.full_title,
+        candidates,
+    })
 }
 
 /// 继续所有暂停的任务。
@@ -466,6 +567,7 @@ pub fn run() {
             pause_seeding,
             torrent_health,
             check_health_now,
+            find_sources,
             resume_all,
             delete_torrent,
             default_download_dir,

@@ -461,33 +461,23 @@ fn now_secs() -> i64 {
         .unwrap_or(0)
 }
 
-/// 跑一轮采样，返回记下了几个种子。
+
+/// 向所有公共 tracker 查一批 info-hash，按 info-hash 合并成
+/// `(最大做种, 最大下载, 应答过的 tracker 数)`。
 ///
-/// 单个 tracker 挂掉不影响其余 —— 实测公共 tracker 里总有一两个是连不上的，
-/// 一个失败就整轮放弃的话基本采不到数据。
-pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &HealthStore) -> usize {
-    if !store.get().swarm_health_check {
-        return 0;
-    }
-
-    let torrents = engine.list();
-    let mut hashes = Vec::new();
-    let mut keep = HashSet::new();
-    for t in &torrents {
-        let lower = t.info_hash.to_ascii_lowercase();
-        if let Some(h) = parse_info_hash(&lower) {
-            hashes.push((lower.clone(), h));
-        }
-        keep.insert(lower);
-    }
-    health.retain(&keep);
-    if hashes.is_empty() {
-        return 0;
-    }
-
-    // info-hash -> （最大做种, 最大下载, 应答过的 tracker 数）
+/// 取最大值而不是平均：每个 tracker 只知道向**它**汇报过的那部分 peer，
+/// 取平均会把没数据的那几个算进去，系统性偏低。
+///
+/// 单个 tracker 失败绝不放弃整轮 —— 实测 5 个公共 tracker 里从某些网络
+/// 只有 2~3 个可达。
+///
+/// `hashes` 是 `(小写十六进制, 20 字节)` 的列表；返回的键就是前者。
+pub async fn scrape_many(hashes: &[(String, [u8; 20])]) -> HashMap<String, (u32, u32, u8)> {
     let mut merged: HashMap<String, (u32, u32, u8)> =
         hashes.iter().map(|(k, _)| (k.clone(), (0, 0, 0))).collect();
+    if hashes.is_empty() {
+        return merged;
+    }
 
     for tracker in PUBLIC_TRACKERS {
         let mut ok = false;
@@ -514,6 +504,34 @@ pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &Health
             }
         }
     }
+    merged
+}
+
+/// 跑一轮采样，返回记下了几个种子。
+///
+/// 单个 tracker 挂掉不影响其余 —— 实测公共 tracker 里总有一两个是连不上的，
+/// 一个失败就整轮放弃的话基本采不到数据。
+pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &HealthStore) -> usize {
+    if !store.get().swarm_health_check {
+        return 0;
+    }
+
+    let torrents = engine.list();
+    let mut hashes = Vec::new();
+    let mut keep = HashSet::new();
+    for t in &torrents {
+        let lower = t.info_hash.to_ascii_lowercase();
+        if let Some(h) = parse_info_hash(&lower) {
+            hashes.push((lower.clone(), h));
+        }
+        keep.insert(lower);
+    }
+    health.retain(&keep);
+    if hashes.is_empty() {
+        return 0;
+    }
+
+    let merged = scrape_many(&hashes).await;
 
     let ts = now_secs();
     for (key, (seeders, leechers, trackers_ok)) in &merged {
