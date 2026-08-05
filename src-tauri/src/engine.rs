@@ -204,8 +204,14 @@ fn is_playable(name: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Windows 上没有绑定网卡这回事，把值丢掉而不是让会话建不起来。
+/// 得出要绑给会话的网卡名。None = 没配置。
 ///
+/// 其余平台：**没配置时自动选第一张物理网卡**（`netif::first_physical`，
+/// macOS 上就是 `en0`）。开着 VPN 时默认路由指向 `utun*`，BT 跟着走隧道
+/// 就是白费（被屏蔽、做种没入站）；绑物理网卡绕过默认路由直出，而
+/// **完全不动 VPN 本身** —— 浏览器照旧走隧道。
+///
+/// Windows 上没有绑定网卡这回事，把值丢掉而不是让会话建不起来：
 /// librqbit 那边是 `BindDevice::new_from_name` 直接返回
 /// `BindDeviceNotSupported`，再被 `?` 抛成 `Session::new` 的错误 —— 也就是
 /// **App 整个起不来**。而 settings.json 完全可能是从 macOS 拷过去的，或者
@@ -214,16 +220,18 @@ fn is_playable(name: &str) -> bool {
 /// 宁可静默降级也不能起不来：绑不上顶多是 BT 跟着系统路由走（和这个功能
 /// 出现之前的行为一致），而起不来是彻底不能用。
 fn usable_bind_device(name: Option<String>) -> Option<String> {
-    let name = name.filter(|n| !n.trim().is_empty())?;
+    let name = name.filter(|n| !n.trim().is_empty());
     if cfg!(windows) {
-        tracing::warn!(
-            网卡 = %name,
-            "Windows 不支持绑定网卡（librqbit 的 BindDevice 在 Windows 上直接报错），\
-             这项设置已忽略，BT 仍然跟随系统默认路由"
-        );
+        if let Some(name) = name {
+            tracing::warn!(
+                网卡 = %name,
+                "Windows 不支持绑定网卡（librqbit 的 BindDevice 在 Windows 上直接报错），\
+                 这项设置已忽略，BT 仍然跟随系统默认路由"
+            );
+        }
         return None;
     }
-    Some(name)
+    name.or_else(crate::netif::first_physical)
 }
 
 impl Engine {
@@ -910,12 +918,37 @@ fn view_of(id: TorrentId, handle: &TorrentHandle) -> TorrentView {
 mod bind_device_tests {
     use super::usable_bind_device;
 
-    /// 空值和空白一律当成「没设置」，别把空串传给 librqbit。
+    /// 空值和空白一律当成「没设置」。
+    ///
+    /// 非 Windows 上，没设置会默认绑第一张物理网卡（开着 VPN 时默认路由
+    /// 指向 `utun*`，不主动绑 BT 就跟着走隧道了）；Windows 不支持绑定，
+    /// 照旧返回 None。
     #[test]
-    fn empty_is_none() {
-        assert_eq!(usable_bind_device(None), None);
-        assert_eq!(usable_bind_device(Some(String::new())), None);
-        assert_eq!(usable_bind_device(Some("   ".into())), None);
+    fn empty_is_unset() {
+        assert_eq!(
+            usable_bind_device(Some(String::new())),
+            usable_bind_device(None),
+            "空串和 None 语义应一致"
+        );
+        assert_eq!(
+            usable_bind_device(Some("   ".into())),
+            usable_bind_device(None),
+            "空白和 None 语义应一致"
+        );
+    }
+
+    /// 没配置时自动选第一张物理网卡，这正是这个设置的意义所在。
+    #[test]
+    fn unset_falls_back_to_first_physical() {
+        match (cfg!(windows), usable_bind_device(None)) {
+            (true, None) => {}
+            (false, got) => assert_eq!(
+                got.as_deref(),
+                crate::netif::first_physical().as_deref(),
+                "非 Windows 上没配置应默认绑第一张物理网卡"
+            ),
+            (true, Some(_)) => panic!("Windows 上必须忽略，否则 App 起不来"),
+        }
     }
 
     /// Windows 上必须丢掉，否则 `Session::new` 会失败、App 起不来。

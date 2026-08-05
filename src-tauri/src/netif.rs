@@ -102,6 +102,15 @@ pub fn list() -> Vec<NetIf> {
     out
 }
 
+/// 第一张物理网卡的名字（`en0` / `eth0` 这类），给「没配置时默认绑哪张」兜底。
+///
+/// `list()` 已经让物理网卡排前面、隧道排后面，取第一张非隧道的就是它。
+/// 开着 VPN 时默认路由指向 `utun*`，不主动绑的话 BT 就跟着走隧道了 ——
+/// 这正是这个设置要解决的。枚举失败返回 `None`，引擎退回跟随系统。
+pub fn first_physical() -> Option<String> {
+    list().into_iter().find(|i| !i.is_tunnel).map(|i| i.name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,6 +146,17 @@ mod tests {
         for i in list() {
             assert!(!i.name.starts_with("lo"), "回环不该出现：{i:?}");
             assert!(i.ipv4.is_some(), "候选必须有 IPv4：{i:?}");
+        }
+    }
+
+    /// 默认兜底选的必须是物理网卡，隧道不该被选中 —— 选隧道等于没绕过去。
+    #[test]
+    fn first_physical_is_not_a_tunnel() {
+        if let Some(name) = first_physical() {
+            assert!(
+                !looks_like_tunnel(&name),
+                "默认网卡不该是隧道：{name}"
+            );
         }
     }
 }

@@ -268,6 +268,10 @@ hardened runtime 签名并送 Apple 公证，对方双击零提示。没做之�
 隧道。`bind_device_name` 覆盖 DHT、BT-UDP、BT-TCP、tracker 和 LSD，一个开关
 全包。
 
+**默认就绑第一张物理网卡**（`netif::first_physical`，macOS 上就是 `en0`）：
+没在设置里选的话，`usable_bind_device` 会自动兜底到它，不用每次手动配。
+设置里留下拉只是为了想绑特定接口（比如某条专用隧道）时能覆盖默认。
+
 **界面上做成下拉而不是文本框**：名字写错的话 `BindDevice::new_from_name`
 会失败，整个会话建不起来，App 直接起不来。隧道接口（`utun*` / `ppp*` /
 `wg*`）保留在列表里但标注出来 —— 有人确实想绑到某条特定隧道上，但绑错了
@@ -280,7 +284,8 @@ hardened runtime 签名并送 Apple 公证，对方双击零提示。没做之�
 
 所以 `engine.rs` 里有个 `usable_bind_device()` 兜底：Windows 上直接把值丢掉
 并打 WARN，宁可静默降级（BT 跟随系统路由，和这个功能出现之前一样）也不能
-起不来。界面上那一栏在 Windows 也换成说明文字，不给下拉。
+起不来。macOS / Linux 上则是反过来：没配置时自动选第一张物理网卡，绕开
+VPN 隧道。界面上那一栏在 Windows 也换成说明文字，不给下拉。
 
 Windows 其实有对应的 `IP_UNICAST_IF`，只是 librqbit 没实现。想在 Windows
 上让 BT 绕过 VPN，目前只能在代理客户端的规则里给 mydl 加一条直连。

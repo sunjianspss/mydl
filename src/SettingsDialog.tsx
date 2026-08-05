@@ -179,7 +179,9 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
               <b>没有入站连接，做种就是无效劳动</b>。
               <br />
               绑到物理网卡就能绕过默认路由直出，而<b>完全不动 VPN 本身</b>
-              —— 浏览器照旧走隧道。改完<b>需要重启 App</b>。
+              —— 浏览器照旧走隧道。<b>默认就绑第一张物理网卡</b>（macOS 上
+              是 <code>en0</code>），不用每次手动选；只有想绑特定接口时才
+              需要动这个下拉。改完<b>需要重启 App</b>。
             </em>
           </span>
           {IS_MAC ? (
@@ -188,7 +190,7 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
               value={draft.bindDevice ?? ""}
               onChange={(e) => patch({ bindDevice: e.target.value || null })}
             >
-              <option value="">跟随系统默认路由（有 VPN 时就走 VPN）</option>
+              <option value="">自动绑第一张物理网卡（绕过 VPN 隧道，默认）</option>
               {ifaces.map((i) => (
                 <option key={i.name} value={i.name}>
                   {i.name}
