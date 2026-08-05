@@ -154,6 +154,38 @@ export interface HealthVerdict {
   seedersSeries: number[];
 }
 
+/** 对应 release.rs 的 Candidate。 */
+export interface Candidate {
+  title: string;
+  magnet: string | null;
+  link: string | null;
+  size: number;
+  seeders: number | null;
+  leechers: number | null;
+  indexer: string | null;
+  /** 0~1，和当前任务标题的贴合度。 */
+  relevance: number;
+  /** 这条就是你现在正在下的那个。 */
+  isCurrent: boolean;
+  /**
+   * 向公共 tracker 实查到的做种数。null = 没查到。
+   *
+   * 优先显示这个：实测某些中文索引器给所有条目都填 seeders=1、size=0.01GB
+   * 这种占位值，照着 `seeders` 选源等于抛硬币。
+   */
+  liveSeeders: number | null;
+  liveLeechers: number | null;
+}
+
+/** 对应 lib.rs 的 FoundSources。 */
+export interface FoundSources {
+  /** 实际用的搜索词。可以在界面上改了重搜。 */
+  query: string;
+  /** 从任务名解析出的完整标题，打分用的那个。 */
+  fullTitle: string;
+  candidates: Candidate[];
+}
+
 /** 对应 engine.rs 的 FileView。 */
 export interface FileView {
   index: number;

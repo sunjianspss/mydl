@@ -11,6 +11,7 @@ import { formatBytes, formatSpeed, percent } from "./format";
 import { useWindowFocused } from "./useWindowFocused";
 import FileList from "./FileList";
 import SwarmHealth from "./SwarmHealth";
+import BetterSources from "./BetterSources";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
@@ -475,6 +476,7 @@ export default function App() {
               confirming={confirmingDelete === t.id}
               onConfirmDelete={() => setConfirmingDelete(t.id)}
               onCancelDelete={() => setConfirmingDelete(null)}
+              onPick={addTorrent}
               onPause={() => run(() => invoke("pause_torrent", { id: t.id }))}
               onResume={() => run(() => invoke("resume_torrent", { id: t.id }))}
               onDelete={(deleteFiles) =>
@@ -590,6 +592,7 @@ interface RowProps {
   confirming: boolean;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
+  onPick: (uri: string) => void;
   onPause: () => void;
   onResume: () => void;
   onDelete: (deleteFiles: boolean) => void;
@@ -604,6 +607,7 @@ function TorrentRow({
   confirming,
   onConfirmDelete,
   onCancelDelete,
+  onPick,
   onPause,
   onResume,
   onDelete,
@@ -701,6 +705,12 @@ function TorrentRow({
         {expanded && (
           <>
             <SwarmHealth infoHash={t.infoHash} onError={onError} />
+            <BetterSources
+              torrentId={t.id}
+              progressBytes={t.progressBytes}
+              onPick={onPick}
+              onError={onError}
+            />
             <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
           </>
         )}

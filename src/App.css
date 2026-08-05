@@ -1457,3 +1457,131 @@ input[type="checkbox"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- 找替代源 ---------- */
+
+.sources {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sources-open {
+  display: block;
+  padding-bottom: 2px;
+}
+
+.sources-hint {
+  color: var(--faint);
+}
+
+.sources-query {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-bottom: 6px;
+}
+
+.sources-label {
+  flex: none;
+  color: var(--faint);
+}
+
+/* 搜索词必须能改：中文压制命名太乱，解析不可能全对，
+   让用户一眼看出「它搜错了」比默默返回坏结果强。 */
+.sources-input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 7px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--fill);
+  border: none;
+  border-radius: var(--r-sm);
+}
+
+.sources-list {
+  max-height: 260px;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+  border-top: 1px solid var(--hairline);
+}
+
+.source {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.source:last-child {
+  border-bottom: none;
+}
+
+.source-main {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.source-title {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 相关度低的压暗而不是隐藏：解析可能出错，全滤掉会让人以为真没有源。 */
+.source-low .source-title {
+  color: var(--muted);
+}
+
+.source-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.source-seeders {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.source-indexer {
+  overflow: hidden;
+  max-width: 120px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 已经在下的那条要一眼认出来，否则会白换一次。 */
+.source-badge {
+  flex: none;
+  padding: 0 5px;
+  font-size: 10.5px;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: var(--r-sm);
+}
+
+.is-current .source-title {
+  color: var(--accent);
+}
+
+.sources-empty {
+  margin: 8px 0 2px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* tracker 没应答时不能显示成「0 做种」—— 未知和没有是两回事。 */
+.source-unknown {
+  color: var(--faint);
+}
