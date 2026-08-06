@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod automation;
+pub mod diagnose;
 pub mod engine;
 pub mod health;
 pub mod keep_awake;
@@ -265,6 +266,31 @@ async fn find_sources(
 #[tauri::command]
 fn network_interfaces() -> Vec<netif::NetIf> {
     netif::list()
+}
+
+/// 诊断一个任务为什么不动。见 `diagnose.rs`。
+///
+/// 会真的发包（tracker announce + 对若干 peer 试握手 + 打一个对照 swarm），
+/// 最长几十秒。所以只在用户点了才跑，不做后台巡检。
+#[tauri::command]
+async fn diagnose_torrent(
+    engine: State<'_, Arc<Engine>>,
+    id: TorrentId,
+) -> Result<diagnose::Report, String> {
+    let t = engine
+        .list()
+        .into_iter()
+        .find(|t| t.id == id)
+        .ok_or_else(|| format!("找不到任务 {id}"))?;
+
+    Ok(diagnose::run(
+        &t.info_hash,
+        t.state,
+        t.error,
+        t.finished,
+        engine.session_status().bind_device,
+    )
+    .await)
 }
 
 /// 继续所有暂停的任务。
@@ -578,6 +604,7 @@ pub fn run() {
             check_health_now,
             find_sources,
             network_interfaces,
+            diagnose_torrent,
             resume_all,
             delete_torrent,
             default_download_dir,

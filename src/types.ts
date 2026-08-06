@@ -176,6 +176,25 @@ export interface HealthVerdict {
   seedersSeries: number[];
 }
 
+/** 对应 diagnose.rs 的 Outcome / Step / Report。 */
+export type DiagOutcome = "ok" | "warn" | "bad" | "skipped";
+
+export interface DiagStep {
+  /** 查的是什么。 */
+  name: string;
+  outcome: DiagOutcome;
+  /** 实测到的数字，不是解释。 */
+  detail: string;
+}
+
+export interface DiagReport {
+  steps: DiagStep[];
+  /** 一句话结论。 */
+  verdict: string;
+  /** 该怎么办；没有明确建议时为 null。 */
+  advice: string | null;
+}
+
 /** 对应 netif.rs 的 NetIf。 */
 export interface NetIf {
   /** 接口名，写进设置的就是这个（en0）。 */

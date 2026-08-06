@@ -42,6 +42,10 @@ pub struct NetIf {
 ///
 /// 只按名字判断，不去猜路由表：判错了顶多是界面上少一句提示，而把物理网卡
 /// 误判成隧道会让用户不敢选对的那张。
+pub fn is_tunnel_name(name: &str) -> bool {
+    looks_like_tunnel(name)
+}
+
 fn looks_like_tunnel(name: &str) -> bool {
     const PREFIXES: &[&str] = &["utun", "tun", "tap", "ppp", "ipsec", "gpd", "wg"];
     let lower = name.to_ascii_lowercase();

@@ -12,6 +12,7 @@ import { useWindowFocused } from "./useWindowFocused";
 import FileList from "./FileList";
 import SwarmHealth from "./SwarmHealth";
 import BetterSources from "./BetterSources";
+import Diagnose from "./Diagnose";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
@@ -727,6 +728,7 @@ function TorrentRow({
               onPick={onPick}
               onError={onError}
             />
+            <Diagnose torrentId={t.id} onError={onError} />
             <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
           </>
         )}

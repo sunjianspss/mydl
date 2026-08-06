@@ -1619,3 +1619,86 @@ input[type="checkbox"] {
   font-weight: 600;
   color: var(--danger);
 }
+
+/* ---------- 「为什么不动？」诊断 ---------- */
+
+.diag {
+  padding: 2px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.diag-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.diag-steps {
+  padding: 6px 0 0;
+  margin: 0;
+  list-style: none;
+}
+
+.diag-step {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 2px 0;
+}
+
+/* 标记用等宽方块，几行叠起来时对得齐，一眼能扫到哪一环红了。 */
+.diag-mark {
+  flex: none;
+  width: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.diag-ok .diag-mark {
+  color: var(--success);
+}
+
+.diag-warn .diag-mark {
+  color: var(--warn);
+}
+
+.diag-bad .diag-mark {
+  color: var(--danger);
+}
+
+.diag-skipped {
+  opacity: 0.5;
+}
+
+.diag-name {
+  flex: none;
+  min-width: 148px;
+  color: var(--text);
+}
+
+.diag-detail {
+  min-width: 0;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 结论是这个功能的产物，要比过程显眼。 */
+.diag-verdict {
+  padding: 7px 9px;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--fill);
+  border-radius: var(--r-sm);
+}
+
+.diag-advice {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--accent);
+}
