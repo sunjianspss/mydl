@@ -224,6 +224,26 @@ export interface NetIf {
   isTunnel: boolean;
 }
 
+/**
+ * 对应 forecast.rs 的 Forecast。
+ *
+ * 注意这里**没有「完成概率」** —— 实测做种数的变异系数 34%~151%，用那种
+ * 数据报百分比是编造精度。这里只报测量值。
+ */
+export interface Forecast {
+  /** 实测长期平均速度（字节/秒），不是瞬时速度。 */
+  observedBps: number | null;
+  /** 算这个速度用了多长窗口（小时）。必须显示 —— 关系到可信度。 */
+  windowHours: number | null;
+  etaSecs: number | null;
+  /** 进度多久没动了（秒）。 */
+  stalledSecs: number | null;
+  seedersMedian: number | null;
+  seedersMin: number | null;
+  seedersMax: number | null;
+  summary: string;
+}
+
 /** 对应 release.rs 的 Candidate。 */
 export interface Candidate {
   title: string;

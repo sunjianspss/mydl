@@ -722,7 +722,7 @@ function TorrentRow({
 
         {expanded && (
           <>
-            <SwarmHealth infoHash={t.infoHash} onError={onError} />
+            <SwarmHealth torrentId={t.id} infoHash={t.infoHash} onError={onError} />
             <BetterSources
               torrentId={t.id}
               progressBytes={t.progressBytes}

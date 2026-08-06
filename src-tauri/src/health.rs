@@ -67,8 +67,8 @@ const TREND_THRESHOLD: f64 = 0.2;
 ///
 /// 存合并值而不是每个 tracker 一条：一个种子挂十天就是 480 条，再乘 5 个
 /// tracker 就没必要了，而且下判断时用的本来就是合并值。
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(default, rename_all = "camelCase")]
 pub struct Sample {
     /// Unix 秒。
     pub ts: i64,
@@ -79,6 +79,20 @@ pub struct Sample {
     /// 这轮有几个 tracker 应答了。0 表示全都没通，这个样本不可信 ——
     /// 判定时会跳过，否则一次断网就会被误判成「没源了」。
     pub trackers_ok: u8,
+
+    /// 采样时已下到的字节数。
+    ///
+    /// **这才是回答「还要多久」的那个信号。** swarm 规模答不了这个问题 ——
+    /// 实测做种数的变异系数 34%~151%，拿它外推等于编数字。而两次采样之间
+    /// 进度涨了多少，是实打实测出来的吞吐量。
+    ///
+    /// `Option` 是因为这个字段是后加的，老样本里没有（`serde(default)`）。
+    #[serde(default)]
+    pub progress: Option<u64>,
+
+    /// 采样时的总字节数。任务改过文件选择的话会变，所以要跟着存。
+    #[serde(default)]
+    pub total: Option<u64>,
 }
 
 impl Sample {
@@ -519,7 +533,13 @@ pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &Health
     let torrents = engine.list();
     let mut hashes = Vec::new();
     let mut keep = HashSet::new();
+    // info-hash -> (已下字节, 总字节)，记进样本里给 forecast 用。
+    let mut progress: HashMap<String, (u64, u64)> = HashMap::new();
     for t in &torrents {
+        progress.insert(
+            t.info_hash.to_ascii_lowercase(),
+            (t.progress_bytes, t.total_bytes),
+        );
         let lower = t.info_hash.to_ascii_lowercase();
         if let Some(h) = parse_info_hash(&lower) {
             hashes.push((lower.clone(), h));
@@ -542,6 +562,8 @@ pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &Health
                 seeders: *seeders,
                 leechers: *leechers,
                 trackers_ok: *trackers_ok,
+                progress: progress.get(key).map(|(p, _)| *p),
+                total: progress.get(key).map(|(_, t)| *t),
             },
         );
     }
@@ -583,6 +605,7 @@ mod tests {
             seeders,
             leechers,
             trackers_ok: 3,
+            ..Default::default()
         }
     }
 
@@ -707,6 +730,7 @@ mod tests {
                 seeders: 0,
                 leechers: 0,
                 trackers_ok: 0,
+                ..Default::default()
             },
         ];
         let v = verdict(&history);

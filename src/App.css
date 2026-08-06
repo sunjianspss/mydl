@@ -1718,3 +1718,21 @@ input[type="checkbox"] {
   min-width: 0;
   line-height: 1.5;
 }
+
+/* 健康度那一行现在有两行内容了（状态 + 预测），得能换行。 */
+.health-wrap {
+  flex-wrap: wrap;
+}
+
+/* 「还要多久」独占一行：它按实测吞吐量算，和 swarm 状态是两回事，
+   并排放容易让人以为做种数能推出剩余时间。 */
+.health-forecast {
+  flex-basis: 100%;
+  padding-top: 2px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.health-range {
+  color: var(--faint);
+}

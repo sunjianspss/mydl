@@ -2,6 +2,7 @@ pub mod ai;
 pub mod automation;
 pub mod diagnose;
 pub mod engine;
+pub mod forecast;
 pub mod health;
 pub mod keep_awake;
 pub mod media;
@@ -152,6 +153,32 @@ fn torrent_health(
     info_hash: String,
 ) -> health::Verdict {
     health::verdict(&health.history(&info_hash))
+}
+
+/// 按实测吞吐量算「还要多久」。见 `forecast.rs`。
+///
+/// 纯读本地采样历史，不发包。**不出概率** —— 见那个模块的文档，
+/// 做种数的噪声太大，报百分比是编造精度。
+#[tauri::command]
+fn torrent_forecast(
+    engine: State<'_, Arc<Engine>>,
+    health: State<'_, Arc<health::HealthStore>>,
+    id: TorrentId,
+) -> Result<forecast::Forecast, String> {
+    let t = engine
+        .list()
+        .into_iter()
+        .find(|t| t.id == id)
+        .ok_or_else(|| format!("找不到任务 {id}"))?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    Ok(forecast::forecast(
+        &health.history(&t.info_hash),
+        t.total_bytes.saturating_sub(t.progress_bytes),
+        now,
+    ))
 }
 
 /// 立刻采一轮，不等定时器。返回覆盖了几个种子。
@@ -616,6 +643,7 @@ pub fn run() {
             pause_seeding,
             torrent_health,
             check_health_now,
+            torrent_forecast,
             find_sources,
             network_interfaces,
             diagnose_torrent,

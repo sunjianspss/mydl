@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-import type { HealthVerdict } from "./types";
+import type { Forecast, HealthVerdict } from "./types";
 
 interface Props {
+  torrentId: number;
   infoHash: string;
   onError: (message: string) => void;
 }
@@ -28,17 +29,19 @@ const TREND_ARROW: Record<HealthVerdict["trend"], string> = {
  * 只读本地已经采好的历史，不发包 —— 所以展开任务不会顺带把 info-hash
  * 捅给一堆 tracker。真要立刻采一轮得点「现在查一次」，那是显式动作。
  */
-export default function SwarmHealth({ infoHash, onError }: Props) {
+export default function SwarmHealth({ torrentId, infoHash, onError }: Props) {
   const [verdict, setVerdict] = useState<HealthVerdict | null>(null);
+  const [fc, setFc] = useState<Forecast | null>(null);
   const [checking, setChecking] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setVerdict(await invoke<HealthVerdict>("torrent_health", { infoHash }));
+      setFc(await invoke<Forecast>("torrent_forecast", { id: torrentId }));
     } catch (e) {
       onError(String(e));
     }
-  }, [infoHash, onError]);
+  }, [infoHash, torrentId, onError]);
 
   useEffect(() => {
     load();
@@ -59,7 +62,7 @@ export default function SwarmHealth({ infoHash, onError }: Props) {
   if (!verdict) return null;
 
   return (
-    <div className={`health health-${verdict.status}`}>
+    <div className={`health health-${verdict.status} health-wrap`}>
       <span className="health-badge">{STATUS_LABEL[verdict.status]}</span>
       <span className="health-summary">{verdict.summary}</span>
       {verdict.trend !== "unknown" && (
@@ -77,6 +80,18 @@ export default function SwarmHealth({ infoHash, onError }: Props) {
       <button className="act-text" onClick={checkNow} disabled={checking}>
         {checking ? "查询中…" : "现在查一次"}
       </button>
+      {/* 「还要多久」单独一行：它是按实测吞吐量算的，和上面那行 swarm 状态
+          是两回事，混在一起容易让人以为做种数能推出剩余时间。 */}
+      {fc && fc.summary && (
+        <div className="health-forecast" title="按采样历史里的实测速度算的，不是瞬时速度">
+          {fc.summary}
+          {fc.seedersMin != null && fc.seedersMax != null && fc.seedersMin !== fc.seedersMax && (
+            <span className="health-range">
+              　做种数区间 {fc.seedersMin}~{fc.seedersMax}，中位 {fc.seedersMedian}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
