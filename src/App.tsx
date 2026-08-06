@@ -13,6 +13,7 @@ import FileList from "./FileList";
 import SwarmHealth from "./SwarmHealth";
 import BetterSources from "./BetterSources";
 import Diagnose from "./Diagnose";
+import Verify from "./Verify";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
@@ -729,6 +730,7 @@ function TorrentRow({
               onError={onError}
             />
             <Diagnose torrentId={t.id} onError={onError} />
+            <Verify torrentId={t.id} onError={onError} />
             <FileList torrentId={t.id} streamable={t.state === "live"} onError={onError} />
           </>
         )}

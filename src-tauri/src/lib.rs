@@ -4,6 +4,7 @@ pub mod diagnose;
 pub mod engine;
 pub mod health;
 pub mod keep_awake;
+pub mod media;
 pub mod netif;
 pub mod platform;
 pub mod release;
@@ -11,6 +12,7 @@ pub mod rss;
 pub mod search;
 pub mod secrets;
 pub mod settings;
+pub mod verify;
 pub mod stream_server;
 
 use std::path::PathBuf;
@@ -291,6 +293,18 @@ async fn diagnose_torrent(
         engine.session_status().bind_device,
     )
     .await)
+}
+
+/// 验一验这个任务是不是名字说的那个东西。见 `verify.rs`。
+///
+/// 只读文件头（必要时加文件尾）几 MB，不等整个下完。会把这些分片提到最高
+/// 优先级，所以对正在下的任务来说等于插了个队。
+#[tauri::command]
+async fn verify_torrent(
+    engine: State<'_, Arc<Engine>>,
+    id: TorrentId,
+) -> Result<verify::VerifyReport, String> {
+    verify::verify_torrent(&engine, id).await.map_err(err)
 }
 
 /// 继续所有暂停的任务。
@@ -605,6 +619,7 @@ pub fn run() {
             find_sources,
             network_interfaces,
             diagnose_torrent,
+            verify_torrent,
             resume_all,
             delete_torrent,
             default_download_dir,

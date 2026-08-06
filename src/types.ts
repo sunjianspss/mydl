@@ -195,6 +195,26 @@ export interface DiagReport {
   advice: string | null;
 }
 
+/** 对应 verify.rs 的 Level / Finding / VerifyReport。 */
+export type VerifyLevel = "ok" | "warn" | "bad";
+
+export interface VerifyFinding {
+  level: VerifyLevel;
+  text: string;
+}
+
+export interface VerifyReport {
+  /** 实测到的容器类型；认不出时是「认不出」。 */
+  container: string;
+  width: number | null;
+  height: number | null;
+  durationSecs: number | null;
+  audioLangs: string[];
+  bitrateMbps: number | null;
+  findings: VerifyFinding[];
+  verdict: string;
+}
+
 /** 对应 netif.rs 的 NetIf。 */
 export interface NetIf {
   /** 接口名，写进设置的就是这个（en0）。 */

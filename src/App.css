@@ -1702,3 +1702,19 @@ input[type="checkbox"] {
   line-height: 1.55;
   color: var(--accent);
 }
+
+/* 验伪读出来的实测规格。放在结论前面 —— 先看事实再看判断。 */
+.verify-spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 7px 0 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.verify-text {
+  min-width: 0;
+  line-height: 1.5;
+}
