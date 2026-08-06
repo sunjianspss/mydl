@@ -525,12 +525,18 @@ pub async fn scrape_many(hashes: &[(String, [u8; 20])]) -> HashMap<String, (u32,
 ///
 /// 单个 tracker 挂掉不影响其余 —— 实测公共 tracker 里总有一两个是连不上的，
 /// 一个失败就整轮放弃的话基本采不到数据。
-pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &HealthStore) -> usize {
+pub async fn sample_once(
+    engine: &Engine,
+    store: &SettingsStore,
+    health: &HealthStore,
+    stats: Option<&crate::stats::StatsStore>,
+) -> usize {
     if !store.get().swarm_health_check {
         return 0;
     }
 
     let torrents = engine.list();
+
     let mut hashes = Vec::new();
     let mut keep = HashSet::new();
     // info-hash -> (已下字节, 总字节)，记进样本里给 forecast 用。
@@ -549,6 +555,12 @@ pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &Health
     health.retain(&keep);
     if hashes.is_empty() {
         return 0;
+    }
+
+    // 手动「现在查一次」也顺带记一笔统计。定时循环那条路在调用这里之前
+    // 已经记过了，重复调用是安全的 —— 增量按种子算，第二次算出来是 0。
+    if let Some(stats) = stats {
+        record_daily(engine, stats);
     }
 
     let merged = scrape_many(&hashes).await;
@@ -578,7 +590,29 @@ pub async fn sample_once(engine: &Engine, store: &SettingsStore, health: &Health
     merged.len()
 }
 
-pub fn spawn(engine: Arc<Engine>, store: Arc<SettingsStore>, health: Arc<HealthStore>) {
+/// 把这一轮的进度/上传量交给每日统计。
+///
+/// 和 swarm 采样分开：**统计不该受「记录 swarm 健康度」那个开关影响** ——
+/// 那个开关管的是「要不要把 info-hash 发给公共 tracker」，是隐私问题；
+/// 而每日统计纯本地，一个包都不发。
+pub fn record_daily(engine: &Engine, stats: &crate::stats::StatsStore) {
+    let current: Vec<(String, u64, u64)> = engine
+        .list()
+        .into_iter()
+        .map(|t| (t.info_hash.to_ascii_lowercase(), t.progress_bytes, t.uploaded_bytes))
+        .collect();
+    let (down, up) = stats.record(&current, now_secs());
+    if down > 0 || up > 0 {
+        tracing::debug!(新增下载 = down, 新增上传 = up, "每日统计");
+    }
+}
+
+pub fn spawn(
+    engine: Arc<Engine>,
+    store: Arc<SettingsStore>,
+    health: Arc<HealthStore>,
+    stats: Arc<crate::stats::StatsStore>,
+) {
     tauri::async_runtime::spawn(async move {
         // 先采一轮再进循环，而不是上来就睡半小时 —— 否则新装的用户展开任务
         // 只会看到「还没采到数据」，得等到下一个整点才有东西看。
@@ -586,7 +620,10 @@ pub fn spawn(engine: Arc<Engine>, store: Arc<SettingsStore>, health: Arc<HealthS
         // 跟启动时那一堆 DHT/tracker 流量挤在一起。
         tokio::time::sleep(STARTUP_DELAY).await;
         loop {
-            sample_once(&engine, &store, &health).await;
+            // 统计先记，且无条件记 —— swarm 采样可能被开关关掉，
+            // 但每日统计是纯本地的，不该跟着一起停。
+            record_daily(&engine, &stats);
+            sample_once(&engine, &store, &health, Some(&stats)).await;
             // 每轮重读间隔，改了设置不用重启。下限 10 分钟：scrape 很便宜，
             // 但没必要比 tracker 自己给的 announce interval 还勤。
             let minutes = store.get().swarm_health_interval_minutes.max(10);

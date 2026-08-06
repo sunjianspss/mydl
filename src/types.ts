@@ -215,6 +215,34 @@ export interface VerifyReport {
   verdict: string;
 }
 
+/** 对应 stats.rs 的 Cell / Report。 */
+export interface StatsCell {
+  date: string;
+  down: number;
+  up: number;
+  /**
+   * 这一天在不在统计范围内。
+   *
+   * 开始统计之前的日子是「没有数据」，不是「那天没下载」——
+   * 图上必须能区分，否则新装的用户会看到半年的「零活动」。
+   */
+  tracked: boolean;
+}
+
+export interface StatsReport {
+  /** 从哪天开始统计的。累计值只能从这天算起，说成「历史总量」是撒谎。 */
+  since: string | null;
+  totalDown: number;
+  totalUp: number;
+  peakDown: number;
+  peakDate: string | null;
+  currentStreak: number;
+  longestStreak: number;
+  activeDays: number;
+  /** 按日期升序，最后一格是今天。 */
+  cells: StatsCell[];
+}
+
 /** 对应 netif.rs 的 NetIf。 */
 export interface NetIf {
   /** 接口名，写进设置的就是这个（en0）。 */

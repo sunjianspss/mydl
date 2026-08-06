@@ -109,6 +109,15 @@ export function UpIcon(p: Props) {
   );
 }
 
+/** 侧边栏「下载活动」。三根高低不同的柱子，一眼认得出是统计。 */
+export function ChartIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="M3 12.5V8M8 12.5V3.5M13 12.5v-6" {...stroke} />
+    </Svg>
+  );
+}
+
 export function CheckIcon(p: Props) {
   return (
     <Svg {...p}>

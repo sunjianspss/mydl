@@ -14,12 +14,14 @@ import SwarmHealth from "./SwarmHealth";
 import BetterSources from "./BetterSources";
 import Diagnose from "./Diagnose";
 import Verify from "./Verify";
+import Stats from "./Stats";
 import AddDialog from "./AddDialog";
 import SettingsDialog from "./SettingsDialog";
 import RssDialog from "./RssDialog";
 import SearchDialog from "./SearchDialog";
 import { getTheme, setTheme, type Theme } from "./theme";
 import {
+  ChartIcon,
   CheckIcon,
   DocIcon,
   DownIcon,
@@ -104,6 +106,9 @@ export default function App() {
   // 展开了文件列表的任务。
   const [expanded, setExpanded] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  // 「统计」是独立视图而不是任务分类 —— 它不筛任务，塞进 Filter 会让
+  // matchesFilter 多一个永远返回 false 的分支。
+  const [showStats, setShowStats] = useState(false);
   // 拖着 .torrent 悬在窗口上时给个视觉反馈。
   const [dragging, setDragging] = useState(false);
   // 剪贴板里发现的、还没处理过的磁力链。null = 不显示横幅。
@@ -299,8 +304,11 @@ export default function App() {
             <button
               key={id}
               className="side-item"
-              aria-current={filter === id}
-              onClick={() => setFilter(id)}
+              aria-current={!showStats && filter === id}
+              onClick={() => {
+                setShowStats(false);
+                setFilter(id);
+              }}
             >
               <Icon />
               <span className="side-name">{label}</span>
@@ -308,6 +316,16 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        <div className="side-label">统计</div>
+        <button
+          className="side-item"
+          aria-current={showStats}
+          onClick={() => setShowStats(true)}
+        >
+          <ChartIcon />
+          <span className="side-name">下载活动</span>
+        </button>
 
         <div className="side-label">订阅</div>
         <button className="side-item" onClick={() => setShowRss(true)} disabled={!settings}>
@@ -460,6 +478,9 @@ export default function App() {
           )}
         </header>
 
+        {showStats ? (
+          <Stats onError={setError} />
+        ) : (
         <section className="list">
           {visible.length === 0 && (
             <p className="empty">
@@ -496,6 +517,7 @@ export default function App() {
             />
           ))}
         </section>
+        )}
 
         <footer className="statusbar">
           {/* 只写「N 个任务」会让下完在做种的看起来还在下 —— 这几个字曾经

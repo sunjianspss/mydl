@@ -14,6 +14,7 @@ pub mod search;
 pub mod secrets;
 pub mod settings;
 pub mod verify;
+pub mod stats;
 pub mod stream_server;
 
 use std::path::PathBuf;
@@ -188,7 +189,7 @@ async fn check_health_now(
     store: State<'_, Arc<SettingsStore>>,
     health: State<'_, Arc<health::HealthStore>>,
 ) -> Result<usize, String> {
-    Ok(health::sample_once(&engine, &store, &health).await)
+    Ok(health::sample_once(&engine, &store, &health, None).await)
 }
 
 /// 给一个已有任务找替代源的结果。
@@ -332,6 +333,16 @@ async fn verify_torrent(
     id: TorrentId,
 ) -> Result<verify::VerifyReport, String> {
     verify::verify_torrent(&engine, id).await.map_err(err)
+}
+
+/// 每日下载/上传统计。纯读本地记录，不发包。
+#[tauri::command]
+fn download_stats(stats: State<'_, Arc<stats::StatsStore>>) -> stats::Report {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    stats.snapshot(now)
 }
 
 /// 继续所有暂停的任务。
@@ -527,17 +538,19 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
 
     let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
     let health = Arc::new(health::HealthStore::load(health::health_path(&config_dir)));
+    let stats = Arc::new(stats::StatsStore::load(stats::stats_path(&config_dir)));
 
     automation::spawn(app.handle().clone(), engine.clone(), store.clone());
     rss::spawn(engine.clone(), store.clone(), seen.clone());
     keep_awake::spawn(engine.clone(), store.clone());
-    health::spawn(engine.clone(), store.clone(), health.clone());
+    health::spawn(engine.clone(), store.clone(), health.clone(), stats.clone());
 
     app.manage(engine);
     app.manage(server);
     app.manage(store);
     app.manage(seen);
     app.manage(health);
+    app.manage(stats);
     Ok(())
 }
 
@@ -644,6 +657,7 @@ pub fn run() {
             torrent_health,
             check_health_now,
             torrent_forecast,
+            download_stats,
             find_sources,
             network_interfaces,
             diagnose_torrent,

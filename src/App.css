@@ -1736,3 +1736,228 @@ input[type="checkbox"] {
 .health-range {
   color: var(--faint);
 }
+
+/* ============================================================
+   下载统计：KPI 行 + 活动热力图
+   色阶是 dataviz 规范里的 sequential 蓝，单色相、light→dark，
+   用 validate_palette.js 按**热力图实际落在的那个表面**跑过 —— 是主区
+   背景 --bg，不是面板色（一开始拿 --panel 验的，属于验错了对象）：
+     浅色 #f2f2f7 —— #6da7ec 起，2.24:1，全部 PASS
+     深色 #1c1c1e —— #256abf 起，3.15:1，全部 PASS
+   深色不是浅色的自动翻转，是对着深表面重新选的方向和步长。
+   ============================================================ */
+
+.stats-view {
+  min-height: 0;
+  padding: 16px 18px 24px;
+  overflow-y: auto;
+
+  /* 层次必须是 none < 0 < 1..5：
+     「没有统计数据」最退让（几乎融进面板），「有统计但当天没下载」
+     要比它明显一点但仍是中性色（不属于蓝色阶）。
+     写反的话新用户会看到半年整齐的灰格子，分不出哪段是真没下过。 */
+  --heat-none: color-mix(in srgb, var(--track) 35%, var(--panel));
+  --heat-0: var(--track);
+  --heat-1: #6da7ec;
+  --heat-2: #3987e5;
+  --heat-3: #256abf;
+  --heat-4: #184f95;
+  --heat-5: #0d366b;
+}
+
+:root[data-theme="dark"] .stats-view,
+:root:not([data-theme]) .stats-view {
+  --heat-none: color-mix(in srgb, var(--track) 40%, var(--panel));
+  --heat-0: var(--track);
+  --heat-1: #256abf;
+  --heat-2: #3987e5;
+  --heat-3: #6da7ec;
+  --heat-4: #9ec5f4;
+  --heat-5: #cde2fb;
+}
+
+/* ---------- KPI 行 ---------- */
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  padding: 14px 4px;
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+}
+
+.kpi {
+  padding: 0 14px;
+  text-align: center;
+  border-left: 1px solid var(--hairline);
+}
+
+.kpi:first-child {
+  border-left: none;
+}
+
+/* 大数字用比例数字（默认），不用 tabular —— tabular 会让 121 这种
+   在大字号下显得松垮。等宽只留给要竖向对齐的表格列。 */
+.kpi-value {
+  font-size: 21px;
+  font-weight: 600;
+  font-variant-numeric: normal;
+  color: var(--text);
+}
+
+/* 起始日期不塞进标签里 —— 那会让第一个 tile 的标签换行、把整行挤到
+   两排。日期放在下面单独一行。 */
+.stats-since {
+  margin: 6px 2px 0;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.kpi-label {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* ---------- 标题 + 模式切换 ---------- */
+
+.stats-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 26px 0 12px;
+}
+
+.stats-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stats-modes {
+  display: flex;
+  gap: 4px;
+}
+
+.stats-mode {
+  padding: 2px 9px;
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+.stats-mode[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--fill);
+}
+
+/* ---------- 热力图 ---------- */
+
+.heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+  overflow-x: auto;
+}
+
+.heat-weekly {
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.heat-cell {
+  width: 11px;
+  height: 11px;
+  background: var(--heat-none);
+  border-radius: 2px;
+}
+
+.heat-l-1 { background: var(--heat-none); }
+.heat-l0  { background: var(--heat-0); }
+.heat-l1  { background: var(--heat-1); }
+.heat-l2  { background: var(--heat-2); }
+.heat-l3  { background: var(--heat-3); }
+.heat-l4  { background: var(--heat-4); }
+.heat-l5  { background: var(--heat-5); }
+
+/* sequential 编码必须配刻度图例，否则深浅没有参照。 */
+.heat-legend {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.heat-gap {
+  margin-left: 8px;
+}
+
+/* ---------- 累计曲线 ---------- */
+
+.cume {
+  padding-top: 4px;
+}
+
+.cume svg {
+  display: block;
+  width: 100%;
+  height: 96px;
+}
+
+.cume-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.cume-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.cume-total {
+  color: var(--text);
+}
+
+/* ---------- 数据表（无障碍：颜色之外的一条路） ---------- */
+
+.stats-tablebtn {
+  margin-top: 18px;
+}
+
+.stats-table {
+  width: 100%;
+  margin-top: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+}
+
+.stats-table th {
+  padding: 5px 8px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.stats-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.stats-empty {
+  padding: 18px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}

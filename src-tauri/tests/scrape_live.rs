@@ -108,7 +108,7 @@ async fn samples_end_to_end() {
     let settings = SettingsStore::load(tmp.join("settings.json"));
     let store = HealthStore::load(tmp.join("swarm_health.json"));
 
-    let n = health::sample_once(&engine, &settings, &store).await;
+    let n = health::sample_once(&engine, &settings, &store, None).await;
 
     let history = store.history(&info_hash);
     let v = health::verdict(&history);
