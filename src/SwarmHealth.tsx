@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-import type { Forecast, HealthVerdict } from "./types";
+import type { Forecast, HealthVerdict, RarityVerdict } from "./types";
 
 interface Props {
   torrentId: number;
@@ -32,12 +32,16 @@ const TREND_ARROW: Record<HealthVerdict["trend"], string> = {
 export default function SwarmHealth({ torrentId, infoHash, onError }: Props) {
   const [verdict, setVerdict] = useState<HealthVerdict | null>(null);
   const [fc, setFc] = useState<Forecast | null>(null);
+  const [rare, setRare] = useState<RarityVerdict | null>(null);
   const [checking, setChecking] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setVerdict(await invoke<HealthVerdict>("torrent_health", { infoHash }));
       setFc(await invoke<Forecast>("torrent_forecast", { id: torrentId }));
+      // 稀缺度只对做种（已完成）的任务有意义 —— 命令那边已经过滤过了。
+      const all = await invoke<[number, RarityVerdict][]>("seeding_rarity");
+      setRare(all.find(([id]) => id === torrentId)?.[1] ?? null);
     } catch (e) {
       onError(String(e));
     }
@@ -82,6 +86,12 @@ export default function SwarmHealth({ torrentId, infoHash, onError }: Props) {
       </button>
       {/* 「还要多久」单独一行：它是按实测吞吐量算的，和上面那行 swarm 状态
           是两回事，混在一起容易让人以为做种数能推出剩余时间。 */}
+      {rare && rare.rarity !== "unknown" && (
+        <div className={`health-rarity rarity-${rare.rarity}`} title="按采样窗口内做种数的中位数判的">
+          {rare.rarity === "rare" ? "★ " : ""}
+          {rare.summary}
+        </div>
+      )}
       {fc && fc.summary && (
         <div className="health-forecast" title="按采样历史里的实测速度算的，不是瞬时速度">
           {fc.summary}

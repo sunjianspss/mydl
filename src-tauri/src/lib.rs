@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod automation;
+pub mod congestion;
 pub mod diagnose;
 pub mod engine;
 pub mod forecast;
@@ -8,6 +9,7 @@ pub mod keep_awake;
 pub mod media;
 pub mod netif;
 pub mod platform;
+pub mod rarity;
 pub mod release;
 pub mod rss;
 pub mod search;
@@ -139,6 +141,52 @@ async fn resume_torrent(engine: State<'_, Arc<Engine>>, id: TorrentId) -> Result
 #[tauri::command]
 async fn pause_all(engine: State<'_, Arc<Engine>>) -> Result<usize, String> {
     Ok(engine.pause_all().await)
+}
+
+/// 每个做种任务的稀缺度。给界面标「全网仅存 N 份」用。
+#[tauri::command]
+fn seeding_rarity(
+    engine: State<'_, Arc<Engine>>,
+    health: State<'_, Arc<health::HealthStore>>,
+) -> Vec<(TorrentId, rarity::Verdict)> {
+    engine
+        .list()
+        .into_iter()
+        .filter(|t| t.finished)
+        .map(|t| (t.id, rarity::judge(&health.history(&t.info_hash))))
+        .collect()
+}
+
+/// 只暂停「不稀缺」的做种任务，把全局上传预算让给稀有的那些。
+///
+/// 为什么是暂停而不是分配带宽：librqbit v9 的 per-torrent `ratelimits` 在
+/// `ManagedTorrentOptions` 里，整个结构是 `pub(crate)`，外部够不着 ——
+/// 只有全局那一个。粗，但这是现有 API 唯一能做到的分配。
+///
+/// **判不出稀缺度的一律不动。** 数据不够就保守，不能因为「还没采够」
+/// 就把人家的做种停了。
+#[tauri::command]
+async fn pause_common_seeding(
+    engine: State<'_, Arc<Engine>>,
+    health: State<'_, Arc<health::HealthStore>>,
+) -> Result<usize, String> {
+    let targets: Vec<TorrentId> = engine
+        .list()
+        .into_iter()
+        .filter(|t| t.finished && t.state == "live")
+        .filter(|t| rarity::judge(&health.history(&t.info_hash)).rarity == rarity::Rarity::Common)
+        .map(|t| t.id)
+        .collect();
+
+    let mut n = 0;
+    for id in targets {
+        match engine.pause(id).await {
+            Ok(()) => n += 1,
+            Err(e) => tracing::warn!(id, "暂停失败：{e:#}"),
+        }
+    }
+    tracing::info!(暂停 = n, "只留稀有的做种");
+    Ok(n)
 }
 
 /// 只暂停做种中的任务，返回操作了几个。下载中的不动。
@@ -333,6 +381,12 @@ async fn verify_torrent(
     id: TorrentId,
 ) -> Result<verify::VerifyReport, String> {
     verify::verify_torrent(&engine, id).await.map_err(err)
+}
+
+/// 自适应上传限速的当前状态。None = 没开或还没起来。
+#[tauri::command]
+fn congestion_state(state: State<'_, congestion::Shared>) -> Option<congestion::State> {
+    *state.lock().unwrap()
 }
 
 /// 每日下载/上传统计。纯读本地记录，不发包。
@@ -539,11 +593,13 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
     let health = Arc::new(health::HealthStore::load(health::health_path(&config_dir)));
     let stats = Arc::new(stats::StatsStore::load(stats::stats_path(&config_dir)));
+    let congestion: congestion::Shared = Default::default();
 
     automation::spawn(app.handle().clone(), engine.clone(), store.clone());
     rss::spawn(engine.clone(), store.clone(), seen.clone());
     keep_awake::spawn(engine.clone(), store.clone());
     health::spawn(engine.clone(), store.clone(), health.clone(), stats.clone());
+    congestion::spawn(engine.clone(), store.clone(), congestion.clone());
 
     app.manage(engine);
     app.manage(server);
@@ -551,6 +607,7 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     app.manage(seen);
     app.manage(health);
     app.manage(stats);
+    app.manage(congestion);
     Ok(())
 }
 
@@ -654,10 +711,13 @@ pub fn run() {
             resume_torrent,
             pause_all,
             pause_seeding,
+            seeding_rarity,
+            pause_common_seeding,
             torrent_health,
             check_health_now,
             torrent_forecast,
             download_stats,
+            congestion_state,
             find_sources,
             network_interfaces,
             diagnose_torrent,

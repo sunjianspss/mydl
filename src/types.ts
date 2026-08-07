@@ -115,6 +115,11 @@ export interface Settings {
   aiModel: string;
   /** 用模型给搜索结果排序。没填 key 时不起作用。 */
   aiRank: boolean;
+  /**
+   * 自动调整上传限速：测网关排队延迟，涨了退让、稳了往上爬。
+   * 补 librqbit-utp 缺的 LEDBAT。开启后 uploadLimitKbps 变成天花板。
+   */
+  adaptiveUploadLimit: boolean;
   /** 全局上传限速，KiB/s。null 或 0 表示不限。改完立刻生效。 */
   uploadLimitKbps: number | null;
   /** 全局下载限速，KiB/s。改完立刻生效。 */
@@ -241,6 +246,25 @@ export interface StatsReport {
   activeDays: number;
   /** 按日期升序，最后一格是今天。 */
   cells: StatsCell[];
+}
+
+/** 对应 rarity.rs 的 Rarity / Verdict。 */
+export type RarityLevel = "unknown" | "rare" | "common";
+
+export interface RarityVerdict {
+  rarity: RarityLevel;
+  /** 窗口内做种数的中位数（不是最新值 —— 抖动太大）。 */
+  seeders: number | null;
+  summary: string;
+}
+
+/** 对应 congestion.rs 的 State。 */
+export interface CongestionState {
+  limitBps: number;
+  baselineMs: number | null;
+  lastRttMs: number | null;
+  /** 排队延迟 = 最近 RTT − 基线。这是控制器实际盯的量。 */
+  queueDelayMs: number | null;
 }
 
 /** 对应 netif.rs 的 NetIf。 */

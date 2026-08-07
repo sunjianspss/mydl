@@ -49,12 +49,20 @@ export default function Stats({ onError }: Props) {
 
   return (
     <div className="stats-view">
+      {/* Hero：整页只有一个，就是那个最该被看见的数字。
+          dataviz 规范：≥48px，同一套 sans，一个视图只准有一个。 */}
+      <div className="hero">
+        <div className="hero-value">{formatBytes(report.totalDown)}</div>
+        <div className="hero-caption">
+          累计下载
+          {report.since && ` · 统计自 ${report.since}`}
+        </div>
+        {report.since && (
+          <div className="hero-note">之前的数据这个系统没记过，累计值只能从这天算起</div>
+        )}
+      </div>
+
       <KpiRow report={report} />
-      {report.since && (
-        <p className="stats-since">
-          统计自 {report.since} —— 之前的数据这个系统没记过，累计值只能从这天算起
-        </p>
-      )}
 
       <div className="stats-head">
         <h3 className="stats-title">下载活动</h3>
@@ -95,12 +103,8 @@ export default function Stats({ onError }: Props) {
 }
 
 function KpiRow({ report: r }: { report: StatsReport }) {
+  // 累计下载已经升为 hero，这里不重复。
   const tiles: { label: string; value: string; title?: string }[] = [
-    {
-      label: "累计下载",
-      value: formatBytes(r.totalDown),
-      title: "只能从开始统计那天算起 —— 之前的数据这个系统没记过",
-    },
     { label: "累计上传", value: formatBytes(r.totalUp) },
     {
       label: "单日最高",
@@ -109,6 +113,7 @@ function KpiRow({ report: r }: { report: StatsReport }) {
     },
     { label: "当前连续", value: `${r.currentStreak} 天` },
     { label: "最长连续", value: `${r.longestStreak} 天` },
+    { label: "有下载的天数", value: `${r.activeDays} 天` },
   ];
   return (
     <div className="kpi-row">
@@ -158,38 +163,124 @@ function levelize(values: number[]): (v: number) => number {
   };
 }
 
+/** 按年切分。跨年的半年窗口画成一整条会让「去年 12 月」和「今年 1 月」
+    挨在一起，看不出年份边界。 */
+function byYear(cells: StatsCell[]): { year: string; cells: StatsCell[]; total: number }[] {
+  const groups = new Map<string, StatsCell[]>();
+  for (const c of cells) {
+    const y = c.date.slice(0, 4);
+    if (!groups.has(y)) groups.set(y, []);
+    groups.get(y)!.push(c);
+  }
+  return [...groups.entries()].map(([year, cs]) => ({
+    year,
+    cells: cs,
+    total: cs.reduce((s, c) => s + c.down, 0),
+  }));
+}
+
+/**
+ * 月份刻度。只在「这一列的第一天跨进了新月份」时打标 ——
+ * 每列都标会挤成一团，一个不标就没有横轴，图上的位置读不出时间。
+ */
+function monthTicks(cells: StatsCell[], cols: number): (string | null)[] {
+  const ticks: (string | null)[] = [];
+  let lastMonth = "";
+  for (let col = 0; col < cols; col++) {
+    const first = cells[col * 7];
+    const m = first ? first.date.slice(5, 7) : "";
+    if (m && m !== lastMonth) {
+      lastMonth = m;
+      ticks.push(`${parseInt(m, 10)}月`);
+    } else {
+      ticks.push(null);
+    }
+  }
+  return ticks;
+}
+
 function Heatmap({ cells, weekly }: { cells: StatsCell[]; weekly: boolean }) {
   const data = weekly ? toWeeks(cells) : cells;
+  // 分档在**整个窗口**上算，不是按年 —— 否则两年的同一个颜色代表不同的量。
   const level = useMemo(() => levelize(data.map((c) => c.down)), [data]);
+
+  if (weekly) {
+    return (
+      <>
+        <div className="heat heat-weekly" role="img" aria-label="下载活动热力图（按周）">
+          {data.map((c) => (
+            <Cell key={c.date} cell={c} level={level} weekly />
+          ))}
+        </div>
+        <Legend />
+      </>
+    );
+  }
 
   return (
     <>
-      <div className={`heat${weekly ? " heat-weekly" : ""}`} role="img" aria-label="下载活动热力图">
-        {data.map((c) => {
-          const lvl = c.tracked ? level(c.down) : -1;
-          return (
-            <div
-              key={c.date}
-              className={`heat-cell heat-l${lvl}`}
-              title={
-                !c.tracked
-                  ? `${c.date}　没有统计数据`
-                  : `${c.date}　↓ ${formatBytes(c.down)}　↑ ${formatBytes(c.up)}`
-              }
-            />
-          );
-        })}
-      </div>
-      <div className="heat-legend">
-        <span>没数据</span>
-        <span className="heat-cell heat-l-1" />
-        <span className="heat-gap">少</span>
-        {[0, 1, 2, 3, 4, 5].map((l) => (
-          <span key={l} className={`heat-cell heat-l${l}`} />
-        ))}
-        <span>多</span>
-      </div>
+      {byYear(cells).map((g) => {
+        const cols = Math.ceil(g.cells.length / 7);
+        return (
+          <div className="heat-year" key={g.year}>
+            <div className="heat-side">
+              <div className="heat-yearnum">{g.year}</div>
+              <div className="heat-yeartotal">{formatBytes(g.total)}</div>
+            </div>
+            <div className="heat-plot">
+              <div className="heat-months" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+                {monthTicks(g.cells, cols).map((t, i) => (
+                  <span key={i}>{t}</span>
+                ))}
+              </div>
+              <div className="heat" role="img" aria-label={`${g.year} 年下载活动`}>
+                {g.cells.map((c) => (
+                  <Cell key={c.date} cell={c} level={level} />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <Legend />
     </>
+  );
+}
+
+function Cell({
+  cell: c,
+  level,
+  weekly,
+}: {
+  cell: StatsCell;
+  level: (v: number) => number;
+  weekly?: boolean;
+}) {
+  const lvl = c.tracked ? level(c.down) : -1;
+  return (
+    <div
+      className={`heat-cell heat-l${lvl}`}
+      title={
+        !c.tracked
+          ? `${c.date}　没有统计数据`
+          : `${c.date}　${weekly ? "本周 " : ""}↓ ${formatBytes(c.down)}　↑ ${formatBytes(c.up)}`
+      }
+    />
+  );
+}
+
+/** sequential 编码必须配刻度图例，否则深浅没有参照。 */
+function Legend() {
+  return (
+    <div className="heat-legend">
+      <span>没数据</span>
+      <span className="heat-cell heat-l-1" />
+      <span className="heat-gap">少</span>
+      {[0, 1, 2, 3, 4, 5].map((l) => (
+        <span key={l} className={`heat-cell heat-l${l}`} />
+      ))}
+      <span>多</span>
+    </div>
   );
 }
 

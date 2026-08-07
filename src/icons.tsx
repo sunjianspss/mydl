@@ -238,6 +238,15 @@ export function PauseSeedIcon(p: Props) {
   );
 }
 
+/** 只留稀有的做种：一颗星。和「暂停做种」的箭头款区分开。 */
+export function RareIcon(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="M8 2.2l1.5 3.4 3.7.4-2.8 2.5.8 3.6L8 10.3 4.8 12.1l.8-3.6L2.8 6l3.7-.4z" {...stroke} />
+    </Svg>
+  );
+}
+
 export function PlayAllIcon(p: Props) {
   return (
     <Svg {...p}>

@@ -32,6 +32,7 @@ import {
   PauseIcon,
   PauseSeedIcon,
   PlayAllIcon,
+  RareIcon,
   PlayIcon,
   PlusIcon,
   RssIcon,
@@ -395,6 +396,15 @@ export default function App() {
               onClick={() => run(() => invoke("pause_seeding"))}
             >
               <PauseSeedIcon />
+            </button>
+            <button
+              type="button"
+              className="tb-icon"
+              title="只留稀有的做种（做种数多的暂停，把上传带宽让给全网没几份的）"
+              disabled={counts.seeding === 0}
+              onClick={() => run(() => invoke("pause_common_seeding"))}
+            >
+              <RareIcon />
             </button>
             <button
               type="button"

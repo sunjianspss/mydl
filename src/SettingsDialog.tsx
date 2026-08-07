@@ -221,6 +221,28 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
         <label className="setting">
           <input
             type="checkbox"
+            checked={draft.adaptiveUploadLimit}
+            onChange={(e) => patch({ adaptiveUploadLimit: e.target.checked })}
+          />
+          <span>
+            <b>自动调整上传限速</b>
+            <em>
+              每 5 秒测一次到网关的延迟：<b>排队延迟涨起来就退让，稳了就往上爬</b>。
+              补的是 <code>librqbit-utp</code> 缺的 LEDBAT —— 它用 CUBIC，抢带宽和
+              普通 TCP 一样凶。
+              <br />
+              手填固定值的问题是<b>必须按最坏情况填</b>，没人开会时也跑不满。开启后
+              上面那个上传限速变成<b>天花板</b>而不是固定值。
+              <br />
+              只在<b>我们自己在满负荷上传时</b>才降速 —— 别人占带宽或 Wi-Fi 抖动
+              不该让我们白白限死自己。
+            </em>
+          </span>
+        </label>
+
+        <label className="setting">
+          <input
+            type="checkbox"
             checked={draft.usePublicTrackers}
             onChange={(e) => patch({ usePublicTrackers: e.target.checked })}
           />

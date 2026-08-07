@@ -135,6 +135,15 @@ pub struct Settings {
     /// 全局下载限速，单位 KiB/s。None 或 0 表示不限。和上传限速一样运行时可改。
     pub download_limit_kbps: Option<u32>,
 
+    /// 自动调整上传限速：测到网关的排队延迟涨了就退让，稳了就往上爬。
+    ///
+    /// 补的是 `librqbit-utp` 缺的 LEDBAT —— 它用 CUBIC，抢带宽和普通 TCP
+    /// 一样凶。手填一个固定上限只能按最坏情况填，没人开会的时候也跑不满。
+    ///
+    /// 开启后 `upload_limit_kbps` 变成**天花板**而不是固定值；填 0 / 不限时
+    /// 用一个保守起点自己往上爬。见 `congestion.rs`。
+    pub adaptive_upload_limit: bool,
+
     /// 全局上传限速，单位 KiB/s。None 或 0 表示不限。
     ///
     /// 默认不限是因为限速会拖慢自己的下载（BT 靠上传换下载），但一旦上行
@@ -218,6 +227,7 @@ impl Default for Settings {
             swarm_health_check: true,
             swarm_health_interval_minutes: 30,
             bind_device: None,
+            adaptive_upload_limit: false,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
             watch_clipboard: true,
