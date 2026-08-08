@@ -1338,6 +1338,21 @@ input[type="checkbox"] {
   flex: 1;
 }
 
+/* 每条订阅的保存目录。和规则行一样缩进，路径长了截断而不是把行撑开。 */
+.rss-dir {
+  padding-left: 24px;
+  margin-top: 6px;
+}
+
+.rss-dir .path {
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rss-name {
   flex: 0 0 140px;
 }

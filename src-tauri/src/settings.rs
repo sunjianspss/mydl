@@ -112,6 +112,13 @@ pub struct Settings {
     /// 用模型给搜索结果排序。没填 key 时这个开关不起作用。
     pub ai_rank: bool,
 
+    /// 用户自己指定的播放器路径。None = 只用自动扫出来的那几个。
+    ///
+    /// 自动检测是按固定名字查固定目录（见 `platform.rs` 的 `KNOWN`），装在
+    /// 别处就认不出来 —— 比如 brew 装的 mpv 在 `/opt/homebrew/bin/mpv`，
+    /// 根本不是个 `.app`。有这个字段时用户至少有条出路。
+    pub custom_player: Option<String>,
+
     /// 切回窗口时看一眼剪贴板里有没有磁力链，有就提示添加。
     ///
     /// **只在窗口重新获得焦点时读一次**，不在后台轮询：常驻读剪贴板既让人
@@ -194,6 +201,13 @@ pub struct RssFeed {
     pub include: String,
     /// 命中任一即排除。
     pub exclude: String,
+
+    /// 这条订阅的下载目录。None / 空 = 用全局下载目录。
+    ///
+    /// 按订阅分目录是常见用法（剧集一个源、电影一个源），而全局目录是会话
+    /// 默认目录，改它要重建 session；这里走的是 `Engine::add` 的按任务目录，
+    /// 不受那个限制。
+    pub dir: Option<String>,
 }
 
 impl Default for RssFeed {
@@ -205,6 +219,7 @@ impl Default for RssFeed {
             enabled: true,
             include: String::new(),
             exclude: String::new(),
+            dir: None,
         }
     }
 }
@@ -230,6 +245,7 @@ impl Default for Settings {
             adaptive_upload_limit: false,
             // 下载中不休眠是下载工具的常规行为，默认开。
             prevent_sleep_while_downloading: true,
+            custom_player: None,
             watch_clipboard: true,
             search_url: None,
             ai_base_url: "https://api.deepseek.com".into(),

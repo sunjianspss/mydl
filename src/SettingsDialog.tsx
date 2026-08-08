@@ -53,6 +53,17 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
     if (typeof picked === "string") patch({ moveTo: picked });
   }
 
+  /// macOS 上播放器是 .app 包（在 Finder 里是「一个文件」，选得中）；
+  /// Windows 上是 .exe。brew 装的 mpv 那种裸可执行文件两边都能选。
+  async function pickPlayer() {
+    const picked = await open({
+      multiple: false,
+      directory: false,
+      filters: IS_MAC ? undefined : [{ name: "播放器", extensions: ["exe"] }],
+    });
+    if (typeof picked === "string") patch({ customPlayer: picked });
+  }
+
   async function save() {
     setSaving(true);
     try {
@@ -170,6 +181,36 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
             </em>
           </span>
         </label>
+
+        <label className="setting">
+          <input
+            type="checkbox"
+            checked={draft.customPlayer !== null}
+            onChange={(e) => patch({ customPlayer: e.target.checked ? "" : null })}
+          />
+          <span>
+            <b>指定播放器</b>
+            <em>
+              边下边播的按钮是<b>按固定名字扫固定目录</b>扫出来的（
+              {IS_MAC ? "/Applications 里的 IINA / VLC / mpv / QuickTime" : "Program Files 里的 VLC / mpv / PotPlayer / MPC-HC"}
+              ），装在别处就认不出来 —— 比如 brew 装的 mpv 在
+              <code>{IS_MAC ? "/opt/homebrew/bin/mpv" : "%LOCALAPPDATA%"}</code>，
+              根本不是个 {IS_MAC ? ".app" : "标准安装位置"}。这里指一条路径就能用它。
+              和自动扫出来的重名时，<b>以你指的这条为准</b>。
+            </em>
+          </span>
+        </label>
+
+        {draft.customPlayer !== null && (
+          <div className="setting-sub">
+            <button onClick={pickPlayer} disabled={saving}>
+              选择播放器…
+            </button>
+            <span className="path" title={draft.customPlayer || undefined}>
+              {draft.customPlayer || "尚未选择"}
+            </span>
+          </div>
+        )}
 
         <label className="setting setting-block">
           <span>

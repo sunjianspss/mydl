@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 
 import type { CheckReport, RssFeed, Settings } from "./types";
 
@@ -19,6 +20,7 @@ function newFeed(): RssFeed {
     enabled: true,
     include: "",
     exclude: "",
+    dir: null,
   };
 }
 
@@ -39,6 +41,11 @@ export default function RssDialog({ initial, onSaved, onClose, onError }: Props)
 
   const patch = (id: string, p: Partial<RssFeed>) =>
     setFeeds((fs) => fs.map((f) => (f.id === id ? { ...f, ...p } : f)));
+
+  async function pickDir(id: string) {
+    const picked = await open({ directory: true, multiple: false });
+    if (typeof picked === "string") patch(id, { dir: picked });
+  }
 
   function build(): Settings {
     // 空 URL 的条目直接丢掉，免得存一堆没填完的。
@@ -130,6 +137,23 @@ export default function RssDialog({ initial, onSaved, onClose, onError }: Props)
                   placeholder="排除：例如  hdtv 预告"
                   onChange={(e) => patch(f.id, { exclude: e.target.value })}
                 />
+              </div>
+              <div className="rss-row rss-dir">
+                <button className="act-text" disabled={saving} onClick={() => pickDir(f.id)}>
+                  保存到…
+                </button>
+                <span className="path" title={f.dir || undefined}>
+                  {f.dir || "跟随全局下载目录"}
+                </span>
+                {f.dir && (
+                  <button
+                    className="act-text"
+                    disabled={saving}
+                    onClick={() => patch(f.id, { dir: null })}
+                  >
+                    改回全局
+                  </button>
+                )}
               </div>
             </div>
           ))}

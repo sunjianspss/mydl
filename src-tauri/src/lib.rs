@@ -513,16 +513,60 @@ fn play_done_sound() {
     platform::play_done_sound();
 }
 
-/// 已装的播放器，界面按这个渲染按钮。
+/// 界面上的一个播放器按钮。
+///
+/// `path` 有值表示这是用户在设置里手填的那条路径，启动时直接用它，不再去猜
+/// 安装位置 —— 也因此不怕两个同名播放器分不清：分派看的是 path，不是 name。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PlayerEntry {
+    name: String,
+    path: Option<String>,
+}
+
+/// 按钮上显示什么：路径的文件名去掉扩展名。
+/// `/Applications/IINA.app` → IINA，`/opt/homebrew/bin/mpv` → mpv。
+fn player_label(path: &str) -> String {
+    PathBuf::from(path)
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string())
+}
+
+/// 已装的播放器，界面按这个渲染按钮。自动扫出来的 + 用户手填的那个。
 #[tauri::command]
-fn available_players() -> Vec<String> {
-    platform::available_players()
+fn available_players(store: State<'_, Arc<SettingsStore>>) -> Vec<PlayerEntry> {
+    let mut list: Vec<PlayerEntry> = platform::available_players()
+        .into_iter()
+        .map(|name| PlayerEntry { name, path: None })
+        .collect();
+
+    let custom = store
+        .get()
+        .custom_player
+        .filter(|p| !p.trim().is_empty());
+    if let Some(path) = custom {
+        let name = player_label(&path);
+        // 同名的自动检测项让位：用户明确指了路径，那就是他要的那一个，
+        // 留着两个一模一样的按钮只会让人不知道该点哪个。
+        list.retain(|p| p.name != name);
+        list.push(PlayerEntry {
+            name,
+            path: Some(path),
+        });
+    }
+    list
 }
 
 /// 用指定播放器打开流地址。
+///
+/// 给了 `path` 就直接用它，否则按名字去各平台的已知安装位置里找。
 #[tauri::command]
-fn open_in_player(url: String, app: String) -> Result<(), String> {
-    platform::open_in_player(&url, &app).map_err(err)
+fn open_in_player(url: String, app: String, path: Option<String>) -> Result<(), String> {
+    match path.as_deref() {
+        Some(p) => platform::open_path(&url, p).map_err(err),
+        None => platform::open_in_player(&url, &app).map_err(err),
+    }
 }
 
 fn init_app(app: &tauri::App) -> anyhow::Result<()> {
@@ -748,4 +792,22 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn player_label_strips_bundle_and_exe_suffix() {
+        assert_eq!(player_label("/Applications/IINA.app"), "IINA");
+        // brew 装的那种裸可执行文件 —— 正是自动检测认不出、需要手填的情况
+        assert_eq!(player_label("/opt/homebrew/bin/mpv"), "mpv");
+        assert_eq!(player_label("/x/vlc.exe"), "vlc");
+
+        // 反斜杠只在 Windows 上算路径分隔符，别的平台上整条都是「文件名」。
+        // 路径本来就来自各平台自己的文件选择器，所以只在 Windows 上断言。
+        #[cfg(windows)]
+        assert_eq!(player_label(r"C:\Program Files\VideoLAN\VLC\vlc.exe"), "vlc");
+    }
 }

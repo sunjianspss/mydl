@@ -59,6 +59,27 @@ mod imp {
         Ok(())
     }
 
+    /// 用用户指定的路径拉起播放器。
+    ///
+    /// 两种都得认：`.app` 包走 `open -a`（它同样接受完整路径），其余当成
+    /// 可执行文件直接跑 —— brew 装的 mpv 就在 `/opt/homebrew/bin/mpv`，
+    /// 压根不是 `.app`，而那恰恰是自动检测认不出、需要手填的典型情况。
+    ///
+    /// 直接跑可执行文件时**必须 `spawn` 不能 `status`**：这条路径上的
+    /// Tauri 命令是同步的、跑在主线程上，等播放器退出等于把界面冻住。
+    /// `open -a` 没这个问题，它交给 LaunchServices 后立刻返回。
+    pub fn open_path(url: &str, path: &str) -> Result<()> {
+        let exe = PathBuf::from(path);
+        if exe.extension().is_some_and(|e| e == "app") {
+            return open_in_player(url, path);
+        }
+        Command::new(&exe)
+            .arg(url)
+            .spawn()
+            .with_context(|| format!("启动 {path} 失败"))?;
+        Ok(())
+    }
+
     /// 任务完成的提示音。用系统自带的 Glass，不额外打包音频资源。
     ///
     /// 单独起线程等它结束：直接 spawn 不 wait 会留一串僵尸进程，而在调用方
@@ -274,6 +295,16 @@ mod imp {
         Ok(())
     }
 
+    /// 用用户指定的路径拉起播放器。和 `open_in_player` 的区别只是跳过查找，
+    /// 别的一样 —— 包括**必须 `spawn`**，理由见上。
+    pub fn open_path(url: &str, path: &str) -> Result<()> {
+        Command::new(path)
+            .arg(url)
+            .spawn()
+            .with_context(|| format!("启动 {path} 失败"))?;
+        Ok(())
+    }
+
     /// 任务完成的提示音。走 `MessageBeep`，声音是系统「星号」提示音，
     /// 用户在「声音设置」里换过就跟着换 —— 比硬塞一个 wav 得体。
     /// 本身就是异步返回的，不用起线程。
@@ -341,6 +372,6 @@ mod imp {
 }
 
 pub use imp::{
-    available_players, log_dir, open_in_player, play_done_sound, raise_file_limit, sleep_now,
-    SleepBlocker,
+    available_players, log_dir, open_in_player, open_path, play_done_sound, raise_file_limit,
+    sleep_now, SleepBlocker,
 };

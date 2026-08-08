@@ -109,6 +109,8 @@ export interface Settings {
   preventSleepWhileDownloading: boolean;
   /** 切回窗口时看一眼剪贴板里有没有磁力链。只读一次，不后台轮询。 */
   watchClipboard: boolean;
+  /** 手填的播放器路径。null = 只用自动扫出来的那几个。 */
+  customPlayer: string | null;
   /** Prowlarr / Jackett 的 Torznab 地址（含 apikey）。 */
   searchUrl: string | null;
   aiBaseUrl: string;
@@ -142,6 +144,14 @@ export interface RssFeed {
   include: string;
   /** 空格分隔，命中任一即排除。 */
   exclude: string;
+  /** 这条订阅下载到哪。null / 空 = 用全局下载目录。 */
+  dir: string | null;
+}
+
+/** 对应 lib.rs 的 PlayerEntry。path 有值表示是设置里手填的那条路径。 */
+export interface Player {
+  name: string;
+  path: string | null;
 }
 
 /** 对应 rss.rs 的 CheckReport。 */

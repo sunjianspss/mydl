@@ -149,6 +149,18 @@ pub fn torrent_url(entry: &Entry) -> Option<String> {
         .map(|(u, _)| u.clone())
 }
 
+/// 这条订阅实际用哪个目录：订阅自己指定的优先，否则用全局下载目录。
+///
+/// 空字符串当作没填 —— 界面上清空输入框留下的就是空串，直接传下去会变成
+/// 「下载到当前工作目录」，那是个谁也想不到的地方。
+pub fn effective_dir(feed_dir: Option<&str>, global: Option<String>) -> Option<String> {
+    feed_dir
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .map(str::to_string)
+        .or(global)
+}
+
 /// 去重用的标识：优先用 guid，没有就退回下载地址。
 fn item_key(entry: &Entry, url: &str) -> String {
     if entry.id.trim().is_empty() {
@@ -203,6 +215,7 @@ async fn check_one(
         feed: label.clone(),
         ..Default::default()
     };
+    let dir = effective_dir(feed.dir.as_deref(), download_dir);
 
     let parsed = match fetch_and_parse(client, &feed.url).await {
         Ok(p) => p,
@@ -235,7 +248,7 @@ async fn check_one(
             continue;
         }
 
-        match engine.add(&url, download_dir.clone()).await {
+        match engine.add(&url, dir.clone()).await {
             Ok(id) => {
                 tracing::info!(feed = %label, %title, id, "RSS 自动添加");
                 seen.remember(&feed.id, key);
@@ -317,6 +330,21 @@ mod tests {
     fn matching_ignores_case() {
         assert!(matches("SHOW 1080P", "show 1080p", ""));
         assert!(!matches("Show HDTV", "", "hdtv"));
+    }
+
+    #[test]
+    fn feed_dir_falls_back_to_global() {
+        let global = || Some("/全局".to_string());
+
+        assert_eq!(
+            effective_dir(Some("/剧集"), global()),
+            Some("/剧集".to_string())
+        );
+        assert_eq!(effective_dir(None, global()), global());
+        // 界面上清空输入框留下的是空串，不能当成「下载到当前工作目录」
+        assert_eq!(effective_dir(Some("   "), global()), global());
+        // 两个都没有就交给会话默认目录
+        assert_eq!(effective_dir(None, None), None);
     }
 
     fn parse(xml: &str) -> Vec<Entry> {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-import type { FileView } from "./types";
+import type { FileView, Player } from "./types";
 import { formatBytes, percent } from "./format";
 import { useWindowFocused } from "./useWindowFocused";
 
@@ -20,10 +20,10 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
   const [saving, setSaving] = useState(false);
   // 每次展开都重查一遍已装播放器。放在启动时查过一次就不管的话，
   // 之后新装的播放器要重启 App 才认得出来。
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
-    invoke<string[]>("available_players").then(setPlayers).catch(() => {});
+    invoke<Player[]>("available_players").then(setPlayers).catch(() => {});
   }, []);
 
   const refresh = useCallback(async () => {
@@ -74,13 +74,14 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
   const setAll = (selected: boolean) =>
     applySelection((files ?? []).map((f) => ({ ...f, selected })));
 
-  async function play(file: FileView, app: string) {
+  async function play(file: FileView, player: Player) {
     try {
       const url = await invoke<string>("stream_url", {
         id: torrentId,
         fileId: file.index,
       });
-      await invoke("open_in_player", { url, app });
+      // path 有值就直接用它拉起 —— 同名的两个播放器靠这个区分，不靠名字。
+      await invoke("open_in_player", { url, app: player.name, path: player.path });
     } catch (e) {
       onError(String(e));
     }
@@ -155,14 +156,18 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
             </span>
             {f.playable && f.selected && (
               <span className="file-actions">
-                {players.map((app) => (
+                {players.map((p) => (
                   <button
-                    key={app}
+                    key={p.path ?? p.name}
                     disabled={!streamable}
-                    title={streamable ? `用 ${app} 边下边播` : "任务不在下载中，无法播放"}
-                    onClick={() => play(f, app)}
+                    title={
+                      streamable
+                        ? `用 ${p.path ?? p.name} 边下边播`
+                        : "任务不在下载中，无法播放"
+                    }
+                    onClick={() => play(f, p)}
                   >
-                    {app}
+                    {p.name}
                   </button>
                 ))}
                 <button
