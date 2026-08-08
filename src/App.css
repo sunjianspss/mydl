@@ -1406,6 +1406,27 @@ input[type="checkbox"] {
   overflow-y: auto;
 }
 
+/* 「要重启才生效」的提示。跟着操作栏一起钉在底部 —— 设置项很长，
+   提示要是留在原地，用户滚到底点保存时根本看不见它。 */
+.restart-note {
+  position: sticky;
+  bottom: 52px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: var(--r-md);
+}
+
+.restart-note span {
+  flex: 1;
+}
+
 /* 窗口一矮，设置项就比对话框还高，「保存」会被挤出可视区、用户以为改不了。
    让对话框自己滚，操作栏 sticky 钉在底部；负 bottom 和内边距是用来抵消
    .dialog 自身的 padding，免得钉住时和底边差一截。 */

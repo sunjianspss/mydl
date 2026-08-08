@@ -503,6 +503,37 @@ async fn check_rss_now(
     Ok(rss::check_all(&engine, &store, &seen).await)
 }
 
+/// 重启 App，让「改了要重启才生效」的那几项设置生效。
+///
+/// 那几项（公共 tracker、绑定网卡、代理、黑名单、peer 上限）都是**建会话时
+/// 才读**的，运行中改不了。真要热生效得把整个 BT 会话拆了重建：监听端口是
+/// 独占的、DHT 状态要重新持久化、所有任务得重新加一遍 —— 为几个开关冒这个
+/// 险不划算。让用户少走一步「自己关掉再打开」，收益的大头就到手了。
+///
+/// **`restart()` 必须回到主线程上调用。** 它在非主线程上只是「请求」退出，
+/// 然后 `loop { sleep(Duration::MAX) }` 把调用线程永久挂起，等事件循环把
+/// `Exit` 送回来再真正重启（见 tauri 2.11 的 `app.rs`）。而 Tauri 命令跑在
+/// tokio 工作线程上 —— 实测那个 `Exit` 等不到，界面就一直卡在「重启中…」。
+/// 回到主线程走的是另一条分支：`cleanup_before_exit()` + 直接重启，不绕
+/// 事件循环。
+///
+/// 也正因为不绕事件循环，**`RunEvent::Exit` 那个回调不会跑**，该刷的盘得在
+/// 这里自己刷完。
+#[tauri::command]
+async fn restart_app(
+    app: tauri::AppHandle,
+    engine: State<'_, Arc<Engine>>,
+    ratio: State<'_, Arc<ratio::RatioStore>>,
+) -> Result<(), String> {
+    ratio.save();
+    engine.shutdown().await;
+    tracing::info!("按用户要求重启");
+
+    let handle = app.clone();
+    app.run_on_main_thread(move || handle.restart())
+        .map_err(|e| format!("回到主线程重启失败：{e}"))
+}
+
 /// 日志目录，给界面上的「日志」入口用 —— 打包版看不到 stdout。
 #[tauri::command]
 fn log_dir() -> String {
@@ -639,9 +670,19 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     let seen = Arc::new(rss::SeenStore::load(rss::seen_path(&config_dir)));
     let health = Arc::new(health::HealthStore::load(health::health_path(&config_dir)));
     let stats = Arc::new(stats::StatsStore::load(stats::stats_path(&config_dir)));
+    let queue = Arc::new(automation::QueueStore::load(automation::queue_path(
+        &config_dir,
+    )));
+    let ratio = Arc::new(ratio::RatioStore::load(ratio::ratio_path(&config_dir)));
     let congestion: congestion::Shared = Default::default();
 
-    automation::spawn(app.handle().clone(), engine.clone(), store.clone());
+    automation::spawn(
+        app.handle().clone(),
+        engine.clone(),
+        store.clone(),
+        queue,
+        ratio.clone(),
+    );
     rss::spawn(engine.clone(), store.clone(), seen.clone());
     keep_awake::spawn(engine.clone(), store.clone());
     health::spawn(engine.clone(), store.clone(), health.clone(), stats.clone());
@@ -654,6 +695,7 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     app.manage(seen);
     app.manage(health);
     app.manage(stats);
+    app.manage(ratio);
     app.manage(congestion);
     Ok(())
 }
@@ -783,6 +825,7 @@ pub fn run() {
             available_players,
             play_done_sound,
             open_in_player,
+            restart_app,
             log_dir,
         ])
         .build(tauri::generate_context!())
@@ -790,6 +833,11 @@ pub fn run() {
         .run(|app, event| {
             // 退出前让 librqbit 把会话状态刷盘，否则重启会丢一截进度。
             if let tauri::RunEvent::Exit = event {
+                // 累计上传量平时最多一分钟才写一次盘，退出前补一次，
+                // 否则每次正常关闭都要丢掉最后那截。
+                if let Some(ratio) = app.try_state::<Arc<ratio::RatioStore>>() {
+                    ratio.save();
+                }
                 if let Some(engine) = app.try_state::<Arc<Engine>>() {
                     tauri::async_runtime::block_on(engine.shutdown());
                 }

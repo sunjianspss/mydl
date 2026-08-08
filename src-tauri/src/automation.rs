@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
@@ -13,6 +13,7 @@ use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
 use crate::engine::{Engine, TorrentId, TorrentView};
+use crate::ratio::RatioStore;
 use crate::settings::SettingsStore;
 
 /// 轮询间隔。完成后自动化不需要秒级实时。
@@ -21,6 +22,102 @@ const POLL: Duration = Duration::from_secs(5);
 /// 决定睡眠前等一会儿。`keep_awake` 每 15 秒才松一次 `caffeinate`，
 /// 立刻睡下去可能被它拦住；顺便也给「最后一个任务刚完成」的通知留出时间。
 const SLEEP_DELAY: Duration = Duration::from_secs(20);
+
+// ---------------------------------------------------------------------------
+// 「哪些是我们自己排队暂停的」——要跨重启记住
+// ---------------------------------------------------------------------------
+
+/// 被并发上限自动暂停的任务。
+///
+/// **按 info-hash 记，不能按 TorrentId。** TorrentId 是会话每次启动重新分配
+/// 的，拿它当键重启后就对不上了（`output_folders.json` 踩过同一个坑）。
+///
+/// 不持久化的话，重启后这份记录就没了，排队中的任务会一直停在暂停状态等人
+/// 手动继续 —— 而恢复的判断依据本来就是「这是不是我们停的」，那条纪律没变：
+/// 用户自己暂停的任务在这份名单外面，永远不会被擅自放出来。
+pub struct QueueStore {
+    path: PathBuf,
+    hashes: Mutex<HashSet<String>>,
+}
+
+impl QueueStore {
+    pub fn load(path: PathBuf) -> Self {
+        let hashes = std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default();
+        Self {
+            path,
+            hashes: Mutex::new(hashes),
+        }
+    }
+
+    /// 换算成这次会话里的 TorrentId。认不出的（任务已经不在了）自然被丢掉。
+    fn ids(&self, all: &[TorrentView]) -> HashSet<TorrentId> {
+        let mine = self.hashes.lock().unwrap();
+        all.iter()
+            .filter(|t| mine.contains(&t.info_hash.to_ascii_lowercase()))
+            .map(|t| t.id)
+            .collect()
+    }
+
+    fn insert(&self, hash: &str) {
+        self.hashes
+            .lock()
+            .unwrap()
+            .insert(hash.to_ascii_lowercase());
+        self.save();
+    }
+
+    fn remove(&self, hash: &str) {
+        self.hashes
+            .lock()
+            .unwrap()
+            .remove(&hash.to_ascii_lowercase());
+        self.save();
+    }
+
+    /// 任务被删掉后把它的记录也清掉，免得名单无限长。
+    ///
+    /// **列表为空时什么都不做**：会话刚起来、任务还没加载完的那一瞬间清一次，
+    /// 就等于把整份排队记录抹了。
+    fn prune(&self, all: &[TorrentView]) {
+        if all.is_empty() {
+            return;
+        }
+        let alive: HashSet<String> = all
+            .iter()
+            .map(|t| t.info_hash.to_ascii_lowercase())
+            .collect();
+        let mut mine = self.hashes.lock().unwrap();
+        let before = mine.len();
+        mine.retain(|h| alive.contains(h));
+        if mine.len() != before {
+            drop(mine);
+            self.save();
+        }
+    }
+
+    fn save(&self) {
+        let hashes = self.hashes.lock().unwrap();
+        if let Some(parent) = self.path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        match serde_json::to_string(&*hashes) {
+            Ok(json) => {
+                let tmp = self.path.with_extension("json.tmp");
+                if std::fs::write(&tmp, json).is_ok() {
+                    let _ = std::fs::rename(&tmp, &self.path);
+                }
+            }
+            Err(e) => tracing::warn!("序列化排队记录失败：{e:#}"),
+        }
+    }
+}
+
+pub fn queue_path(config_dir: &Path) -> PathBuf {
+    config_dir.join("queued.json")
+}
 
 /// 按并发上限算出该暂停谁、该放出谁。
 ///
@@ -71,43 +168,125 @@ pub fn plan_concurrency(
 /// 到达分享率上限的任务要不要停。
 ///
 /// 只看还在做种的（已完成 + live）。总大小为 0 时不判断 —— 除不了。
-pub fn over_ratio(t: &TorrentView, limit: Option<f64>) -> bool {
+///
+/// `uploaded` 是**跨会话累计**的上传量（见 [`crate::ratio`]），不是
+/// `t.uploaded_bytes` —— 后者每次重启归零，挂一周的种可能一次都到不了上限。
+pub fn over_ratio(t: &TorrentView, uploaded: u64, limit: Option<f64>) -> bool {
     let Some(limit) = limit.filter(|l| *l > 0.0) else {
         return false;
     };
     if !t.finished || t.state != "live" || t.total_bytes == 0 {
         return false;
     }
-    t.uploaded_bytes as f64 / t.total_bytes as f64 >= limit
+    uploaded as f64 / t.total_bytes as f64 >= limit
 }
 
-pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
-    tauri::async_runtime::spawn(async move {
-        // 启动时已经完成的任务不触发 —— 否则每次开 App 都会把历史任务重播一遍。
-        let mut done: HashSet<TorrentId> = engine
-            .list()
-            .into_iter()
-            .filter(|t| t.finished)
-            .map(|t| t.id)
-            .collect();
-        // 被并发上限自动暂停的任务。只在内存里 —— 重启后这份记录就没了，
-        // 那些任务会停在暂停状态等用户手动继续，总比擅自恢复用户暂停的好。
-        let mut auto_paused: HashSet<TorrentId> = HashSet::new();
+/// 认「刚刚完成」的那一刻。
+///
+/// # 为什么不能在启动时拍一张「已完成」的快照
+///
+/// 曾经就是那么做的，而且它**不管用**：会话刚建好时任务还在 librqbit 的
+/// 初始校验里，状态是 `initializing`、`finished` 是 false —— 快照那一刻
+/// 一个都认不出来。几秒后校验完，9 个老任务齐刷刷翻成 finished，全被当成
+/// 「刚刚完成」重播一遍。实测日志里是 `已完成=1`，然后 5 秒后 7 条
+/// 「任务完成，执行自动化」。开着「完成后移动到指定目录」的话，
+/// **每次开 App 都会把这些老任务的内容搬走并停止做种**。
+///
+/// 换成一条更结实的判据：**只有亲眼见过它「确实没下完」，之后它完成了才算
+/// 刚刚完成**。初始校验中的任务不算「没下完」—— 那个 false 说的是
+/// 「还不知道」，不是「还差着」。
+///
+/// 代价是：加进来时数据就已经在盘上的任务（重新做种、或者几秒内就下完的
+/// 小种子）不会触发完成动作。这是**故意的** —— 我们没见过它下载，它就不是
+/// 刚下完的；对「重新添加一个已完成的种子」来说，弹「下载完成」并把文件
+/// 搬走本来就是错的。
+#[derive(Default)]
+pub struct CompletionTracker {
+    /// 见过它确实没下完的任务。
+    seen_unfinished: HashSet<TorrentId>,
+    /// 已经处理过（或明确决定不处理）完成事件的任务。
+    done: HashSet<TorrentId>,
+}
 
-        tracing::info!(已完成 = done.len(), "完成后自动化已启动");
+impl CompletionTracker {
+    /// 返回这一轮里刚刚完成的任务，顺序按传入顺序。
+    pub fn tick(&mut self, all: &[TorrentView]) -> Vec<TorrentId> {
+        let mut fired = Vec::new();
+
+        for t in all {
+            // 还在初始校验：finished 是 false，但那不代表「没下完」。
+            if t.state == "initializing" {
+                continue;
+            }
+
+            if !t.finished {
+                self.seen_unfinished.insert(t.id);
+                // 重新校验或补下会退回未完成，这样下次完成还能再触发。
+                self.done.remove(&t.id);
+                continue;
+            }
+
+            if !self.seen_unfinished.contains(&t.id) {
+                // 我们第一次看清它的时候它就已经完成了 —— 不是刚刚完成。
+                self.done.insert(t.id);
+                continue;
+            }
+            if self.done.insert(t.id) {
+                fired.push(t.id);
+            }
+        }
+
+        // 任务被删掉后不用再占着地方。
+        let alive: HashSet<TorrentId> = all.iter().map(|t| t.id).collect();
+        self.seen_unfinished.retain(|id| alive.contains(id));
+        self.done.retain(|id| alive.contains(id));
+
+        fired
+    }
+}
+
+pub fn spawn(
+    app: AppHandle,
+    engine: Arc<Engine>,
+    store: Arc<SettingsStore>,
+    queue: Arc<QueueStore>,
+    ratio: Arc<RatioStore>,
+) {
+    tauri::async_runtime::spawn(async move {
+        let mut completion = CompletionTracker::default();
+
+        tracing::info!("完成后自动化已启动");
 
         loop {
             tokio::time::sleep(POLL).await;
 
             let all = engine.list();
 
+            // 累计上传量先记：分享率判断要用它，而且这一轮里任务可能被停掉
+            // 或移走，晚记就漏了。
+            let uploads: Vec<(String, u64)> = all
+                .iter()
+                .map(|t| (t.info_hash.to_ascii_lowercase(), t.uploaded_bytes))
+                .collect();
+            ratio.record(&uploads);
+
+            queue.prune(&all);
+            let auto_paused = queue.ids(&all);
+
             // 并发上限。放在最前面：刚有任务下完就该立刻放下一个进来。
             let (to_pause, to_resume) =
                 plan_concurrency(&all, store.get().max_active_downloads, &auto_paused);
+            let hash_of = |id: TorrentId| {
+                all.iter()
+                    .find(|t| t.id == id)
+                    .map(|t| t.info_hash.clone())
+            };
             for id in to_pause {
                 match engine.pause(id).await {
                     Ok(()) => {
-                        auto_paused.insert(id);
+                        if let Some(h) = hash_of(id) {
+                            queue.insert(&h);
+                        }
                         tracing::info!(id, "超出并发上限，已排队");
                     }
                     Err(e) => tracing::warn!(id, "排队暂停失败：{e:#}"),
@@ -116,7 +295,9 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
             for id in to_resume {
                 match engine.resume(id).await {
                     Ok(()) => {
-                        auto_paused.remove(&id);
+                        if let Some(h) = hash_of(id) {
+                            queue.remove(&h);
+                        }
                         tracing::info!(id, "轮到它了，已开始下载");
                     }
                     Err(e) => tracing::warn!(id, "出队继续失败：{e:#}"),
@@ -126,12 +307,16 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
             // 分享率到顶就停做种。放在完成处理之前：刚下完的那一轮分享率
             // 必然是 0，不会被误停。
             let limit = store.get().seed_ratio_limit;
-            for t in all.iter().filter(|t| over_ratio(t, limit)) {
+            for t in all.iter() {
+                let uploaded = ratio.total(&t.info_hash.to_ascii_lowercase());
+                if !over_ratio(t, uploaded, limit) {
+                    continue;
+                }
                 match engine.pause(t.id).await {
                     Ok(()) => tracing::info!(
                         id = t.id,
                         name = %t.name,
-                        分享率 = format!("{:.2}", t.uploaded_bytes as f64 / t.total_bytes as f64),
+                        累计分享率 = format!("{:.2}", uploaded as f64 / t.total_bytes as f64),
                         "达到分享率上限，已停止做种"
                     ),
                     Err(e) => tracing::warn!(id = t.id, "停止做种失败：{e:#}"),
@@ -140,15 +325,10 @@ pub fn spawn(app: AppHandle, engine: Arc<Engine>, store: Arc<SettingsStore>) {
 
             let mut completed_now = false;
 
-            for t in all {
-                if !t.finished {
-                    // 重新校验或补下时会退回未完成，这样下次完成还能再触发。
-                    done.remove(&t.id);
+            for id in completion.tick(&all) {
+                let Some(t) = all.iter().find(|t| t.id == id) else {
                     continue;
-                }
-                if !done.insert(t.id) {
-                    continue;
-                }
+                };
 
                 let settings = store.get();
                 if !settings.notify_on_complete
@@ -435,13 +615,22 @@ mod ratio_tests {
     #[test]
     fn stops_only_when_over_limit() {
         // 正好到 2.0 就该停
-        assert!(over_ratio(&t(true, "live", 200, 100), Some(2.0)));
-        assert!(over_ratio(&t(true, "live", 300, 100), Some(2.0)));
+        assert!(over_ratio(&t(true, "live", 200, 100), 200, Some(2.0)));
+        assert!(over_ratio(&t(true, "live", 300, 100), 300, Some(2.0)));
         // 还不到
-        assert!(!over_ratio(&t(true, "live", 199, 100), Some(2.0)));
+        assert!(!over_ratio(&t(true, "live", 199, 100), 199, Some(2.0)));
         // 没设上限
-        assert!(!over_ratio(&t(true, "live", 999, 100), None));
-        assert!(!over_ratio(&t(true, "live", 999, 100), Some(0.0)));
+        assert!(!over_ratio(&t(true, "live", 999, 100), 999, None));
+        assert!(!over_ratio(&t(true, "live", 999, 100), 999, Some(0.0)));
+    }
+
+    #[test]
+    fn ratio_judges_on_cumulative_not_this_session() {
+        // 本会话只传了 10（刚重启），但累计已经 250 —— 该停。
+        // 用 t.uploaded_bytes 判的话这里会漏，正是重启归零那个 bug。
+        assert!(over_ratio(&t(true, "live", 10, 100), 250, Some(2.0)));
+        // 反过来也要成立：累计还不够就别停
+        assert!(!over_ratio(&t(true, "live", 999, 100), 50, Some(2.0)));
     }
 
     #[test]
@@ -481,11 +670,105 @@ mod ratio_tests {
     #[test]
     fn ignores_unfinished_paused_and_zero_size() {
         // 没下完的不管（还在下载时上传也会计数）
-        assert!(!over_ratio(&t(false, "live", 999, 100), Some(2.0)));
+        assert!(!over_ratio(&t(false, "live", 999, 100), 999, Some(2.0)));
         // 已经停了的不用再停
-        assert!(!over_ratio(&t(true, "paused", 999, 100), Some(2.0)));
+        assert!(!over_ratio(&t(true, "paused", 999, 100), 999, Some(2.0)));
         // 总大小为 0 除不了
-        assert!(!over_ratio(&t(true, "live", 999, 0), Some(2.0)));
+        assert!(!over_ratio(&t(true, "live", 999, 0), 999, Some(2.0)));
+    }
+
+    /// 复现实际日志里那一幕：会话刚起来时 9 个任务都在初始校验，
+    /// 5 秒后齐刷刷翻成 finished。它们是历史任务，一个都不该触发。
+    #[test]
+    fn startup_does_not_replay_old_torrents() {
+        let mut c = CompletionTracker::default();
+
+        // 第一轮：还在 initializing —— finished 是 false，但那是「还不知道」
+        let initializing: Vec<TorrentView> = (1..=3)
+            .map(|id| TorrentView { id, ..t(false, "initializing", 0, 100) })
+            .collect();
+        assert!(c.tick(&initializing).is_empty());
+
+        // 第二轮：校验完，全部是已完成的老任务
+        let finished: Vec<TorrentView> = (1..=3)
+            .map(|id| TorrentView { id, ..t(true, "live", 0, 100) })
+            .collect();
+        assert!(
+            c.tick(&finished).is_empty(),
+            "启动时就已完成的任务不能被当成刚刚完成 —— 开着「完成后移动」的话会把它们全搬走"
+        );
+
+        // 再来几轮也不该冒出来
+        assert!(c.tick(&finished).is_empty());
+    }
+
+    #[test]
+    fn fires_when_a_torrent_we_watched_finishes() {
+        let mut c = CompletionTracker::default();
+
+        let downloading = vec![TorrentView { id: 1, ..t(false, "live", 0, 100) }];
+        assert!(c.tick(&downloading).is_empty());
+
+        let done = vec![TorrentView { id: 1, ..t(true, "live", 0, 100) }];
+        assert_eq!(c.tick(&done), vec![1], "亲眼看着它下完的，就该触发");
+        // 只触发一次
+        assert!(c.tick(&done).is_empty());
+    }
+
+    #[test]
+    fn re_check_can_fire_again() {
+        let mut c = CompletionTracker::default();
+        let downloading = vec![TorrentView { id: 1, ..t(false, "live", 0, 100) }];
+        let done = vec![TorrentView { id: 1, ..t(true, "live", 0, 100) }];
+
+        c.tick(&downloading);
+        assert_eq!(c.tick(&done), vec![1]);
+        // 重新校验退回未完成，下次完成还能再触发
+        c.tick(&downloading);
+        assert_eq!(c.tick(&done), vec![1]);
+    }
+
+    /// 暂停中的任务照样算「见过它没下完」—— 恢复后下完了该触发。
+    #[test]
+    fn paused_still_counts_as_seen_unfinished() {
+        let mut c = CompletionTracker::default();
+        c.tick(&[TorrentView { id: 1, ..t(false, "paused", 0, 100) }]);
+        assert_eq!(
+            c.tick(&[TorrentView { id: 1, ..t(true, "live", 0, 100) }]),
+            vec![1]
+        );
+    }
+
+    #[test]
+    fn queue_record_survives_restart_by_hash() {
+        let path = std::env::temp_dir().join(format!("mydl-queue-{}.json", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+
+        let view = |id: TorrentId, hash: &str| TorrentView {
+            id,
+            info_hash: hash.into(),
+            ..t(false, "paused", 0, 100)
+        };
+
+        let q = QueueStore::load(path.clone());
+        q.insert("AABB");
+
+        // 重启：同一个种子拿到的 TorrentId 变了，但 info-hash 没变。
+        // 按 id 存的话这里就认不出来了。
+        let q = QueueStore::load(path.clone());
+        let all = vec![view(7, "aabb"), view(8, "ccdd")];
+        assert_eq!(q.ids(&all), [7].into_iter().collect::<HashSet<_>>());
+
+        // 任务被删掉后记录也清掉
+        q.prune(&[view(8, "ccdd")]);
+        assert!(q.ids(&all).is_empty());
+
+        // 但列表为空时不能清 —— 会话刚起来任务还没加载完
+        q.insert("aabb");
+        q.prune(&[]);
+        assert_eq!(q.ids(&all), [7].into_iter().collect::<HashSet<_>>());
+
+        let _ = std::fs::remove_file(&path);
     }
 }
 

@@ -12,6 +12,17 @@ const FOLLOW_SYSTEM_ROUTE = "<system>";
 // 感觉不到，同时不至于低到让 tit-for-tat 把下载速度也拖下去。
 const DEFAULT_UPLOAD_LIMIT = 128;
 
+// 这几项都是**建会话时才读**的，运行中改不了 —— 改完必须重启 App。
+// 光在说明文字里写一句「需要重启」不够：保存完界面毫无变化，用户多半以为
+// 已经生效了。所以保存后直接把改了哪几项摆出来，顺手给一个重启按钮。
+const RESTART_REQUIRED: { key: keyof Settings; label: string }[] = [
+  { key: "usePublicTrackers", label: "公共 tracker" },
+  { key: "bindDevice", label: "BT 网卡" },
+  { key: "proxyUrl", label: "SOCKS5 代理" },
+  { key: "blocklistUrl", label: "IP 黑名单" },
+  { key: "peerLimit", label: "peer 上限" },
+];
+
 interface Props {
   initial: Settings;
   onSaved: (settings: Settings) => void;
@@ -27,6 +38,9 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
   const [hasKey, setHasKey] = useState(false);
   // 可绑定的网卡。名字写错会让整个会话建不起来，所以做成下拉不让手输。
   const [ifaces, setIfaces] = useState<NetIf[]>([]);
+  // 保存后发现「改了要重启才生效」的项时，列在这里；null = 没有。
+  const [needRestart, setNeedRestart] = useState<string[] | null>(null);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     // Windows 上 librqbit 的 BindDevice 直接报错，列出来也没用。
@@ -71,7 +85,15 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
       // 输入框留空表示不动原来的；要清掉 key 得点「清除」。
       if (keyInput) await invoke("set_ai_key", { key: keyInput });
       onSaved(draft);
-      onClose();
+
+      // 和保存前的值比，只列真的改了的 —— 每次保存都提示重启的话，
+      // 提示很快就会被当成背景噪音。
+      const changed = RESTART_REQUIRED.filter((f) => draft[f.key] !== initial[f.key]);
+      if (changed.length > 0) {
+        setNeedRestart(changed.map((f) => f.label));
+      } else {
+        onClose();
+      }
     } catch (e) {
       onError(String(e));
     } finally {
@@ -485,7 +507,7 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
             <em>
               超出的自动排队，前面下完再放出来。做种不占名额。
               <b>只会恢复它自己暂停的那些</b> —— 你手动暂停的任务不会被擅自放出来。
-              这份记录只在内存里，重启后排队中的任务要手动继续。留空 = 不限。
+              这份名单按 info-hash 存盘，<b>重启后照样接着排队</b>。留空 = 不限。
             </em>
             <input
               className="setting-input"
@@ -512,9 +534,10 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
           <span>
             <b>分享率到顶就停止做种</b>
             <em>
-              上传量达到文件大小的这个倍数就自动暂停。<b>分享率每次重启会归零</b> ——
-              librqbit 只统计本次会话的上传量，不持久化，所以这个值的实际含义是
-              「本次运行期间上传到几倍」，不是 PT 站看到的那个累计分享率。
+              上传量达到文件大小的这个倍数就自动暂停。算的是<b>累计</b>上传量 ——
+              librqbit 只统计本次会话、重启就归零，所以我们自己按种子攒了一份。
+              注意起算点是<b>装了这个版本之后</b>，不是这个种子的全部历史，
+              所以和 PT 站上显示的分享率对不上是正常的。
             </em>
           </span>
         </label>
@@ -577,15 +600,40 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
           </div>
         )}
 
+        {needRestart && (
+          <div className="restart-note">
+            <span>
+              已保存。<b>{needRestart.join("、")}</b>是建会话时才读的，
+              <b>要重启 App 才生效</b>。
+            </span>
+            <button
+              className="primary"
+              disabled={restarting}
+              onClick={() => {
+                setRestarting(true);
+                // 重启命令自己会把会话和累计上传量刷完盘再走。
+                invoke("restart_app").catch((e) => {
+                  setRestarting(false);
+                  onError(String(e));
+                });
+              }}
+            >
+              {restarting ? "重启中…" : "立即重启"}
+            </button>
+          </div>
+        )}
+
         <div className="dialog-actions">
-          <button onClick={onClose} disabled={saving}>
-            取消
+          <button onClick={onClose} disabled={saving || restarting}>
+            {needRestart ? "稍后再说" : "取消"}
           </button>
           <button
             className="primary"
             disabled={
               saving ||
+              restarting ||
               (draft.moveTo !== null && draft.moveTo.trim() === "") ||
+              (draft.customPlayer !== null && draft.customPlayer.trim() === "") ||
               // 0 在后端等于不限速，别让界面上写着「限制」实际却没限。
               draft.uploadLimitKbps === 0
             }
