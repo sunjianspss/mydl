@@ -14,9 +14,17 @@
 //!
 //! # 覆盖范围
 //!
-//! MP4 / MOV / M4V（ISO BMFF 盒子）和 MKV / WebM（EBML）。这两类覆盖了
-//! 影视资源的绝大多数。AVI / TS 之类没做 —— 认不出来时老实说「认不出」，
-//! 不猜。
+//! MP4 / MOV / M4V（ISO BMFF 盒子）和 MKV / WebM（EBML）覆盖了影视资源的
+//! 绝大多数，两者的分辨率、时长、音轨语言都读得全。另外两种是部分支持：
+//!
+//! | 容器 | 分辨率 | 时长 | 音轨语言 |
+//! |---|---|---|---|
+//! | MP4 / MKV | ✓ | ✓ | ✓ |
+//! | AVI | ✓ | ✓ | **读不出**（没有标准字段） |
+//! | TS / M2TS | **读不出**（在基本流里） | **读不出** | ✓（PMT 里的语言描述符） |
+//!
+//! 读不出的一律留成 `None` / 空，**不猜**。判读那边会显示「容器里没读到
+//! 分辨率」而不是编一个数字出来，理由见 [`parse_ts`] 的文档。
 
 /// 常见的视频扩展名。只用来判断「这本来该是个视频吗」，
 /// 真正的判断永远以容器头为准。
@@ -56,6 +64,14 @@ pub fn probe(bytes: &[u8]) -> Probe {
     }
     if let Some(r) = probe_mp4(bytes) {
         return r;
+    }
+    if let Some(info) = parse_avi(bytes) {
+        return Probe::Found(info);
+    }
+    // TS 放最后：它的判据（每 188 字节一个 0x47）比别人的魔数弱，
+    // 先让有明确文件头的容器认领。
+    if let Some(info) = parse_ts(bytes) {
+        return Probe::Found(info);
     }
     Probe::Unknown
 }
@@ -358,6 +374,291 @@ fn parse_matroska(data: &[u8]) -> Option<MediaInfo> {
     (info.width.is_some() || info.duration_secs.is_some()).then_some(info)
 }
 
+// ---------------------------------------------------------------------------
+// AVI（RIFF）
+// ---------------------------------------------------------------------------
+
+fn read_u32_le(b: &[u8], at: usize) -> Option<u32> {
+    Some(u32::from_le_bytes(b.get(at..at + 4)?.try_into().ok()?))
+}
+
+/// 遍历一层 RIFF 块：`[4 字节 id][u32 小端 大小][负载]`，负载补齐到偶数字节。
+///
+/// **那个补齐位不算在 size 里**，忘了跳过的话下一个块的 id 会错开一字节，
+/// 整条链就散了。
+fn riff_chunks(data: &[u8]) -> Vec<(&[u8; 4], &[u8])> {
+    let mut out = Vec::new();
+    let mut pos = 0usize;
+    while pos + 8 <= data.len() {
+        let id: &[u8; 4] = data[pos..pos + 4].try_into().unwrap();
+        let size = match read_u32_le(data, pos + 4) {
+            Some(s) => s as usize,
+            None => break,
+        };
+        let start = pos + 8;
+        let end = start.saturating_add(size).min(data.len());
+        out.push((id, &data[start..end]));
+        if start + size > data.len() {
+            break; // 截断了（只取了文件头），到此为止
+        }
+        pos = start + size + (size & 1);
+    }
+    out
+}
+
+/// LIST 块的负载开头是 4 字节的类型（`hdrl` / `strl` / `movi`），后面才是子块。
+fn riff_list<'a>(payload: &'a [u8], want: &[u8; 4]) -> Option<Vec<(&'a [u8; 4], &'a [u8])>> {
+    (payload.len() >= 4 && &payload[..4] == want).then(|| riff_chunks(&payload[4..]))
+}
+
+/// AVI 的头在 `LIST hdrl` 里：`avih` 给时长，视频流的 `strf`
+/// （BITMAPINFOHEADER）给分辨率。
+///
+/// **分辨率优先取 strf 而不是 avih。** avih 的 dwWidth/dwHeight 是「建议
+/// 显示尺寸」，有些封装工具压根不填或填成 0；strf 里的才是这条视频流真实的
+/// 像素数。
+///
+/// **音轨语言读不出来**：AVI 没有标准的每流语言字段（有人用 `strn` 或 INFO
+/// 里的 `IAS1`，但那是约定不是规范）。所以这里永远返回空的 `audio_langs` ——
+/// 判读那边把「没标语言」当成「验不了」，不会误报成「没有国配」。
+fn parse_avi(data: &[u8]) -> Option<MediaInfo> {
+    let top = riff_chunks(data);
+    let (_, riff) = top.iter().find(|(id, _)| *id == b"RIFF")?;
+    if riff.len() < 4 || &riff[..4] != b"AVI " {
+        return None;
+    }
+
+    let hdrl = riff_chunks(&riff[4..])
+        .into_iter()
+        .find_map(|(id, p)| (id == b"LIST").then(|| riff_list(p, b"hdrl")).flatten())?;
+
+    let mut info = MediaInfo {
+        container: "avi",
+        ..Default::default()
+    };
+
+    if let Some((_, avih)) = hdrl.iter().find(|(id, _)| *id == b"avih") {
+        let us_per_frame = read_u32_le(avih, 0).unwrap_or(0);
+        let frames = read_u32_le(avih, 16).unwrap_or(0);
+        if us_per_frame > 0 && frames > 0 {
+            info.duration_secs = Some(frames as f64 * us_per_frame as f64 / 1e6);
+        }
+        // 先拿 avih 的尺寸兜底，下面有 strf 就覆盖掉。
+        match (read_u32_le(avih, 32), read_u32_le(avih, 36)) {
+            (Some(w), Some(h)) if w > 0 && h > 0 => {
+                info.width = Some(w);
+                info.height = Some(h);
+            }
+            _ => {}
+        }
+    }
+
+    for (id, payload) in &hdrl {
+        let Some(strl) = (*id == b"LIST").then(|| riff_list(payload, b"strl")).flatten() else {
+            continue;
+        };
+        // strh 的头 4 字节是 fccType：vids / auds / txts
+        let is_video = strl
+            .iter()
+            .find(|(id, _)| *id == b"strh")
+            .is_some_and(|(_, h)| h.starts_with(b"vids"));
+        if !is_video {
+            continue;
+        }
+        if let Some((_, strf)) = strl.iter().find(|(id, _)| *id == b"strf") {
+            // BITMAPINFOHEADER：biWidth 在 +4，biHeight 在 +8，都是有符号的。
+            // biHeight 为负表示自上而下存储的位图 —— 取绝对值，不是「负的高度」。
+            let w = read_u32_le(strf, 4).map(|v| (v as i32).unsigned_abs());
+            let h = read_u32_le(strf, 8).map(|v| (v as i32).unsigned_abs());
+            if let (Some(w), Some(h)) = (w, h) {
+                if w > 0 && h > 0 {
+                    info.width = Some(w);
+                    info.height = Some(h);
+                }
+            }
+        }
+        break;
+    }
+
+    (info.width.is_some() || info.duration_secs.is_some()).then_some(info)
+}
+
+// ---------------------------------------------------------------------------
+// MPEG-TS
+// ---------------------------------------------------------------------------
+
+/// TS 包长。188 是标准；m2ts / 蓝光是每包前面多 4 字节时间戳。
+const TS_SIZES: &[(usize, usize)] = &[(188, 0), (192, 4)];
+
+/// 至少连着对上几个包才算数。只看一个 0x47 会把随便什么二进制都认成 TS。
+const TS_CONFIRM_PACKETS: usize = 5;
+
+/// 判断是不是 TS，返回 (包长, 包内偏移)。
+fn ts_layout(b: &[u8]) -> Option<(usize, usize)> {
+    TS_SIZES.iter().copied().find(|&(size, off)| {
+        (0..TS_CONFIRM_PACKETS).all(|i| b.get(i * size + off) == Some(&0x47))
+    })
+}
+
+/// 声明为音频的 stream_type。
+///
+/// 0x06（私有数据）不在里面：DVB 用它装 AC-3，**也用它装字幕和图文电视**。
+/// 只有当它带着 AC-3 描述符时才认，见下面。
+const TS_AUDIO_TYPES: &[u8] = &[0x03, 0x04, 0x0F, 0x11, 0x81, 0x87];
+
+/// AC-3 / E-AC-3 描述符标签。带着它的 0x06 流是音频，没有争议。
+const DESC_AC3: &[u8] = &[0x6A, 0x7A];
+/// ISO_639_language_descriptor。
+const DESC_LANG: u8 = 0x0A;
+
+/// 从一段描述符里取 ISO-639 语言码。
+fn ts_descriptor_langs(desc: &[u8]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut pos = 0usize;
+    while pos + 2 <= desc.len() {
+        let tag = desc[pos];
+        let len = desc[pos + 1] as usize;
+        let body = match desc.get(pos + 2..pos + 2 + len) {
+            Some(b) => b,
+            None => break,
+        };
+        if tag == DESC_LANG {
+            // 每 4 字节一组：3 字节语言码 + 1 字节 audio_type
+            for g in body.chunks_exact(4) {
+                if let Ok(s) = std::str::from_utf8(&g[..3]) {
+                    if s.chars().all(|c| c.is_ascii_alphabetic()) {
+                        out.push(s.to_ascii_lowercase());
+                    }
+                }
+            }
+        }
+        pos += 2 + len;
+    }
+    out
+}
+
+fn ts_has_tag(desc: &[u8], tags: &[u8]) -> bool {
+    let mut pos = 0usize;
+    while pos + 2 <= desc.len() {
+        if tags.contains(&desc[pos]) {
+            return true;
+        }
+        pos += 2 + desc[pos + 1] as usize;
+    }
+    false
+}
+
+/// 取出一个包的负载，顺便告诉调用方这个包是不是一段 section 的开头。
+fn ts_payload(pkt: &[u8]) -> Option<(&[u8], bool, u16)> {
+    if pkt.first() != Some(&0x47) {
+        return None;
+    }
+    let pusi = pkt[1] & 0x40 != 0;
+    let pid = (((pkt[1] & 0x1f) as u16) << 8) | pkt[2] as u16;
+    let afc = (pkt[3] >> 4) & 0b11;
+    let mut at = 4usize;
+    if afc & 0b10 != 0 {
+        // adaptation_field_length 本身不算在长度里
+        at += 1 + *pkt.get(4)? as usize;
+    }
+    if afc & 0b01 == 0 {
+        return None; // 只有 adaptation field，没有负载
+    }
+    Some((pkt.get(at..)?, pusi, pid))
+}
+
+/// 从一个 section 起始包的负载里切出 section 体（去掉 pointer_field 和头）。
+///
+/// **只处理装得下一个包的 section。** PAT/PMT 一般就几十字节，跨包的极少见；
+/// 真跨了就跳过这一份，等下一次重复播出（PSI 每隔几百毫秒就重发一次）。
+fn ts_section(payload: &[u8], table_id: u8) -> Option<&[u8]> {
+    let ptr = *payload.first()? as usize;
+    let sec = payload.get(1 + ptr..)?;
+    if *sec.first()? != table_id {
+        return None;
+    }
+    let len = ((((sec.get(1)? & 0x0f) as usize) << 8) | *sec.get(2)? as usize).checked_sub(4)?;
+    // 3 字节头 + 内容，末尾 4 字节 CRC 已经在上面减掉了
+    sec.get(3..3 + len)
+}
+
+/// 解析 TS。
+///
+/// # 能读出什么
+///
+/// 音轨语言 —— PMT 里的 `ISO_639_language_descriptor` 是**容器层**的字段，
+/// 和 MKV 的 `Language` 一个性质，读出来就是事实。
+///
+/// # 读不出什么，以及为什么不硬来
+///
+/// **分辨率和时长不在 TS 容器里。** TS 是个传输流：分辨率藏在视频基本流的
+/// SPS（H.264）或序列头（MPEG-2）里，要按位解 Exp-Golomb、还得处理防竞争
+/// 字节；时长得靠首尾 PCR 相减，而尾部我们根本没取。那些是解码器的活，
+/// 写出来也没有真实样本能验 —— 与其给一个可能编错的数字，不如照这个模块
+/// 一贯的规矩：**认不出就说认不出**，判读那边会显示「容器里没读到分辨率」。
+fn parse_ts(data: &[u8]) -> Option<MediaInfo> {
+    let (size, off) = ts_layout(data)?;
+
+    let mut pmt_pids: Vec<u16> = Vec::new();
+    let mut langs: Vec<String> = Vec::new();
+
+    for pkt in data[off..].chunks(size) {
+        let Some((payload, pusi, pid)) = ts_payload(pkt) else {
+            continue;
+        };
+        if !pusi {
+            continue;
+        }
+
+        if pid == 0 {
+            // PAT：5 字节头之后是 (program_number, program_map_PID) 对
+            if let Some(sec) = ts_section(payload, 0x00) {
+                for e in sec.get(5..).unwrap_or_default().chunks_exact(4) {
+                    let prog = u16::from_be_bytes([e[0], e[1]]);
+                    let map_pid = (((e[2] & 0x1f) as u16) << 8) | e[3] as u16;
+                    // program_number 0 是 NIT，不是节目
+                    if prog != 0 && !pmt_pids.contains(&map_pid) {
+                        pmt_pids.push(map_pid);
+                    }
+                }
+            }
+            continue;
+        }
+
+        if !pmt_pids.contains(&pid) {
+            continue;
+        }
+        let Some(sec) = ts_section(payload, 0x02) else {
+            continue;
+        };
+        // 5 字节头 + PCR_PID(2) + program_info_length(2)
+        let prog_info_len = (((*sec.get(7)? & 0x0f) as usize) << 8) | *sec.get(8)? as usize;
+        let mut pos = 9 + prog_info_len;
+        while pos + 5 <= sec.len() {
+            let stream_type = sec[pos];
+            let es_len = (((sec[pos + 3] & 0x0f) as usize) << 8) | sec[pos + 4] as usize;
+            let desc = sec.get(pos + 5..pos + 5 + es_len).unwrap_or_default();
+
+            let is_audio = TS_AUDIO_TYPES.contains(&stream_type)
+                || (stream_type == 0x06 && ts_has_tag(desc, DESC_AC3));
+            if is_audio {
+                for l in ts_descriptor_langs(desc) {
+                    if !langs.contains(&l) {
+                        langs.push(l);
+                    }
+                }
+            }
+            pos += 5 + es_len;
+        }
+    }
+
+    Some(MediaInfo {
+        container: if off == 4 { "m2ts" } else { "ts" },
+        audio_langs: langs,
+        ..Default::default()
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -559,6 +860,219 @@ mod tests {
             panic!("没认出");
         };
         assert_eq!(info.audio_langs, vec!["eng"]);
+    }
+
+    // ---- AVI ----
+
+    /// RIFF 块：`[id][u32 小端 大小][负载]`，负载补齐到偶数字节。
+    fn riff(id: &[u8; 4], payload: &[u8]) -> Vec<u8> {
+        let mut v = id.to_vec();
+        v.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        v.extend_from_slice(payload);
+        if payload.len() % 2 == 1 {
+            v.push(0);
+        }
+        v
+    }
+
+    fn list(kind: &[u8; 4], children: &[Vec<u8>]) -> Vec<u8> {
+        let mut body = kind.to_vec();
+        for c in children {
+            body.extend_from_slice(c);
+        }
+        riff(b"LIST", &body)
+    }
+
+    /// avih：dwMicroSecPerFrame 在 0，dwTotalFrames 在 16，
+    /// dwWidth/dwHeight 在 32/36。全是小端 u32。
+    fn avih(us_per_frame: u32, frames: u32, w: u32, h: u32) -> Vec<u8> {
+        let mut p = vec![0u8; 56];
+        p[0..4].copy_from_slice(&us_per_frame.to_le_bytes());
+        p[16..20].copy_from_slice(&frames.to_le_bytes());
+        p[32..36].copy_from_slice(&w.to_le_bytes());
+        p[36..40].copy_from_slice(&h.to_le_bytes());
+        riff(b"avih", &p)
+    }
+
+    /// 视频流的 strh + strf。strf 是 BITMAPINFOHEADER：biWidth 在 +4、
+    /// biHeight 在 +8，都是 i32。
+    fn video_strl(w: i32, h: i32) -> Vec<u8> {
+        let mut strh = vec![0u8; 56];
+        strh[0..4].copy_from_slice(b"vids");
+        let mut strf = vec![0u8; 40];
+        strf[0..4].copy_from_slice(&40u32.to_le_bytes());
+        strf[4..8].copy_from_slice(&w.to_le_bytes());
+        strf[8..12].copy_from_slice(&h.to_le_bytes());
+        list(b"strl", &[riff(b"strh", &strh), riff(b"strf", &strf)])
+    }
+
+    fn avi_file(children: &[Vec<u8>]) -> Vec<u8> {
+        let mut body = b"AVI ".to_vec();
+        body.extend_from_slice(&list(b"hdrl", children));
+        riff(b"RIFF", &body)
+    }
+
+    #[test]
+    fn avi_reads_size_and_duration() {
+        // 每帧 41708 微秒 ≈ 23.976 fps，10000 帧 ≈ 417 秒
+        let file = avi_file(&[avih(41708, 10_000, 1920, 1080), video_strl(1920, 1080)]);
+
+        let Probe::Found(info) = probe(&file) else {
+            panic!("没认出 AVI");
+        };
+        assert_eq!(info.container, "avi");
+        assert_eq!((info.width, info.height), (Some(1920), Some(1080)));
+        let secs = info.duration_secs.unwrap();
+        assert!((secs - 417.08).abs() < 0.01, "时长算错了：{secs}");
+        // AVI 没有标准的语言字段，只能是空的 —— 判读那边会当成「验不了」。
+        assert!(info.audio_langs.is_empty());
+    }
+
+    #[test]
+    fn avi_prefers_stream_format_over_main_header() {
+        // avih 说 0（有些封装工具就是不填），strf 说 1280×720 —— 以 strf 为准
+        let file = avi_file(&[avih(40_000, 100, 0, 0), video_strl(1280, 720)]);
+        let Probe::Found(info) = probe(&file) else {
+            panic!("没认出 AVI");
+        };
+        assert_eq!((info.width, info.height), (Some(1280), Some(720)));
+    }
+
+    #[test]
+    fn avi_negative_height_is_a_top_down_bitmap() {
+        // BITMAPINFOHEADER 的 biHeight 为负表示自上而下存储，高度是它的绝对值
+        let file = avi_file(&[avih(40_000, 100, 0, 0), video_strl(1920, -1080)]);
+        let Probe::Found(info) = probe(&file) else {
+            panic!("没认出 AVI");
+        };
+        assert_eq!(info.height, Some(1080), "负高度该取绝对值，不是当成坏数据");
+    }
+
+    // ---- MPEG-TS ----
+
+    /// 一个 188 字节的 TS 包，负载前面带 pointer_field。
+    fn ts_packet(pid: u16, section: &[u8]) -> Vec<u8> {
+        let mut p = vec![0x47u8];
+        // payload_unit_start_indicator + PID 高 5 位
+        p.push(0x40 | ((pid >> 8) as u8 & 0x1f));
+        p.push(pid as u8);
+        p.push(0x10); // 只有负载，无 adaptation field
+        p.push(0x00); // pointer_field
+        p.extend_from_slice(section);
+        p.resize(188, 0xff);
+        p
+    }
+
+    /// 拼一个 PSI section：table_id + 长度 + 内容 + 4 字节 CRC 占位。
+    fn section(table_id: u8, body: &[u8]) -> Vec<u8> {
+        let len = body.len() + 4; // 内容 + CRC
+        let mut s = vec![table_id, 0xb0 | ((len >> 8) as u8 & 0x0f), len as u8];
+        s.extend_from_slice(body);
+        s.extend_from_slice(&[0, 0, 0, 0]);
+        s
+    }
+
+    /// PAT：5 字节头，然后每 4 字节一对 (program_number, program_map_PID)。
+    fn pat(program: u16, pmt_pid: u16) -> Vec<u8> {
+        let mut body = vec![0u8; 5];
+        body.extend_from_slice(&program.to_be_bytes());
+        body.push(0xe0 | ((pmt_pid >> 8) as u8 & 0x1f));
+        body.push(pmt_pid as u8);
+        section(0x00, &body)
+    }
+
+    /// PMT：5 字节头 + PCR_PID(2) + program_info_length(2)，然后是流循环。
+    /// `streams` 是 (stream_type, PID, 描述符)。
+    fn pmt(streams: &[(u8, u16, Vec<u8>)]) -> Vec<u8> {
+        let mut body = vec![0u8; 5];
+        body.extend_from_slice(&[0xe1, 0x00]); // PCR_PID
+        body.extend_from_slice(&[0xf0, 0x00]); // program_info_length = 0
+        for (st, pid, desc) in streams {
+            body.push(*st);
+            body.push(0xe0 | ((pid >> 8) as u8 & 0x1f));
+            body.push(*pid as u8);
+            body.push(0xf0 | ((desc.len() >> 8) as u8 & 0x0f));
+            body.push(desc.len() as u8);
+            body.extend_from_slice(desc);
+        }
+        section(0x02, &body)
+    }
+
+    /// ISO_639_language_descriptor：tag 0x0A，每 4 字节一组（3 字节语言码
+    /// + 1 字节 audio_type）。
+    fn lang_desc(codes: &[&str]) -> Vec<u8> {
+        let mut body = Vec::new();
+        for c in codes {
+            body.extend_from_slice(c.as_bytes());
+            body.push(0x00);
+        }
+        let mut d = vec![0x0A, body.len() as u8];
+        d.extend_from_slice(&body);
+        d
+    }
+
+    fn ts_stream(packets: &[Vec<u8>]) -> Vec<u8> {
+        packets.iter().flatten().copied().collect()
+    }
+
+    #[test]
+    fn ts_reads_audio_languages_from_pmt() {
+        let stream = ts_stream(&[
+            ts_packet(0, &pat(1, 0x100)),
+            ts_packet(
+                0x100,
+                &pmt(&[
+                    (0x1b, 0x101, vec![]),              // H.264 视频
+                    (0x0f, 0x102, lang_desc(&["chi"])), // AAC 中文
+                    (0x81, 0x103, lang_desc(&["eng"])), // AC-3 英文
+                ]),
+            ),
+            ts_packet(0x101, &[]),
+            ts_packet(0x101, &[]),
+            ts_packet(0x101, &[]),
+        ]);
+
+        let Probe::Found(info) = probe(&stream) else {
+            panic!("没认出 TS");
+        };
+        assert_eq!(info.container, "ts");
+        assert_eq!(info.audio_langs, vec!["chi", "eng"]);
+        // 分辨率和时长不在容器里，必须留空而不是编一个
+        assert_eq!(info.width, None);
+        assert_eq!(info.duration_secs, None);
+    }
+
+    #[test]
+    fn ts_ignores_subtitle_streams_labelled_private_data() {
+        // 0x06 私有数据 + 语言描述符，但没有 AC-3 描述符 —— DVB 字幕就长这样。
+        // 认成音轨的话，「有没有国配」会被一条中文字幕轨骗过去。
+        let stream = ts_stream(&[
+            ts_packet(0, &pat(1, 0x100)),
+            ts_packet(
+                0x100,
+                &pmt(&[(0x1b, 0x101, vec![]), (0x06, 0x104, lang_desc(&["chi"]))]),
+            ),
+            ts_packet(0x101, &[]),
+            ts_packet(0x101, &[]),
+            ts_packet(0x101, &[]),
+        ]);
+
+        let Probe::Found(info) = probe(&stream) else {
+            panic!("没认出 TS");
+        };
+        assert!(
+            info.audio_langs.is_empty(),
+            "字幕轨不能算成音轨，实际认出了 {:?}",
+            info.audio_langs
+        );
+    }
+
+    #[test]
+    fn a_single_stray_0x47_is_not_a_transport_stream() {
+        // 只看一个同步字节的话，随便什么二进制都能被认成 TS。
+        let mut junk = vec![0u8; 2000];
+        junk[0] = 0x47;
+        assert_eq!(probe(&junk), Probe::Unknown);
     }
 
     // ---- 兜底 ----

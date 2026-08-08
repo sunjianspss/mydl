@@ -4,6 +4,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { listen } from "@tauri-apps/api/event";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
 import type { SessionStatus, Settings, TorrentPreview, TorrentView } from "./types";
@@ -46,9 +47,11 @@ import {
 } from "./icons";
 import "./App.css";
 
-// 有任务在跑时轮询快一点，速度数字动得跟手；空闲时没必要刷那么勤。
-const POLL_ACTIVE_MS = 1000;
-const POLL_IDLE_MS = 5000;
+/** 对应 push.rs 的 Snapshot。任务列表和会话状态一起推过来，不用分两次问。 */
+interface Snapshot {
+  torrents: TorrentView[];
+  status: SessionStatus;
+}
 
 const STATE_LABEL: Record<string, string> = {
   initializing: "准备中",
@@ -120,6 +123,9 @@ export default function App() {
   // 否则迟早和 Cargo.toml / package.json 对不上，报 bug 时给的版本就是错的。
   const [version, setVersion] = useState("");
 
+  // 平时靠 Rust 侧推送（见 push.rs），这个只在两种时候用：首屏，以及
+  // 刚做完一个动作时立刻要反馈 —— 等下一轮推送会有最多一秒的延迟，
+  // 点了「暂停」隔一拍才变灰，手感上就是「没反应」。
   const refresh = useCallback(async () => {
     try {
       setTorrents(await invoke<TorrentView[]>("list_torrents"));
@@ -142,20 +148,25 @@ export default function App() {
     refresh();
   }, [refresh]);
 
-  // 轮询只在窗口有焦点时进行：后台每秒全量拉一遍列表纯属烧 CPU，切回来
-  // 立即刷一次比后台空转强得多。有任务在跑时刷新快些，全都停着就放慢。
   const windowFocused = useWindowFocused();
-  // 下载和做种都算「在动」（live 覆盖两者，finished 只区分是哪一种）：做种时
-  // 上传速度一样在变，落到 5s 档会看着一顿一顿的。
-  const hasActive = torrents.some((t) => t.state === "live");
-  const pollMs = windowFocused ? (hasActive ? POLL_ACTIVE_MS : POLL_IDLE_MS) : null;
 
+  // 列表由 Rust 推过来：内容没变就一条都不发，全暂停的会话是真的静止的。
+  // 采样节奏和「失焦就不干活」都在 push.rs 那边，这里只管收。
   useEffect(() => {
-    if (pollMs === null) return;
-    refresh();
-    const timer = setInterval(refresh, pollMs);
-    return () => clearInterval(timer);
-  }, [refresh, pollMs]);
+    const un = listen<Snapshot>("torrents", (e) => {
+      setTorrents(e.payload.torrents);
+      setStatus(e.payload.status);
+    });
+    return () => {
+      un.then((f) => f()).catch(() => {});
+    };
+  }, []);
+
+  // 切回窗口时立刻要一份新的。推送那边失焦期间是停着的，等它下一轮的话
+  // 会先看到离开前的旧数字。
+  useEffect(() => {
+    if (windowFocused) refresh();
+  }, [windowFocused, refresh]);
 
   // 停轮询还不够：状态圆点的扩散动画是 infinite 的，窗口在后台也照样让 webview
   // 一帧帧合成，把省下来的 CPU 又还回去。挂个属性交给 CSS 停掉 —— 没人在看的

@@ -9,7 +9,9 @@ pub mod keep_awake;
 pub mod media;
 pub mod netif;
 pub mod platform;
+pub mod push;
 pub mod rarity;
+pub mod ratio;
 pub mod release;
 pub mod rss;
 pub mod search;
@@ -644,6 +646,7 @@ fn init_app(app: &tauri::App) -> anyhow::Result<()> {
     keep_awake::spawn(engine.clone(), store.clone());
     health::spawn(engine.clone(), store.clone(), health.clone(), stats.clone());
     congestion::spawn(engine.clone(), store.clone(), congestion.clone());
+    push::spawn(app.handle().clone(), engine.clone());
 
     app.manage(engine);
     app.manage(server);
