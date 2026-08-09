@@ -46,6 +46,24 @@ mod imp {
             .collect()
     }
 
+    /// 播放器认得的容器，`None` 表示什么都能放。
+    ///
+    /// IINA / VLC / mpv 自带解复用器，容器不是它们的限制，所以只有
+    /// QuickTime 需要挑出来：它只认 ISO BMFF 那一支，mkv 打开是
+    /// 「不支持的文件格式」。而 QuickTime 在 `/System/Applications` 里
+    /// **必然存在** —— 不限制的话，每个 mkv 后面都会挂一个点了必然失败的
+    /// 按钮，而 mkv 恰恰是影视资源的主流容器。对刚拿到软件的人来说，
+    /// 那看起来就是「这软件的播放坏了」。
+    ///
+    /// 宁可少给按钮：漏掉一个其实能放的容器，代价是他多点一次「复制链接」；
+    /// 多给一个放不了的，代价是他以为软件坏了。
+    pub fn player_containers(name: &str) -> Option<&'static [&'static str]> {
+        match name {
+            "QuickTime Player" => Some(&[".mp4", ".m4v", ".mov"]),
+            _ => None,
+        }
+    }
+
     /// 走 `open -a`，因为 http:// 交给系统默认处理会进浏览器。
     pub fn open_in_player(url: &str, app: &str) -> Result<()> {
         let status = Command::new("/usr/bin/open")
@@ -277,6 +295,13 @@ mod imp {
             .collect()
     }
 
+    /// Windows 这边 `KNOWN` 里的四个都自带解复用器，没有容器限制 ——
+    /// 系统也不预装任何一个，不存在 macOS 上 QuickTime 那种「必然在、
+    /// 但放不了 mkv」的情况。语义见 macOS 侧的同名函数。
+    pub fn player_containers(_name: &str) -> Option<&'static [&'static str]> {
+        None
+    }
+
     /// 直接把流地址作为参数拉起播放器。不走 `cmd /c start`：那样 http://
     /// 会被交给系统默认程序，也就是浏览器。
     ///
@@ -372,6 +397,42 @@ mod imp {
 }
 
 pub use imp::{
-    available_players, log_dir, open_in_player, open_path, play_done_sound, raise_file_limit,
-    sleep_now, SleepBlocker,
+    available_players, log_dir, open_in_player, open_path, play_done_sound, player_containers,
+    raise_file_limit, sleep_now, SleepBlocker,
 };
+
+/// 放在顶层而不是 `imp` 里面：嵌在 `#[cfg(target_os = "macos")] mod imp`
+/// 里的话，Windows 上整块被 cfg 掉，那支 `player_containers` 一条断言都跑不到
+/// —— 而 CI 是出双平台包的。
+#[cfg(test)]
+mod tests {
+    use super::player_containers;
+
+    /// 自带解复用器的那些，两个平台都不该被限制。
+    #[test]
+    fn full_featured_players_are_unrestricted() {
+        for name in ["IINA", "VLC", "mpv", "PotPlayer", "MPC-HC"] {
+            assert!(player_containers(name).is_none(), "{name} 不该被限制");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn quicktime_refuses_mkv_and_friends() {
+        let q = player_containers("QuickTime Player").expect("QuickTime 必须受限");
+        for ext in [".mkv", ".webm", ".avi", ".ts", ".m2ts", ".wmv", ".flv"] {
+            assert!(!q.contains(&ext), "QuickTime 放不了 {ext}，不该出按钮");
+        }
+        assert!(q.contains(&".mp4"));
+    }
+
+    /// Windows 侧目前一个受限播放器都没有。将来谁加了限制，这条会红 ——
+    /// 那时候前端的「都放不了」那个分支才第一次可达，记得一起看。
+    #[cfg(windows)]
+    #[test]
+    fn windows_restricts_nothing_yet() {
+        for name in ["VLC", "mpv", "PotPlayer", "MPC-HC", "QuickTime Player"] {
+            assert!(player_containers(name).is_none());
+        }
+    }
+}

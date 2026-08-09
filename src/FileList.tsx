@@ -3,9 +3,26 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { FileView, Player } from "./types";
 import { formatBytes, percent } from "./format";
+import { IS_MAC } from "./platform";
 import { useWindowFocused } from "./useWindowFocused";
 
 const POLL_INTERVAL_MS = 2000;
+
+/** 文件名末尾的扩展名，小写带点。没有扩展名就返回空串。 */
+function extensionOf(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot === -1 ? "" : name.slice(dot).toLowerCase();
+}
+
+/**
+ * 这个播放器放不放得了这个文件。`plays` 为 null 表示什么都能放。
+ *
+ * 只按容器判断，不管编码：容器是我们从文件名就能知道的，编码要解码才知道，
+ * 而按钮必须在点之前就决定给不给。
+ */
+function canPlay(player: Player, fileName: string): boolean {
+  return player.plays === null || player.plays.includes(extensionOf(fileName));
+}
 
 interface Props {
   torrentId: number;
@@ -109,6 +126,17 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
   const chosenBytes = chosen.reduce((sum, f) => sum + f.len, 0);
   const totalBytes = files.reduce((sum, f) => sum + f.len, 0);
 
+  // 一个已装播放器都放不了的容器。按钮位空着不解释，看起来就是功能坏了 ——
+  // 但也只给一行，一份剧集有十二个 mkv，逐个文件重复同一句话更糟。
+  const unplayable = [
+    ...new Set(
+      chosen
+        .filter((f) => f.playable && !players.some((p) => canPlay(p, f.name)))
+        .map((f) => extensionOf(f.name))
+        .filter((ext) => ext !== ""),
+    ),
+  ];
+
   return (
     <div className="files-panel">
       <div className="files-toolbar">
@@ -156,7 +184,7 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
             </span>
             {f.playable && f.selected && (
               <span className="file-actions">
-                {players.map((p) => (
+                {players.filter((p) => canPlay(p, f.name)).map((p) => (
                   <button
                     key={p.path ?? p.name}
                     disabled={!streamable}
@@ -182,6 +210,31 @@ export default function FileList({ torrentId, streamable, onError }: Props) {
           </li>
         ))}
       </ul>
+
+      {unplayable.length > 0 &&
+        (players.length === 0 ? (
+          <p className="files-hint">
+            没检测到播放器，边下边播用不了。装{" "}
+            {IS_MAC ? (
+              <>
+                <b>IINA</b> / <b>VLC</b> / <b>mpv</b>
+              </>
+            ) : (
+              <>
+                <b>VLC</b> / <b>mpv</b> / <b>PotPlayer</b>
+              </>
+            )}{" "}
+            任意一个就行；装在非常规位置的话，在设置里手填播放器路径。
+            「复制链接」这时候仍然可用 —— 粘进播放器的「打开网络串流」
+            是一样的效果。
+          </p>
+        ) : (
+          <p className="files-hint">
+            已装的播放器（{players.map((p) => p.name).join("、")}）放不了{" "}
+            {unplayable.join(" / ")}，所以这些文件没有播放按钮。装{" "}
+            <b>IINA</b> 或 <b>VLC</b> 就能覆盖；「复制链接」仍然可用。
+          </p>
+        ))}
     </div>
   );
 }

@@ -152,6 +152,8 @@ export interface RssFeed {
 export interface Player {
   name: string;
   path: string | null;
+  /** 认得的容器扩展名（带点、小写）。null = 什么都能放。 */
+  plays: string[] | null;
 }
 
 /** 对应 rss.rs 的 CheckReport。 */

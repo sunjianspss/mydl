@@ -555,6 +555,9 @@ fn play_done_sound() {
 struct PlayerEntry {
     name: String,
     path: Option<String>,
+    /// 这个播放器认得的容器扩展名，`None` = 什么都能放。界面按它决定
+    /// 给哪些文件出按钮，理由见 [`platform::player_containers`]。
+    plays: Option<&'static [&'static str]>,
 }
 
 /// 按钮上显示什么：路径的文件名去掉扩展名。
@@ -571,7 +574,11 @@ fn player_label(path: &str) -> String {
 fn available_players(store: State<'_, Arc<SettingsStore>>) -> Vec<PlayerEntry> {
     let mut list: Vec<PlayerEntry> = platform::available_players()
         .into_iter()
-        .map(|name| PlayerEntry { name, path: None })
+        .map(|name| PlayerEntry {
+            plays: platform::player_containers(&name),
+            name,
+            path: None,
+        })
         .collect();
 
     let custom = store
@@ -584,6 +591,10 @@ fn available_players(store: State<'_, Arc<SettingsStore>>) -> Vec<PlayerEntry> {
         // 留着两个一模一样的按钮只会让人不知道该点哪个。
         list.retain(|p| p.name != name);
         list.push(PlayerEntry {
+            // 手填的路径同样过一遍容器表：填的要是 QuickTime，该限制还得限制。
+            // 认不出的名字一律当全能 —— 我们不知道那个可执行文件能放什么，
+            // 而用户是自己指的路径，猜错不如放行。
+            plays: platform::player_containers(&name),
             name,
             path: Some(path),
         });
