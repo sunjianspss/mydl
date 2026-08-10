@@ -1289,3 +1289,8 @@ settings.json：那个文件是明文的，而下面「分发」一节还在教�
 风险本身不高（那是本机 Jackett 的 key，对方还得能访问你的 9117 端口），
 但值得知道。同理，**抓 Torznab 响应当测试样本时也要先脱敏** —— 响应里每条
 结果的链接都带着 apikey，`tests/fixtures/jackett_lotr.xml` 就是这么脱敏过的。
+
+## 许可证
+
+[MIT](LICENSE)。依赖各自的许可证见 `src-tauri/Cargo.toml` 和 `package.json`——
+librqbit 本身是 Apache-2.0。
