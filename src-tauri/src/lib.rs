@@ -524,8 +524,10 @@ async fn restart_app(
     app: tauri::AppHandle,
     engine: State<'_, Arc<Engine>>,
     ratio: State<'_, Arc<ratio::RatioStore>>,
+    stats: State<'_, Arc<stats::StatsStore>>,
 ) -> Result<(), String> {
     ratio.save();
+    health::record_daily(&engine, &stats);
     engine.shutdown().await;
     tracing::info!("按用户要求重启");
 
@@ -850,6 +852,12 @@ pub fn run() {
                     ratio.save();
                 }
                 if let Some(engine) = app.try_state::<Arc<Engine>>() {
+                    // 每日统计同理，而且它丢起来更狠：会话计数器随进程归零，
+                    // 上一次采样（默认半小时一轮）到现在的流量补不回来。
+                    // 必须赶在 shutdown 之前 —— 之后会话就停了。
+                    if let Some(stats) = app.try_state::<Arc<stats::StatsStore>>() {
+                        health::record_daily(&engine, &stats);
+                    }
                     tauri::async_runtime::block_on(engine.shutdown());
                 }
             }

@@ -361,6 +361,11 @@ MYDL_BIND_DEVICE=en0 cargo test --test bind_device_live -- --ignored --nocapture
 BT 传输的 payload，并在单次 App 运行期间单调递增。每轮只记相对上一轮的增量；
 App 重启后计数器从 0 开始，本进程第一轮已经产生的流量也会完整记入。
 
+代价是**基线不再持久化**，所以退出前必须补记一次：采样默认半小时一轮，
+计数器又随进程归零，不补的话每次正常关闭都要丢掉最后那一截。正常退出
+（`RunEvent::Exit`）和「重启 App」两条路各补一次，都赶在 `engine.shutdown()`
+之前 —— 会话停了就读不到计数器了。
+
 ### 配色是算出来的，不是挑的
 
 按 `dataviz` 规范：热力图是 **sequential 编码 → 单色相、light→dark**，配刻度
