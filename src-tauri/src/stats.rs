@@ -10,16 +10,14 @@
 //!
 //! # 增量怎么算才不会算错
 //!
-//! 每轮采样把「所有任务的已下字节之和」和上一轮比。四种情况都会让这个和
-//! **变小**，而它们都不该记成负数或巨大的跳变：
+//! 不能拿任务的 `progress_bytes` 记流量。它表示「当前选中文件里磁盘上已经有
+//! 多少」，App 启动校验、重新选择文件时都会大幅回退再恢复；把恢复量当下载量
+//! 会让同一批旧文件被重复累计。
 //!
-//! - 任务被删掉了
-//! - 用户取消勾选了几个文件
-//! - 重新校验，进度回退
-//! - App 重启，`uploaded_bytes` 归零
-//!
-//! 所以**按每个种子分别算增量并且截断到非负**，再求和。整体求和再作差会
-//! 把「删掉一个 20 GB 的任务」记成负增长，而按种子算只会让那个种子贡献 0。
+//! librqbit 的会话级 `fetched_bytes` / `uploaded_bytes` 才是真正的 BT 传输计数器。
+//! 它们在一个 App 进程内单调递增，重启后归零。每轮只记相对上一轮的增量；
+//! 本进程的第一轮则把当前值全部记下，因为这些字节都发生在 App 启动之后、
+//! 第一次采样之前。
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -41,12 +39,13 @@ pub struct Day {
 struct StatsData {
     /// `YYYY-MM-DD` -> 当天总量。
     days: HashMap<String, Day>,
-    /// 上一轮每个种子的 (已下, 已传)，用来算增量。**必须持久化** ——
-    /// 不然每次重启后的第一轮会把「已下的全部字节」当成新增。
-    last: HashMap<String, (u64, u64)>,
     /// 开始统计的日期。界面上要显示 —— 「累计」只能从这天算起，
     /// 说成「历史总量」是撒谎。
     since: Option<String>,
+    /// 本进程上一轮看到的会话级 (已下载, 已上传)。会话计数器随进程归零，
+    /// 所以这个基线绝不能持久化。旧版 JSON 里的 `last` 字段会由 serde 忽略。
+    #[serde(skip)]
+    session_last: Option<(u64, u64)>,
 }
 
 pub struct StatsStore {
@@ -121,10 +120,10 @@ impl StatsStore {
         }
     }
 
-    /// 记一轮。`current` 是当前每个种子的 (info-hash, 已下, 已传)。
+    /// 记一轮。`current` 是 librqbit 本次会话累计的 (已下载, 已上传)。
     ///
     /// 返回这轮记了多少新增字节 (下, 上)，主要给日志和测试看。
-    pub fn record(&self, current: &[(String, u64, u64)], now_ts: i64) -> (u64, u64) {
+    pub fn record(&self, current: (u64, u64), now_ts: i64) -> (u64, u64) {
         let date = local_date(now_ts);
         let mut data = self.data.lock().unwrap();
 
@@ -132,20 +131,15 @@ impl StatsStore {
             data.since = Some(date.clone());
         }
 
-        let (mut down, mut up) = (0u64, 0u64);
-        for (hash, progress, uploaded) in current {
-            let (last_p, last_u) = data.last.get(hash).copied().unwrap_or((*progress, *uploaded));
-            // 截断到非负：删任务、取消勾选、重新校验、重启归零都会让它变小。
-            down += progress.saturating_sub(last_p);
-            up += uploaded.saturating_sub(last_u);
-        }
-
-        // 只留还在的种子，删掉的不必一直占着。
-        let keep: std::collections::HashSet<&String> = current.iter().map(|(h, _, _)| h).collect();
-        data.last.retain(|k, _| keep.contains(k));
-        for (hash, p, u) in current {
-            data.last.insert(hash.clone(), (*p, *u));
-        }
+        let (down, up) = match data.session_last.replace(current) {
+            Some(last) => (
+                session_counter_delta(current.0, last.0),
+                session_counter_delta(current.1, last.1),
+            ),
+            // 计数器从 App 启动时的 0 开始；第一轮已有的值也是本次运行期间
+            // 真正传输的流量，不能只拿来做基线而丢掉。
+            None => current,
+        };
 
         let entry = data.days.entry(date).or_default();
         entry.down += down;
@@ -177,6 +171,12 @@ impl StatsStore {
             }
         }
     }
+}
+
+/// 会话计数器正常情况下单调递增。若底层会话在进程内被重建而归零，
+/// 当前值就是新会话已经产生的全部流量，也应该记入而不是丢掉。
+fn session_counter_delta(current: u64, last: u64) -> u64 {
+    current.checked_sub(last).unwrap_or(current)
 }
 
 pub fn stats_path(config_dir: &Path) -> PathBuf {
@@ -335,55 +335,89 @@ mod tests {
         assert_eq!(parse_utc_offset("garbage"), None);
     }
 
-    /// 第一轮不能把「已经下了 20 GB」当成这一轮新增的。
+    /// 会话计数器从 App 启动时的 0 开始，第一次采样前的流量也不能漏。
     #[test]
-    fn first_round_records_nothing() {
+    fn first_round_records_traffic_since_app_start() {
         let (s, p) = store("first");
-        let (down, up) = s.record(&[("a".into(), 20_000_000_000, 500)], T);
-        assert_eq!((down, up), (0, 0), "第一轮该只记基线");
+        let (down, up) = s.record((2_000, 500), T);
+        assert_eq!((down, up), (2_000, 500));
+        assert_eq!(s.snapshot(T).total_down, 2_000);
         let _ = std::fs::remove_file(p);
     }
 
     #[test]
     fn accumulates_deltas() {
         let (s, p) = store("delta");
-        s.record(&[("a".into(), 1000, 10)], T);
-        let (d, u) = s.record(&[("a".into(), 3000, 30)], T);
+        s.record((1_000, 10), T);
+        let (d, u) = s.record((3_000, 30), T);
         assert_eq!((d, u), (2000, 20));
-        assert_eq!(s.snapshot(T).total_down, 2000);
+        assert_eq!(s.snapshot(T).total_down, 3_000);
         let _ = std::fs::remove_file(p);
     }
 
-    /// 删任务 / 取消勾选 / 重新校验 / 重启，都会让某个种子的数字变小。
-    /// 整体求和作差会记成负增长；按种子截断只会让它贡献 0。
+    /// 底层会话若在进程内重建，计数器会归零。新会话当前已有的流量
+    /// 应该完整计入，不能等它重新追上旧基线。
     #[test]
-    fn shrinking_values_never_go_negative() {
-        let (s, p) = store("shrink");
-        s.record(&[("a".into(), 10_000, 100), ("b".into(), 5_000, 50)], T);
+    fn counter_reset_starts_a_new_epoch() {
+        let (s, p) = store("reset");
+        s.record((10_000, 100), T);
 
-        // a 重新校验回退，b 正常前进，同时 b 的上传因为重启归零
-        let (d, u) = s.record(&[("a".into(), 2_000, 100), ("b".into(), 6_000, 0)], T);
-        assert_eq!(d, 1000, "只该算 b 的 +1000，a 的回退记 0");
-        assert_eq!(u, 0, "上传归零不该记成负数");
+        let (d, u) = s.record((2_000, 20), T);
+        assert_eq!((d, u), (2_000, 20));
 
-        // a 被删掉了
-        let (d2, _) = s.record(&[("b".into(), 7_000, 0)], T);
-        assert_eq!(d2, 1000);
-        assert_eq!(s.snapshot(T).total_down, 2000);
+        let (d2, u2) = s.record((2_500, 35), T);
+        assert_eq!((d2, u2), (500, 15));
+        assert_eq!(s.snapshot(T).total_down, 12_500);
         let _ = std::fs::remove_file(p);
     }
 
-    /// 基线必须持久化 —— 不然每次重启后的第一轮会把已下的全部字节
-    /// 当成当天新增，统计直接爆炸。
+    /// App 重启会创建新的 StatsStore 和新的 librqbit 会话。旧累计量保留，
+    /// 新会话第一次采样的字节应作为新的流量追加。
     #[test]
-    fn baseline_survives_restart() {
+    fn app_restart_keeps_totals_and_counts_the_new_session() {
         let (s, p) = store("restart");
-        s.record(&[("a".into(), 50_000_000_000, 0)], T);
+        s.record((5_000, 200), T);
         drop(s);
 
         let reopened = StatsStore::load(p.clone());
-        let (d, _) = reopened.record(&[("a".into(), 50_000_001_000, 0)], T);
-        assert_eq!(d, 1000, "重启后该只算真实增量");
+        let (d, u) = reopened.record((1_000, 30), T);
+        assert_eq!((d, u), (1_000, 30));
+        assert_eq!(reopened.snapshot(T).total_down, 6_000);
+        let _ = std::fs::remove_file(p);
+    }
+
+    /// v0.14.1 把每个种子的磁盘进度基线存在 `last`。升级后要能读旧文件，
+    /// 但下一次保存应丢掉这个已经没有意义、还会诱发重复计数的字段。
+    #[test]
+    fn loads_and_migrates_legacy_progress_baselines() {
+        let (_, p) = store("legacy");
+        std::fs::write(
+            &p,
+            r#"{"days":{"2026-08-06":{"down":123,"up":45}},"last":{"hash":[50000000000,9]},"since":"2026-08-06"}"#,
+        )
+        .unwrap();
+
+        let s = StatsStore::load(p.clone());
+        assert_eq!(s.snapshot(T).total_down, 123);
+        assert_eq!(s.record((0, 0), T), (0, 0));
+
+        let saved = std::fs::read_to_string(&p).unwrap();
+        assert!(!saved.contains("\"last\""), "旧进度基线不该继续保存");
+        let _ = std::fs::remove_file(p);
+    }
+
+    /// 复现这次 89 GB 的根因：启动校验让磁盘进度从低位恢复到几十 GB，
+    /// 但会话传输计数器没变，所以统计必须仍为 0。
+    #[test]
+    fn startup_disk_check_does_not_create_download_traffic() {
+        let (s, p) = store("startup-check");
+        s.record((0, 0), T); // 校验中，任务进度很低
+        let (d, u) = s.record((0, 0), T); // 校验完成，任务进度恢复
+        assert_eq!((d, u), (0, 0));
+        assert_eq!(s.snapshot(T).total_down, 0);
+
+        let (d2, _) = s.record((128 * 1024, 0), T);
+        assert_eq!(d2, 128 * 1024, "真正收到的 BT payload 才能进入统计");
         let _ = std::fs::remove_file(p);
     }
 

@@ -596,12 +596,10 @@ pub async fn sample_once(
 /// 那个开关管的是「要不要把 info-hash 发给公共 tracker」，是隐私问题；
 /// 而每日统计纯本地，一个包都不发。
 pub fn record_daily(engine: &Engine, stats: &crate::stats::StatsStore) {
-    let current: Vec<(String, u64, u64)> = engine
-        .list()
-        .into_iter()
-        .map(|t| (t.info_hash.to_ascii_lowercase(), t.progress_bytes, t.uploaded_bytes))
-        .collect();
-    let (down, up) = stats.record(&current, now_secs());
+    // 用会话级真实传输计数器，不能用任务 progress_bytes：后者在启动校验期间
+    // 会先回退再恢复，把磁盘上早已存在的文件误算成新下载。
+    let current = engine.session_transfer_totals();
+    let (down, up) = stats.record(current, now_secs());
     if down > 0 || up > 0 {
         tracing::debug!(新增下载 = down, 新增上传 = up, "每日统计");
     }

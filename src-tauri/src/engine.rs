@@ -670,6 +670,15 @@ impl Engine {
         }
     }
 
+    /// 本次 App 运行期间真正通过 BT 传输的 payload 字节数 (下载, 上传)。
+    ///
+    /// 这是会话级单调计数器，不受任务初始化校验、文件选择或暂停/继续影响；
+    /// App 重启时会随 librqbit 会话一起从 0 开始。
+    pub fn session_transfer_totals(&self) -> (u64, u64) {
+        let counters = self.session.stats_snapshot().counters;
+        (counters.fetched_bytes, counters.uploaded_bytes)
+    }
+
     pub fn list(&self) -> Vec<TorrentView> {
         self.session
             .with_torrents(|it| it.map(|(id, handle)| view_of(id, handle)).collect())
