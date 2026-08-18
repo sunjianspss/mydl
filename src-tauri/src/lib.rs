@@ -366,13 +366,20 @@ async fn diagnose_torrent(
 
     Ok(diagnose::run(
         &t.info_hash,
-        t.state,
-        t.error,
-        t.finished,
-        engine.session_status().bind_device,
-        store.get().proxy_url.is_some(),
-        t.peers_live,
-        t.download_speed_bps,
+        diagnose::Subject {
+            state: t.state,
+            error: t.error,
+            finished: t.finished,
+            bind_device: engine.session_status().bind_device,
+            // 和建会话时同一套判断（见 `run` 里的 `proxy_url`）：空串等于没配，
+            // 引擎不会拿它建代理，诊断也不能报「已配置 SOCKS5」。
+            proxy_configured: store
+                .get()
+                .proxy_url
+                .is_some_and(|u| !u.trim().is_empty()),
+            peers_live: t.peers_live,
+            download_speed_bps: t.download_speed_bps,
+        },
     )
     .await)
 }

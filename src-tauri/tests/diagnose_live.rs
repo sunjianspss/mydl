@@ -19,13 +19,11 @@ async fn runs_end_to_end() {
     let t0 = std::time::Instant::now();
     let r = diagnose::run(
         &info_hash,
-        "live".into(),
-        None,
-        false,
-        bind,
-        false,
-        0,
-        0.0,
+        diagnose::Subject {
+            state: "live".into(),
+            bind_device: bind,
+            ..Default::default()
+        },
     )
     .await;
     eprintln!("用时 {:.1}s\n", t0.elapsed().as_secs_f64());

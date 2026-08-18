@@ -369,7 +369,16 @@ fn tunnel_advice() -> String {
     }
 }
 
-fn network_side_advice() -> String {
+fn network_side_advice(f: &Facts) -> String {
+    // 连对照组都握不上手，而 mydl 自己配了 SOCKS5 —— 那代理就是头号嫌疑：
+    // BT 的出站 TCP 全走它，代理不通或被限速的表现和「网络整体不好」一模一样。
+    // 先说这条，因为它是用户自己一步能验证掉的。
+    if f.proxy_configured {
+        return "你在设置里配了 SOCKS5 代理，BT 的出站 TCP 全部走它 —— \
+                代理不通或者被限速，表现就是这样。先清空「SOCKS5 代理」重启 App \
+                再跑一次诊断：还是握不上手才轮到网络本身。"
+            .into();
+    }
     if cfg!(windows) {
         "常见原因：VPN 的 TUN / 透明代理接管了 BT，或者被运营商干扰。\
          在代理客户端给 mydl.exe 配一条 DIRECT（直连）规则；仅开启 Windows 系统代理不影响 BT。"
@@ -520,7 +529,7 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
                  问题在你的网络，不在这个资源。",
                 control_rate * 100.0
             ),
-            Some(network_side_advice()),
+            Some(network_side_advice(f)),
         ),
         // 对照组过了阈值，但没有明显好过目标 —— 差距在噪声里，不下结论。
         Some(control_rate) => (
@@ -548,17 +557,37 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
 // 串起来
 // ---------------------------------------------------------------------------
 
+/// 被诊断的那个任务，调用方从引擎里一次取好传进来。
+///
+/// 攒成结构体而不是排成一串参数：这些字段一半是 `bool`、一半是
+/// `Option<String>`，位置写反了编译器一声不吭，而诊断结论会整个跑偏。
+#[derive(Debug, Clone, Default)]
+pub struct Subject {
+    /// 任务自己的状态：paused / error / live 之类。
+    pub state: String,
+    pub error: Option<String>,
+    pub finished: bool,
+    /// BT 绑定的网卡；None = 跟随系统路由。
+    pub bind_device: Option<String>,
+    /// 设置里配了 SOCKS5（空串不算）。
+    pub proxy_configured: bool,
+    /// 引擎当前真正维持着的 peer 数和瞬时下载速度。
+    pub peers_live: usize,
+    pub download_speed_bps: f64,
+}
+
 /// 跑一次完整诊断。
-pub async fn run(
-    info_hash: &str,
-    torrent_state: String,
-    torrent_error: Option<String>,
-    finished: bool,
-    bind_device: Option<String>,
-    proxy_configured: bool,
-    peers_live: usize,
-    download_speed_bps: f64,
-) -> Report {
+pub async fn run(info_hash: &str, subject: Subject) -> Report {
+    let Subject {
+        state: torrent_state,
+        error: torrent_error,
+        finished,
+        bind_device,
+        proxy_configured,
+        peers_live,
+        download_speed_bps,
+    } = subject;
+
     let mut steps = Vec::new();
     let mut f = Facts {
         torrent_state: torrent_state.clone(),
@@ -926,6 +955,23 @@ mod tests {
         let (v, advice) = conclude(&f);
         assert!(v.contains("问题在你的网络"), "实际：{v}");
         assert!(advice.unwrap().contains("VPN"));
+    }
+
+    /// 两边都失败、而且自己配了 SOCKS5 —— 头号嫌疑是那个代理，不能笼统地
+    /// 说「网络不好」让人去重启路由器。这是用户一步就能验证掉的。
+    #[test]
+    fn socks5_proxy_is_named_when_even_the_control_fails() {
+        let f = Facts {
+            proxy_configured: true,
+            probe: Some((0, 4, 12)),
+            control: Some((0, 8, 8)),
+            ..facts()
+        };
+        let (v, advice) = conclude(&f);
+        assert!(v.contains("问题在你的网络"), "实际：{v}");
+        let advice = advice.unwrap();
+        assert!(advice.contains("SOCKS5"), "该点名代理：{advice}");
+        assert!(advice.contains("重启 App"), "该给出可操作的一步：{advice}");
     }
 
     /// 对照组是这套判断的支点。它没跑成的时候必须承认「分不清」，

@@ -32,7 +32,8 @@ pub struct NetIf {
     pub name: String,
     /// 它的 IPv4 地址，给界面显示用 —— 光看 `en0` / `en5` 分不出哪个是在用的。
     pub ipv4: Option<String>,
-    /// 看着像隧道（`utun` / `ppp` / `ipsec` / `tap` / `tun`）。
+    /// 看着像隧道（`utun` / `ppp` / `ipsec` / `tap` / `tun`，Windows 上还认
+    /// 友好名里的 `wintun` / `Clash` / `VPN` 这类词）。
     ///
     /// 界面要把这些标出来：绑到隧道上等于没绕过去，是这个设置最容易犯的错。
     pub is_tunnel: bool,
@@ -46,10 +47,31 @@ pub fn is_tunnel_name(name: &str) -> bool {
     looks_like_tunnel(name)
 }
 
+/// macOS / Linux 的接口名是 `utun6` `tun0` 这种短代号，看前缀就够。
+const TUNNEL_PREFIXES: &[&str] = &["utun", "tun", "tap", "ppp", "ipsec", "gpd", "wg"];
+
+/// Windows 上 `network-interface` 给的是适配器的**友好名**（`GetAdaptersAddresses`
+/// 的 `FriendlyName`）：「以太网」「WLAN」「Mihomo」「TAP-Windows Adapter V9」
+/// ——**没有一个是短代号**，上面那张前缀表一条都命中不了。结果是 Windows 上
+/// `route_is_tunnel` 恒为 false，诊断里那条「BT 正在走隧道」永远不会触发，
+/// 而 Windows 恰恰是唯一不能在 App 内绑网卡、最需要这条提示的平台。
+///
+/// 所以友好名改成**子串**匹配。挑词的标准是「物理网卡不可能撞上」：
+/// 「以太网」「WLAN」「Realtek PCIe GbE Family Controller」这类真实名字里
+/// 一个都不含。注意 `adapter` 里没有 `tap`（a-d-a-p-t-e-r），不会误伤。
+const TUNNEL_KEYWORDS: &[&str] = &[
+    // 通用叫法
+    "tunnel", "vpn", "l2tp", "pptp", "wintun", "wireguard",
+    // TUN 模式的代理客户端，Windows 上接管 BT 的基本就是这些
+    "clash", "mihomo", "sing-box", "singbox", "v2ray", "xray", "surge", "warp",
+    // 组网 / 企业客户端
+    "tailscale", "zerotier", "anyconnect", "hamachi",
+];
+
 fn looks_like_tunnel(name: &str) -> bool {
-    const PREFIXES: &[&str] = &["utun", "tun", "tap", "ppp", "ipsec", "gpd", "wg"];
     let lower = name.to_ascii_lowercase();
-    PREFIXES.iter().any(|p| lower.starts_with(p))
+    TUNNEL_PREFIXES.iter().any(|p| lower.starts_with(p))
+        || TUNNEL_KEYWORDS.iter().any(|k| lower.contains(k))
 }
 
 /// 系统自建的虚拟接口 —— **有 IPv4 也通不到外网**。
@@ -169,6 +191,42 @@ mod tests {
             assert!(looks_like_tunnel(n), "{n} 该被认成隧道");
         }
         for n in ["en0", "en5", "eth0", "bridge100", "awdl0"] {
+            assert!(!looks_like_tunnel(n), "{n} 不该被认成隧道");
+        }
+    }
+
+    /// Windows 给的是适配器友好名，不是 `utun6` 这种短代号 —— 前缀表在那边
+    /// 一条都命中不了。这条锁住的就是 0.14.4 之前的实际行为：Windows 上开着
+    /// TUN 模式的 Clash，诊断照样报「系统默认路由正常」。
+    #[test]
+    fn recognizes_windows_adapter_friendly_names() {
+        for n in [
+            "Mihomo",
+            "Clash",
+            "TAP-Windows Adapter V9",
+            "WireGuard Tunnel",
+            "OpenVPN Wintun",
+            "Radmin VPN",
+            "Tailscale",
+            "Cisco AnyConnect Secure Mobility Client Virtual Miniport Adapter",
+        ] {
+            assert!(looks_like_tunnel(n), "{n} 该被认成隧道");
+        }
+    }
+
+    /// 反向才是真正危险的一侧：把物理网卡误判成隧道，自动兜底就会跳过它，
+    /// BT 静默变成 0 peers。这些是 Windows 上真实存在的名字。
+    #[test]
+    fn windows_physical_adapters_are_not_tunnels() {
+        for n in [
+            "以太网",
+            "以太网 2",
+            "WLAN",
+            "本地连接",
+            "Realtek PCIe GbE Family Controller",
+            "Intel(R) Wi-Fi 6 AX201 160MHz",
+            "Bluetooth Network Connection",
+        ] {
             assert!(!looks_like_tunnel(n), "{n} 不该被认成隧道");
         }
     }

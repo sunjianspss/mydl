@@ -1018,6 +1018,20 @@ MYDL_MEDIA_DIR=~/Downloads cargo test --test media_real -- --ignored --nocapture
 只让内核做一次选路决策，再从 `local_addr()` 读出它选的源 IP，拿这个 IP 去
 `netif::list()` 反查网卡名。拿到的是内核真正会用的那条路。
 
+拿到名字之后还要判断它是不是隧道，这一步**两个平台的名字长得完全不一样**：
+
+- macOS / Linux 给的是短代号（`utun6` `ppp0`），前缀匹配就够。
+- Windows 给的是适配器**友好名**（`GetAdaptersAddresses` 的 `FriendlyName`）：
+  「以太网」「WLAN」「Mihomo」「TAP-Windows Adapter V9」。前缀表在这边**一条
+  都命中不了** —— 0.14.4 之前 Windows 上 `route_is_tunnel` 恒为 `false`，
+  开着 TUN 模式的 Clash 也照样报「系统默认路由正常」，而 Windows 恰恰是唯一
+  不能在 App 内绑网卡、最需要这条提示的平台。
+
+所以 `netif::looks_like_tunnel` 是两层：短代号走前缀表，友好名走关键词子串
+（`tunnel` `vpn` `wintun` `clash` `mihomo` `tailscale` …）。挑词的标准是
+「物理网卡不可能撞上」，反向误判的代价大得多 —— 把物理网卡当成隧道，自动兜底
+会跳过它，BT 静默变成 0 peers。两个方向各有一个用例钉着。
+
 ### 代价
 
 会真的发包：tracker announce + 对最多 16 个 peer 试握手 + 打一次对照 swarm。
