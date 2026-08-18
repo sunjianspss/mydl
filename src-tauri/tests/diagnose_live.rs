@@ -17,7 +17,17 @@ async fn runs_end_to_end() {
 
     eprintln!("info_hash={info_hash}  绑定网卡={bind:?}");
     let t0 = std::time::Instant::now();
-    let r = diagnose::run(&info_hash, "live".into(), None, false, bind).await;
+    let r = diagnose::run(
+        &info_hash,
+        "live".into(),
+        None,
+        false,
+        bind,
+        false,
+        0,
+        0.0,
+    )
+    .await;
     eprintln!("用时 {:.1}s\n", t0.elapsed().as_secs_f64());
 
     for s in &r.steps {

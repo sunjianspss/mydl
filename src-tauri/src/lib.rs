@@ -355,6 +355,7 @@ fn network_interfaces() -> Vec<netif::NetIf> {
 #[tauri::command]
 async fn diagnose_torrent(
     engine: State<'_, Arc<Engine>>,
+    store: State<'_, Arc<SettingsStore>>,
     id: TorrentId,
 ) -> Result<diagnose::Report, String> {
     let t = engine
@@ -369,6 +370,9 @@ async fn diagnose_torrent(
         t.error,
         t.finished,
         engine.session_status().bind_device,
+        store.get().proxy_url.is_some(),
+        t.peers_live,
+        t.download_speed_bps,
     )
     .await)
 }

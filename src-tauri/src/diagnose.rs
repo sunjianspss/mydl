@@ -305,6 +305,15 @@ pub struct Facts {
     pub torrent_state: String,
     pub torrent_error: Option<String>,
     pub finished: bool,
+    /// 引擎当前真正维持着的 peer 数和瞬时下载速度。
+    ///
+    /// 单独探测的一批公开 peer 可能全都失联，但任务仍通过 DHT/PEX 连着别的
+    /// peer。没有这两个事实，报告会把「只剩一个慢 peer」说成「完全连不上」。
+    pub peers_live: usize,
+    pub download_speed_bps: f64,
+    /// mydl 自己有没有配置 SOCKS5。Windows 的系统 HTTP 代理不在这里；
+    /// 原始 BT socket 不会读取它，只有 TUN/WinDivert 透明代理可能在外部接管。
+    pub proxy_configured: bool,
     /// BT 绑定的网卡；None = 跟随系统路由。
     pub bind_device: Option<String>,
     /// 绑定的网卡还在不在。
@@ -325,6 +334,51 @@ pub struct Facts {
 fn rate(counts: (usize, usize, usize)) -> Option<f64> {
     let total = counts.0 + counts.1 + counts.2;
     (total > 0).then(|| counts.0 as f64 / total as f64)
+}
+
+fn format_speed(bps: f64) -> String {
+    if bps >= 1024.0 * 1024.0 {
+        format!("{:.1} MiB/s", bps / 1024.0 / 1024.0)
+    } else if bps >= 1024.0 {
+        format!("{:.0} KiB/s", bps / 1024.0)
+    } else {
+        format!("{bps:.0} B/s")
+    }
+}
+
+fn live_activity(f: &Facts) -> Option<String> {
+    match (f.peers_live, f.download_speed_bps > 0.5) {
+        (0, false) => None,
+        (peers, true) => Some(format!(
+            "任务当前仍连着 {peers} 个 peer、正在以 {} 下载",
+            format_speed(f.download_speed_bps)
+        )),
+        (peers, false) => Some(format!("任务当前仍连着 {peers} 个 peer")),
+    }
+}
+
+fn tunnel_advice() -> String {
+    if cfg!(windows) {
+        "Windows 版不能在 App 内绑定网卡。如果代理客户端开了 TUN / 透明代理，\
+         给 mydl.exe 配一条 DIRECT（直连）规则后重启 App；仅开启 Windows 系统代理不影响 BT。"
+            .into()
+    } else {
+        "去设置里把「BT 走哪张网卡」改成物理网卡（比如 en0），\
+         重启 App。这不影响 VPN 本身，浏览器照旧走隧道。"
+            .into()
+    }
+}
+
+fn network_side_advice() -> String {
+    if cfg!(windows) {
+        "常见原因：VPN 的 TUN / 透明代理接管了 BT，或者被运营商干扰。\
+         在代理客户端给 mydl.exe 配一条 DIRECT（直连）规则；仅开启 Windows 系统代理不影响 BT。"
+            .into()
+    } else {
+        "常见原因：BT 流量在走 VPN / 代理，或者被运营商干扰。\
+         先确认「BT 走哪张网卡」绑的是物理网卡。"
+            .into()
+    }
 }
 
 /// 从事实推出结论。**纯函数**。
@@ -367,11 +421,7 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
                 "BT 流量正在走 VPN / 代理隧道（{dev}）。隧道出口通常是机房 IP，\
                  会被大量 BT 客户端屏蔽；而且 UPnP 出不了隧道，没有入站连接，做种也是无效的。"
             ),
-            Some(
-                "去设置里把「BT 走哪张网卡」改成物理网卡（比如 en0），\
-                 重启 App。这不影响 VPN 本身，浏览器照旧走隧道。"
-                    .into(),
-            ),
+            Some(tunnel_advice()),
         );
     }
 
@@ -443,16 +493,26 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
     // 归咎于这个资源，否则老实说「两边都不理想」。
     let probe_pct = probe_rate * 100.0;
     match f.control.and_then(rate) {
-        Some(control_rate) if control_rate >= 0.3 && control_rate >= probe_rate * 2.0 => (
-            format!(
-                "只有这个 swarm 连不上：它 {}/{} 握手成功，而对照组（Ubuntu 官方种子）\
-                 {:.0}% 正常。问题出在这个资源的 peer 上，不是你的网络。",
+        Some(control_rate) if control_rate >= 0.3 && control_rate >= probe_rate * 2.0 => {
+            let measured = format!(
+                "公开样本 {}/{} 握手成功，而对照组（Ubuntu 官方种子）{:.0}% 正常。",
                 probe.0,
                 probe.0 + probe.1 + probe.2,
                 control_rate * 100.0
-            ),
-            Some("这些 peer 多半在拒绝你，或者已经离线。换个源更快。".into()),
-        ),
+            );
+            let verdict = match live_activity(f) {
+                Some(live) => format!(
+                    "{live}；但这个 swarm 的{measured}可用 peer 太少，所以很慢，不是你的网络或 VPN。"
+                ),
+                None => format!(
+                    "只有这个 swarm 连不上：{measured}问题出在这个资源的 peer 上，不是你的网络或 VPN。"
+                ),
+            };
+            (
+                verdict,
+                Some("这些公开 peer 多半已经离线或在拒绝连接。本地设置修不好，换个源更快。".into()),
+            )
+        }
         // 对照组也不好 —— 本地网络的问题。
         Some(control_rate) if control_rate < 0.3 => (
             format!(
@@ -460,11 +520,7 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
                  问题在你的网络，不在这个资源。",
                 control_rate * 100.0
             ),
-            Some(
-                "常见原因：BT 流量在走 VPN / 代理，或者被运营商干扰。\
-                 先确认「BT 走哪张网卡」绑的是物理网卡。"
-                    .into(),
-            ),
+            Some(network_side_advice()),
         ),
         // 对照组过了阈值，但没有明显好过目标 —— 差距在噪声里，不下结论。
         Some(control_rate) => (
@@ -499,12 +555,18 @@ pub async fn run(
     torrent_error: Option<String>,
     finished: bool,
     bind_device: Option<String>,
+    proxy_configured: bool,
+    peers_live: usize,
+    download_speed_bps: f64,
 ) -> Report {
     let mut steps = Vec::new();
     let mut f = Facts {
         torrent_state: torrent_state.clone(),
         torrent_error: torrent_error.clone(),
         finished,
+        peers_live,
+        download_speed_bps,
+        proxy_configured,
         bind_device: bind_device.clone(),
         bind_device_up: true,
         ..Default::default()
@@ -516,6 +578,27 @@ pub async fn run(
         (_, "paused", _) => step("任务状态", Outcome::Bad, "已暂停"),
         (_, _, true) => step("任务状态", Outcome::Ok, "已完成，在做种"),
         (_, s, _) => step("任务状态", Outcome::Ok, s.to_string()),
+    });
+
+    // 引擎自己的实时连接比临时探测更接近「下载到底有没有动」。探测样本全挂
+    // 不代表任务一个 peer 都没有：它还可能通过 DHT/PEX 找到别的地址。
+    steps.push(if download_speed_bps > 0.5 {
+        step(
+            "当前连接",
+            Outcome::Ok,
+            format!(
+                "{peers_live} 个实时 peer · {}",
+                format_speed(download_speed_bps)
+            ),
+        )
+    } else if peers_live > 0 {
+        step(
+            "当前连接",
+            Outcome::Warn,
+            format!("{peers_live} 个实时 peer · 当前瞬时速度为 0"),
+        )
+    } else {
+        step("当前连接", Outcome::Warn, "0 个实时 peer")
     });
 
     // 2. 绑定的网卡
@@ -531,6 +614,22 @@ pub async fn run(
         None => steps.push(step("BT 绑定的网卡", Outcome::Warn, "没绑定，跟随系统路由")),
     }
 
+    steps.push(if proxy_configured {
+        step(
+            "BT 代理设置",
+            Outcome::Warn,
+            "已配置 SOCKS5：出站 TCP 走代理，DHT / uTP / UDP tracker 仍直连",
+        )
+    } else if cfg!(windows) {
+        step(
+            "BT 代理设置",
+            Outcome::Ok,
+            "直连；不使用 Windows 系统代理（TUN / 透明代理除外）",
+        )
+    } else {
+        step("BT 代理设置", Outcome::Ok, "未配置 SOCKS5")
+    });
+
     // 3. 默认路由
     f.route_interface = default_route_interface();
     f.route_is_tunnel = f
@@ -538,26 +637,32 @@ pub async fn run(
         .as_deref()
         .map(netif::is_tunnel_name)
         .unwrap_or(false);
-    steps.push(match (&f.route_interface, f.route_is_tunnel, &bind_device) {
-        (Some(dev), true, None) => step(
-            "系统默认路由",
-            Outcome::Bad,
-            format!("{dev}（隧道）—— BT 正在走它"),
-        ),
-        (Some(dev), true, Some(bound)) => step(
-            "系统默认路由",
-            Outcome::Ok,
-            format!("{dev}（隧道），但 BT 已绑到 {bound}，不受影响"),
-        ),
-        (Some(dev), false, _) => step("系统默认路由", Outcome::Ok, dev.clone()),
-        (None, _, _) => step("系统默认路由", Outcome::Skipped, "查不出来"),
-    });
+    steps.push(
+        match (&f.route_interface, f.route_is_tunnel, &bind_device) {
+            (Some(dev), true, None) => step(
+                "系统默认路由",
+                Outcome::Bad,
+                format!("{dev}（隧道）—— BT 正在走它"),
+            ),
+            (Some(dev), true, Some(bound)) => step(
+                "系统默认路由",
+                Outcome::Ok,
+                format!("{dev}（隧道），但 BT 已绑到 {bound}，不受影响"),
+            ),
+            (Some(dev), false, _) => step("系统默认路由", Outcome::Ok, dev.clone()),
+            (None, _, _) => step("系统默认路由", Outcome::Skipped, "查不出来"),
+        },
+    );
 
     // 已经能一票定案的就别再打扰网络了。
     let decided = steps.iter().any(|s| s.outcome == Outcome::Bad);
 
     let Some(raw_hash) = health::parse_info_hash(&info_hash.to_ascii_lowercase()) else {
-        steps.push(step("swarm 有没有源", Outcome::Skipped, "info-hash 认不出来"));
+        steps.push(step(
+            "swarm 有没有源",
+            Outcome::Skipped,
+            "info-hash 认不出来",
+        ));
         let (verdict, advice) = conclude(&f);
         return Report {
             steps,
@@ -568,7 +673,11 @@ pub async fn run(
 
     // 4. tracker 上有没有源
     if decided {
-        steps.push(step("swarm 有没有源", Outcome::Skipped, "前面已经定位到问题"));
+        steps.push(step(
+            "swarm 有没有源",
+            Outcome::Skipped,
+            "前面已经定位到问题",
+        ));
         steps.push(step("和 peer 握手", Outcome::Skipped, "同上"));
         steps.push(step("对照组", Outcome::Skipped, "同上"));
         let (verdict, advice) = conclude(&f);
@@ -656,7 +765,11 @@ pub async fn run(
             }
         }
     } else {
-        steps.push(step("对照组", Outcome::Skipped, "目标 swarm 握手正常，不需要对照"));
+        steps.push(step(
+            "对照组",
+            Outcome::Skipped,
+            "目标 swarm 握手正常，不需要对照",
+        ));
     }
 
     let (verdict, advice) = conclude(&f);
@@ -722,7 +835,15 @@ mod tests {
         };
         let (v, advice) = conclude(&f);
         assert!(v.contains("utun6"), "实际：{v}");
-        assert!(advice.unwrap().contains("en0"), "该给出可操作的建议");
+        let advice = advice.unwrap();
+        if cfg!(windows) {
+            assert!(
+                advice.contains("mydl.exe"),
+                "Windows 上该给出直连规则建议：{advice}"
+            );
+        } else {
+            assert!(advice.contains("en0"), "该给出可操作的建议：{advice}");
+        }
     }
 
     /// 已经绑到物理网卡的话，系统默认路由是隧道就无所谓了 —— 不该误报。
@@ -772,6 +893,25 @@ mod tests {
         };
         let (v, _) = conclude(&f);
         assert!(v.contains("不是你的网络"), "实际：{v}");
+    }
+
+    /// 真实任务可能已经通过 DHT / PEX 连上一个慢 peer，而临时抽到的公开样本
+    /// 全部失联。报告必须说「正在慢速下载」，不能自相矛盾地说完全连不上。
+    #[test]
+    fn live_peer_and_speed_are_reported_when_public_probe_fails() {
+        let f = Facts {
+            peers_live: 1,
+            download_speed_bps: 94.0 * 1024.0,
+            probe: Some((0, 12, 1)),
+            control: Some((7, 5, 4)),
+            ..facts()
+        };
+        let (v, advice) = conclude(&f);
+        assert!(v.contains("1 个 peer"), "实际：{v}");
+        assert!(v.contains("94 KiB/s"), "实际：{v}");
+        assert!(v.contains("可用 peer 太少"), "实际：{v}");
+        assert!(v.contains("不是你的网络或 VPN"), "实际：{v}");
+        assert!(advice.unwrap().contains("本地设置修不好"));
     }
 
     /// 两边都失败 -> 是本地网络的问题。方向和上一条完全相反，
@@ -843,7 +983,10 @@ mod tests {
         };
         let (v, _) = conclude(&f);
         assert!(v.contains("差不多"), "实际：{v}");
-        assert!(!v.contains("不是你的网络"), "差距在噪声里不该下这个结论：{v}");
+        assert!(
+            !v.contains("不是你的网络"),
+            "差距在噪声里不该下这个结论：{v}"
+        );
         assert!(!v.contains("问题在你的网络"));
     }
 
@@ -858,5 +1001,4 @@ mod tests {
         let (v, _) = conclude(&f);
         assert!(v.contains("不是你的网络"), "实际：{v}");
     }
-
 }

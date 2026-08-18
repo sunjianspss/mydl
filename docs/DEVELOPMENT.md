@@ -656,8 +656,13 @@ macOS 那边单独起线程等 `afplay` 结束：直接 spawn 不 wait 会留一
 起不来。macOS / Linux 上则是反过来：没配置时自动选第一张物理网卡，绕开
 VPN 隧道。界面上那一栏在 Windows 也换成说明文字，不给下拉。
 
-Windows 其实有对应的 `IP_UNICAST_IF`，只是 librqbit 没实现。想在 Windows
-上让 BT 绕过 VPN，目前只能在代理客户端的规则里给 mydl 加一条直连。
+Windows 其实有对应的 `IP_UNICAST_IF`，只是 librqbit 没实现。要区分两种代理：
+
+- Windows **系统代理**（包括 Clash 的「系统代理」开关）只影响会读取它的
+  HTTP/SOCKS 应用，mydl 的 BT 原始 socket 不会走它。
+- TUN / WinDivert 这类**透明代理**能在 App 外部接管 BT。启用它时，需要在
+  代理客户端给 `mydl.exe` 配一条 DIRECT（直连）规则；否则 Windows 版无法在
+  App 内强制绕过。
 
 验证：
 

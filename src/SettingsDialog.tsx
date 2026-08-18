@@ -275,8 +275,9 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
             <p className="setting-unsupported">
               Windows 上不可用 —— librqbit 的绑定网卡只实现了 macOS 的
               <code> IP_BOUND_IF </code>和 Linux 的<code> SO_BINDTODEVICE </code>，
-              Windows 分支直接返回不支持。想让 BT 绕过 VPN，只能在代理客户端的
-              规则里给 mydl 加一条直连。
+              Windows 分支直接返回不支持。Windows 的<b>系统代理</b>（包括 Clash 的
+              “系统代理”开关）不会接管 BT 原始连接；只有 TUN / 透明代理模式可能接管。
+              如果开了 TUN，请在代理客户端给 <code>mydl.exe</code> 配一条 DIRECT（直连）规则。
             </p>
           )}
         </label>
