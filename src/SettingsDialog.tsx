@@ -144,15 +144,15 @@ export default function SettingsDialog({ initial, onSaved, onClose, onError }: P
             <b>搜索：AI 排序</b>
             <em>
               让模型把结果按你的意图重排并给出理由。<b>模型只能对索引器给的列表重排，
-              不能产出链接</b> —— 磁力链的 hash 是内容摘要，模型只会编。API key
-              <b>明文存在 settings.json</b> 里，介意就别填。
+              不能产出链接</b> —— 磁力链的 hash 是内容摘要，模型只会编。API key 存进
+              <b>{IS_MAC ? "系统钥匙串" : "凭据管理器"}</b>，不写进 settings.json。
             </em>
             {/* key 存在系统钥匙串里、读不回来，所以输入框永远是空的。
                 光靠灰色占位符太容易被当成「没保存」，这里给一行明确状态。 */}
             <div className="key-status">
               {hasKey ? (
                 <>
-                  <span className="key-ok">● 已保存到系统钥匙串</span>
+                  <span className="key-ok">● 已保存到{IS_MAC ? "系统钥匙串" : "凭据管理器"}</span>
                   <button
                     className="act-text"
                     disabled={saving}
