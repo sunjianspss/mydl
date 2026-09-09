@@ -273,21 +273,41 @@ async fn probe_peers(peers: &[SocketAddr], info_hash: [u8; 20]) -> (usize, usize
 }
 
 /// 从若干 tracker 凑一批 peer 地址。单个失败不影响其余。
+///
+/// **并发**问所有 tracker。顺序版最坏要 5×2×[`IO_TIMEOUT`]，而这一步是
+/// 用户正在等的 —— 添加失败后的那条报错要是自己先超时，就等于什么都没说。
+/// （之前还有个「凑够 PROBE_PEERS 就 break」的省事逻辑，并发之后它一秒都
+/// 省不下来，反而让 `peers_found` 报不出真实总数，一并去掉。）
 async fn gather_peers(info_hash: [u8; 20]) -> Vec<SocketAddr> {
-    let mut out: Vec<SocketAddr> = Vec::new();
-    for tracker in PUBLIC_TRACKERS {
-        if out.len() >= PROBE_PEERS {
-            break;
-        }
-        match announce(tracker, info_hash).await {
-            Ok(peers) => {
-                for p in peers {
-                    if !out.contains(&p) {
-                        out.push(p);
-                    }
+    let mut set = tokio::task::JoinSet::new();
+    for (i, &tracker) in PUBLIC_TRACKERS.iter().enumerate() {
+        set.spawn(async move {
+            match announce(tracker, info_hash).await {
+                Ok(peers) => (i, peers),
+                Err(e) => {
+                    tracing::debug!("announce {tracker} 失败：{e:#}");
+                    (i, Vec::new())
                 }
             }
-            Err(e) => tracing::debug!("announce {tracker} 失败：{e:#}"),
+        });
+    }
+
+    // 按 tracker 原来的顺序落位再合并 —— 谁先应答不该影响结果，否则同一个
+    // swarm 探两次会给出不同的 peer 顺序，排查问题时看着像是环境变了。
+    let mut per_tracker: Vec<Vec<SocketAddr>> = vec![Vec::new(); PUBLIC_TRACKERS.len()];
+    while let Some(res) = set.join_next().await {
+        if let Ok((i, peers)) = res {
+            per_tracker[i] = peers;
+        }
+    }
+
+    let mut seen = std::collections::HashSet::new();
+    let mut out: Vec<SocketAddr> = Vec::new();
+    for peers in per_tracker {
+        for p in peers {
+            if seen.insert(p) {
+                out.push(p);
+            }
         }
     }
     out
@@ -323,7 +343,12 @@ pub async fn swarm_forensics(info_hash: [u8; 20]) -> SwarmForensics {
 
     let mut out = SwarmForensics::default();
 
-    let scraped = health::scrape_many(&[(hex.clone(), info_hash)]).await;
+    // scrape 和 announce 打的是同一批 tracker、互不依赖，串起来跑是白等
+    // 一倍时间。
+    // 单独绑一下：join! 里直接写字面量数组的话，那个临时值活不过这条语句。
+    let one = [(hex.clone(), info_hash)];
+    let (scraped, peers) = tokio::join!(health::scrape_many(&one), gather_peers(info_hash));
+
     if let Some((s, l, ok)) = scraped.get(&hex) {
         if *ok > 0 {
             out.seeders = Some(*s);
@@ -331,7 +356,6 @@ pub async fn swarm_forensics(info_hash: [u8; 20]) -> SwarmForensics {
         }
     }
 
-    let peers = gather_peers(info_hash).await;
     out.peers_found = peers.len();
     if !peers.is_empty() {
         out.probe = Some(probe_peers(&peers, info_hash).await);

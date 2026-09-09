@@ -493,29 +493,46 @@ pub async fn scrape_many(hashes: &[(String, [u8; 20])]) -> HashMap<String, (u32,
         return merged;
     }
 
-    for tracker in PUBLIC_TRACKERS {
-        let mut ok = false;
-        for chunk in hashes.chunks(MAX_PER_SCRAPE) {
-            let raw: Vec<[u8; 20]> = chunk.iter().map(|(_, h)| *h).collect();
-            match scrape_one(tracker, &raw).await {
-                Ok(entries) => {
-                    ok = true;
-                    for ((key, _), e) in chunk.iter().zip(entries) {
-                        let slot = merged.get_mut(key).expect("键来自同一份表");
-                        slot.0 = slot.0.max(e.seeders);
-                        slot.1 = slot.1.max(e.leechers);
-                    }
-                }
-                Err(e) => {
+    // **并发**查所有 tracker。顺序版单个 tracker 最坏要 2×TRACKER_TIMEOUT
+    // （connect 一次、scrape 一次），5 个排下来能到 60 秒 —— 而「tracker 不
+    // 应答」恰恰是常态而非例外。合并规则是逐个取最大值，天然与顺序无关，
+    // 所以并发不改变结果，只是不用再一个个等过去。
+    let shared = Arc::new(hashes.to_vec());
+    let mut set = tokio::task::JoinSet::new();
+    for &tracker in PUBLIC_TRACKERS {
+        let hashes = shared.clone();
+        set.spawn(async move {
+            // 只带回「第几块 + 这块的结果」，合并留在外面做：任务里拿不到
+            // merged 的可变借用。
+            let mut got: Vec<(usize, Vec<ScrapeEntry>)> = Vec::new();
+            for (i, chunk) in hashes.chunks(MAX_PER_SCRAPE).enumerate() {
+                let raw: Vec<[u8; 20]> = chunk.iter().map(|(_, h)| *h).collect();
+                match scrape_one(tracker, &raw).await {
+                    Ok(entries) => got.push((i, entries)),
                     // 公共 tracker 连不上是常态，不值得上升到 warn。
-                    tracing::debug!("scrape {tracker} 失败：{e:#}");
+                    Err(e) => tracing::debug!("scrape {tracker} 失败：{e:#}"),
                 }
+            }
+            got
+        });
+    }
+
+    while let Some(res) = set.join_next().await {
+        // 任务自己 panic 不能带走整轮采样。
+        let Ok(got) = res else { continue };
+        if got.is_empty() {
+            continue;
+        }
+        for (i, entries) in got {
+            let chunk = &shared[i * MAX_PER_SCRAPE..];
+            for ((key, _), e) in chunk.iter().zip(entries) {
+                let slot = merged.get_mut(key).expect("键来自同一份表");
+                slot.0 = slot.0.max(e.seeders);
+                slot.1 = slot.1.max(e.leechers);
             }
         }
-        if ok {
-            for slot in merged.values_mut() {
-                slot.2 = slot.2.saturating_add(1);
-            }
+        for slot in merged.values_mut() {
+            slot.2 = slot.2.saturating_add(1);
         }
     }
     merged

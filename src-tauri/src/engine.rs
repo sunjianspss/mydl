@@ -189,7 +189,12 @@ fn subfolder_for(info: &ValidatedTorrentMetaV1Info<ByteBufOwned>) -> Result<Opti
 
 /// 取证的时间上限。用户已经等了 ADD_TIMEOUT 秒，不能再让他多等一分钟；
 /// 探不完就退回泛泛的说法，有多少说多少。
-const FORENSICS_TIMEOUT: Duration = Duration::from_secs(20);
+///
+/// 30 秒是按**最坏路径**算的，不是拍的：scrape 和 announce 并发跑，各自
+/// 最坏 2×6 秒（connect 一次、查询一次，加上 DNS），之后握手那批并发 6 秒
+/// —— 约 18 秒封顶，留出余量。第一版给了 20 秒，实测在「tracker 全都不
+/// 应答」这个最该说清楚的场景下正好撞上限，退化成了泛泛的说法。
+const FORENSICS_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// 从磁力链里取出 info-hash。只认 40 位十六进制那种写法 ——
 /// base32 的老式磁力链现在基本绝迹，为它引一个依赖不值得。
