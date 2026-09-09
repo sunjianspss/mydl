@@ -294,6 +294,96 @@ async fn gather_peers(info_hash: [u8; 20]) -> Vec<SocketAddr> {
 }
 
 // ---------------------------------------------------------------------------
+// 单点取证：添加磁力链失败时用
+// ---------------------------------------------------------------------------
+
+/// 磁力链拿不到元信息时，对这个 swarm 实测到的事实。
+///
+/// 和 [`run`] 的区别：那边是给**已经加进来的任务**做全套排查，这里要回答的
+/// 只有一个问题 —— 元信息拿不到，是资源死了、还是记录过期、还是对方不搭理
+/// 标准客户端。所以只跑 tracker + 握手两步：添加阶段还没有任务，网卡、隧道、
+/// 暂停状态那些都无从查起。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SwarmForensics {
+    /// 公共 tracker 报的做种 / 下载人数；None = 一个都没应答（多半是它们不
+    /// 认识这个 hash，也可能是 UDP 出不去）。
+    pub seeders: Option<u32>,
+    pub leechers: Option<u32>,
+    /// tracker 真给出了几个 peer 地址。
+    pub peers_found: usize,
+    /// 握手结果 (成功, 连不上, 被拒)；None = 没有地址可试。
+    pub probe: Option<(usize, usize, usize)>,
+}
+
+/// 跑一次单点取证。**只用公共 tracker** —— 磁力链自带的 tracker 多半是
+/// http:// 的，而 [`announce`] 只说 BEP15（UDP）；为一条错误信息去实现
+/// HTTP announce 不划算，公共 tracker 已经足够区分那几种情况。
+pub async fn swarm_forensics(info_hash: [u8; 20]) -> SwarmForensics {
+    let hex = info_hash.iter().map(|b| format!("{b:02x}")).collect::<String>();
+
+    let mut out = SwarmForensics::default();
+
+    let scraped = health::scrape_many(&[(hex.clone(), info_hash)]).await;
+    if let Some((s, l, ok)) = scraped.get(&hex) {
+        if *ok > 0 {
+            out.seeders = Some(*s);
+            out.leechers = Some(*l);
+        }
+    }
+
+    let peers = gather_peers(info_hash).await;
+    out.peers_found = peers.len();
+    if !peers.is_empty() {
+        out.probe = Some(probe_peers(&peers, info_hash).await);
+    }
+    out
+}
+
+/// 把实测数字翻成一句人话。纯函数，能测 —— 这几种情况指向的下一步动作完全
+/// 不同，说错了就是把人往反方向指。
+pub fn explain_add_failure(f: &SwarmForensics) -> String {
+    let Some(seeders) = f.seeders else {
+        return "公共 tracker 一个都没应答（可能是它们不收录这个资源，也可能是 UDP 出不去）\
+                ，DHT 也没找到源。"
+            .to_string();
+    };
+
+    let leechers = f.leechers.unwrap_or(0);
+
+    if f.peers_found == 0 {
+        return if seeders == 0 && leechers == 0 {
+            format!("tracker 上 {seeders} 个做种、{leechers} 个在下 —— 这个资源已经没人了。")
+        } else {
+            format!(
+                "tracker 报了 {seeders} 个做种、{leechers} 个在下，但一个 peer 地址都拿不到 \
+                 —— 通常是做种的人早就下线了，tracker 上留的是过期记录。"
+            )
+        };
+    }
+
+    let (ok, no_tcp, rejected) = f.probe.unwrap_or((0, 0, 0));
+    let tried = ok + no_tcp + rejected;
+
+    if ok == 0 {
+        return format!(
+            "tracker 报了 {seeders} 个做种、{leechers} 个在下，给出 {} 个 peer 地址，\
+             但实测 {tried} 个一个都握不上手（{no_tcp} 个连不上，{rejected} 个连上就被踢）\
+             —— 要么是过期记录，要么这些 peer 不搭理标准 BT 客户端。",
+            f.peers_found
+        );
+    }
+
+    // 注意别把话说过头：取证只握手，**没有真的去要元信息**。所以这里唯一
+    // 能断言的是「swarm 还活着」，至于为什么要不到文件列表，只能把可能性
+    // 摆出来让用户自己判断 —— 编一个确定的原因比不说更糟。
+    format!(
+        "tracker 报了 {seeders} 个做种、{leechers} 个在下，实测 {tried} 个 peer 里 {ok} 个握得上手 \
+         —— swarm 是活的。要不到文件列表可能是这些 peer 只服务自家客户端，\
+         也可能只是当时网络不稳，值得再试一次。"
+    )
+}
+
+// ---------------------------------------------------------------------------
 // 判读
 // ---------------------------------------------------------------------------
 
@@ -1046,5 +1136,72 @@ mod tests {
         };
         let (v, _) = conclude(&f);
         assert!(v.contains("不是你的网络"), "实际：{v}");
+    }
+
+    // -----------------------------------------------------------------------
+    // 添加失败的取证判读
+    // -----------------------------------------------------------------------
+
+    /// 一个 tracker 都没应答时，不能说成「资源没人了」—— 那是两回事。
+    #[test]
+    fn no_tracker_answer_is_not_a_dead_swarm() {
+        let m = explain_add_failure(&SwarmForensics::default());
+        assert!(m.contains("一个都没应答"), "实际：{m}");
+        assert!(!m.contains("已经没人"), "没有依据就不该下这个结论：{m}");
+    }
+
+    /// 0 做种 0 下载：资源是真的死了，这句话可以说死。
+    #[test]
+    fn zero_everything_is_a_dead_swarm() {
+        let m = explain_add_failure(&SwarmForensics {
+            seeders: Some(0),
+            leechers: Some(0),
+            peers_found: 0,
+            probe: None,
+        });
+        assert!(m.contains("已经没人了"), "实际：{m}");
+    }
+
+    /// tracker 说有人、却给不出地址 —— 过期记录，这正是红楼梦那条的情况。
+    #[test]
+    fn seeders_without_addresses_means_stale_records() {
+        let m = explain_add_failure(&SwarmForensics {
+            seeders: Some(1),
+            leechers: Some(0),
+            peers_found: 0,
+            probe: None,
+        });
+        assert!(m.contains("过期记录"), "实际：{m}");
+        assert!(m.contains("1 个做种"), "实测数字要带上：{m}");
+    }
+
+    /// 有地址但一个都握不上手：两种可能都要说出来，不能只挑一种。
+    #[test]
+    fn no_handshake_lists_both_possibilities() {
+        let m = explain_add_failure(&SwarmForensics {
+            seeders: Some(2),
+            leechers: Some(4),
+            peers_found: 10,
+            probe: Some((0, 6, 4)),
+        });
+        assert!(m.contains("6 个连不上"), "实际：{m}");
+        assert!(m.contains("4 个连上就被踢"), "实际：{m}");
+        assert!(m.contains("过期记录") && m.contains("标准 BT 客户端"), "实际：{m}");
+    }
+
+    /// 握得上手 —— 只能说 swarm 活着。取证没真的要过元信息，就不能断言
+    /// 「对方不给元信息」，那是编原因。
+    #[test]
+    fn handshake_ok_only_claims_the_swarm_is_alive() {
+        let m = explain_add_failure(&SwarmForensics {
+            seeders: Some(13),
+            leechers: Some(30),
+            peers_found: 16,
+            probe: Some((5, 6, 5)),
+        });
+        assert!(m.contains("5 个握得上手"), "实际：{m}");
+        assert!(m.contains("swarm 是活的"), "实际：{m}");
+        assert!(m.contains("再试一次"), "活着就该建议重试：{m}");
+        assert!(!m.contains("已经没人"), "有人在，别说成没人：{m}");
     }
 }

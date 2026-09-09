@@ -187,23 +187,57 @@ fn subfolder_for(info: &ValidatedTorrentMetaV1Info<ByteBufOwned>) -> Result<Opti
     Ok(Some(pb))
 }
 
+/// 取证的时间上限。用户已经等了 ADD_TIMEOUT 秒，不能再让他多等一分钟；
+/// 探不完就退回泛泛的说法，有多少说多少。
+const FORENSICS_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// 从磁力链里取出 info-hash。只认 40 位十六进制那种写法 ——
+/// base32 的老式磁力链现在基本绝迹，为它引一个依赖不值得。
+fn magnet_info_hash(uri: &str) -> Option<[u8; 20]> {
+    let rest = uri.split("xt=urn:btih:").nth(1)?;
+    let hex: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_hexdigit())
+        .collect::<String>()
+        .to_ascii_lowercase();
+    crate::health::parse_info_hash(&hex)
+}
+
 /// 超时原因对磁力链和普通种子完全不同，分开说清楚，别让用户干猜。
-fn add_timeout_message(uri: &str) -> String {
+///
+/// 磁力链这一路会**再实测一次**：查公共 tracker、拿 peer 地址、逐个握手。
+/// 之前这里只能靠磁力链带没带 tracker 猜一句「多半没人做种了」，而「资源死了」
+/// 「记录过期」「对方不搭理标准客户端」这三种情况的下一步动作完全不同 ——
+/// 数字就在手边，没有理由让用户自己去翻日志。
+async fn add_timeout_message(uri: &str) -> String {
     let secs = ADD_TIMEOUT.as_secs();
-    if uri.starts_with("magnet:") {
-        let has_tracker = uri.contains("&tr=") || uri.contains("?tr=");
-        let hint = if has_tracker {
-            "tracker 和 DHT 都没找到能提供元信息的源"
-        } else {
-            "这条磁力链不带 tracker，只能靠 DHT 找源"
-        };
-        format!(
-            "解析磁力链超时（{secs} 秒）。添加磁力链必须先从其他 peer 拿到文件列表，\
-             但{hint} —— 通常说明这个资源已经没人做种了。\
-             如果能拿到对应的 .torrent 文件，用「打开种子…」可以直接添加。"
-        )
-    } else {
-        format!("添加超时（{secs} 秒）。种子地址可能打不开，或者网络有问题。")
+    if !uri.starts_with("magnet:") {
+        return format!("添加超时（{secs} 秒）。种子地址可能打不开，或者网络有问题。");
+    }
+
+    let head = format!(
+        "解析磁力链超时（{secs} 秒）。添加磁力链必须先从其他 peer 拿到文件列表。"
+    );
+    let tail = "如果能拿到对应的 .torrent 文件，用「打开种子…」可以直接添加。";
+
+    let Some(info_hash) = magnet_info_hash(uri) else {
+        return format!("{head}tracker 和 DHT 都没找到能提供元信息的源。{tail}");
+    };
+
+    match tokio::time::timeout(
+        FORENSICS_TIMEOUT,
+        crate::diagnose::swarm_forensics(info_hash),
+    )
+    .await
+    {
+        Ok(f) => {
+            tracing::info!(?f, "添加失败后的 swarm 取证");
+            format!("{head}{}{tail}", crate::diagnose::explain_add_failure(&f))
+        }
+        Err(_) => {
+            tracing::warn!("swarm 取证也超时了");
+            format!("{head}tracker 和 DHT 都没找到能提供元信息的源。{tail}")
+        }
     }
 }
 
@@ -415,7 +449,7 @@ impl Engine {
             Ok(r) => r,
             Err(_) => {
                 tracing::warn!(uri = %uri, "添加超时");
-                bail!("{}", add_timeout_message(uri))
+                bail!("{}", add_timeout_message(uri).await)
             }
         }
     }
@@ -510,7 +544,7 @@ impl Engine {
             Some(Ok(r)) => r?,
             Some(Err(_)) => {
                 tracing::warn!(uri = %uri, "预览超时");
-                bail!("{}", add_timeout_message(uri))
+                bail!("{}", add_timeout_message(uri).await)
             }
         };
 
@@ -1014,5 +1048,35 @@ mod bind_device_tests {
         } else {
             assert_eq!(got.as_deref(), Some("en0"));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reads_info_hash_out_of_a_magnet() {
+        let uri = "magnet:?xt=urn:btih:a78d9aac24f6ca54af7d036bc9f2db74310eb9b4\
+                   &dn=%5B%E7%BA%A2%E6%A5%BC%E6%A2%A6%5D&tr=udp%3A%2F%2Fx%3A1337";
+        assert_eq!(magnet_info_hash(uri).map(|h| h[0]), Some(0xa7));
+    }
+
+    /// 大写十六进制是合法写法，TorrentProject2 给的就是这种。
+    #[test]
+    fn accepts_uppercase_hex() {
+        let lower = "magnet:?xt=urn:btih:deb0828afc9447fe2e67f6824eac429cd2c9c400";
+        let upper = "magnet:?xt=urn:btih:DEB0828AFC9447FE2E67F6824EAC429CD2C9C400";
+        assert_eq!(magnet_info_hash(lower), magnet_info_hash(upper));
+        assert!(magnet_info_hash(upper).is_some());
+    }
+
+    /// base32 那种老写法认不出来 —— 那时候要退回泛泛的报错，而不是拿半截
+    /// hash 去查 tracker 查出个「资源已死」的假结论。
+    #[test]
+    fn refuses_base32_and_garbage() {
+        assert!(magnet_info_hash("magnet:?xt=urn:btih:U6GZVLBE62FFJL35ANV4T4W3OQYQ5ONU").is_none());
+        assert!(magnet_info_hash("magnet:?xt=urn:btih:abc").is_none());
+        assert!(magnet_info_hash("https://example.com/a.torrent").is_none());
     }
 }
