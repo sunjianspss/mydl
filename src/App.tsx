@@ -27,6 +27,7 @@ import {
   DocIcon,
   DownIcon,
   FolderIcon,
+  LinkIcon,
   GearIcon,
   MoonIcon,
   PauseAllIcon,
@@ -674,6 +675,7 @@ function TorrentRow({
   onDelete,
   onReveal,
 }: RowProps) {
+  const [magnetCopied, setMagnetCopied] = useState(false);
   const pct = percent(t.progressBytes, t.totalBytes);
   const paused = t.state === "paused";
   // 下完了还挂在 live 上就是在做种 —— 跟「正在下载」用不同颜色区分开，
@@ -749,6 +751,23 @@ function TorrentRow({
                   onClick={paused ? onResume : onPause}
                 >
                   {paused ? <PlayIcon /> : <PauseIcon />}
+                </button>
+                <button
+                  className="act"
+                  title={magnetCopied ? "已复制" : "复制磁力链（发给别人）"}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        `magnet:?xt=urn:btih:${t.infoHash}&dn=${encodeURIComponent(t.name)}`,
+                      );
+                      setMagnetCopied(true);
+                      setTimeout(() => setMagnetCopied(false), 1500);
+                    } catch (e) {
+                      onError(String(e));
+                    }
+                  }}
+                >
+                  {magnetCopied ? <CheckIcon /> : <LinkIcon />}
                 </button>
                 <button className="act" title="在访达中显示" onClick={onReveal}>
                   <FolderIcon />
