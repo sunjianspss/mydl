@@ -466,11 +466,11 @@ impl Engine {
         // 就会把几十个文件直接倒进目标目录。所以先探一次种子内容，自己把
         // 子目录拼好。探测返回的 torrent_bytes 可以直接复用，磁力链不用重解析。
         let (add, output_folder) = match &output_folder {
-            None => (self.make_add_torrent(uri)?, None),
+            None => (self.add_source(uri).await?, None),
             // 和会话默认目录一致时不用自己拼：librqbit 会正确建子目录，
             // 顺便省掉一次探测。
             Some(dir) if Path::new(dir) == self.download_dir => {
-                (self.make_add_torrent(uri)?, None)
+                (self.add_source(uri).await?, None)
             }
             Some(dir) => {
                 let probe = self.probe(uri).await?;
@@ -675,12 +675,57 @@ impl Engine {
         }
     }
 
+    /// 添加用的种子来源。磁力链先过 [`Self::probe`]（含缓存站回退），
+    /// 拿到的 torrent_bytes 直接交给 librqbit，不再二次解析；其余照旧。
+    async fn add_source<'a>(&self, uri: &'a str) -> Result<AddTorrent<'a>> {
+        if crate::search::magnet_info_hash(uri).is_some() {
+            Ok(AddTorrent::from_bytes(self.probe(uri).await?.torrent_bytes))
+        } else {
+            self.make_add_torrent(uri)
+        }
+    }
+
     /// 只解析种子、不加入会话，用来提前知道它有几个文件、叫什么名字。
+    ///
+    /// 磁力链会同时走两条路，谁先拿到元数据用谁：swarm 里向 peer 要，和
+    /// 公共缓存站按 hash 取 .torrent。冷门或 peer 稀薄的 swarm 常常两分钟
+    /// 也凑不出一个肯给元数据的 peer，而缓存站里往往有现成的。
     async fn probe(&self, uri: &str) -> Result<ListOnlyResponse> {
+        let Some(hash) = crate::search::magnet_info_hash(uri) else {
+            return self.probe_add(self.make_add_torrent(uri)?).await;
+        };
+
+        let swarm = self.probe_add(self.make_add_torrent(uri)?);
+        let cached = self.probe_cached(&hash);
+        tokio::pin!(swarm, cached);
+
+        // 缓存没有 / 对不上时那条分支自己失效（模式不匹配），只等 swarm。
+        tokio::select! {
+            r = &mut swarm => r,
+            Some(r) = &mut cached => {
+                tracing::info!(hash = %hash, "swarm 还没给出元数据，改用缓存站的 .torrent");
+                Ok(r)
+            }
+        }
+    }
+
+    /// 从缓存站取 .torrent 并解析。取不到、解析不了、hash 对不上都是 None。
+    async fn probe_cached(&self, hash: &str) -> Option<ListOnlyResponse> {
+        let bytes = crate::search::fetch_cached_torrent(hash).await?;
+        let r = self.probe_add(AddTorrent::from_bytes(bytes)).await.ok()?;
+        // 缓存站的内容不可信，info hash 对不上说明给错了（或被替换了）。
+        if r.info_hash.as_string() != hash {
+            tracing::warn!(hash = %hash, "缓存站返回的种子 hash 对不上，丢弃");
+            return None;
+        }
+        Some(r)
+    }
+
+    async fn probe_add(&self, add: AddTorrent<'_>) -> Result<ListOnlyResponse> {
         let resp = self
             .session
             .add_torrent(
-                self.make_add_torrent(uri)?,
+                add,
                 Some(AddTorrentOptions {
                     list_only: true,
                     ..Default::default()

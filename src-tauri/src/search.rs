@@ -86,6 +86,51 @@ pub async fn resolve_uri(uri: &str) -> String {
     uri.to_string()
 }
 
+/// 公共种子缓存站。按 info hash 直接给 .torrent，不需要连 swarm。
+const TORRENT_CACHES: &[&str] = &["https://itorrents.org/torrent/{HASH}.torrent"];
+
+/// 缓存的 .torrent 不会大过这个数 —— 正常元数据几十到几百 KB。
+const MAX_CACHED_TORRENT: usize = 8 * 1024 * 1024;
+
+/// 磁力链里的 info hash（40 位十六进制，小写）。base32 写法和其他形式返回 None。
+pub fn magnet_info_hash(uri: &str) -> Option<String> {
+    let query = uri.strip_prefix("magnet:?")?;
+    query
+        .split('&')
+        .find_map(|kv| kv.strip_prefix("xt=urn:btih:"))
+        .filter(|h| h.len() == 40 && h.bytes().all(|b| b.is_ascii_hexdigit()))
+        .map(|h| h.to_ascii_lowercase())
+}
+
+/// 磁力链在 swarm 里迟迟拿不到元数据时的后路：从公共缓存站按 hash 取 .torrent。
+///
+/// 只返回原始字节，**不保证内容对得上** —— 调用方必须核对解析出来的 info hash。
+/// 任何失败都返回 None（缓存里没有很正常），不该影响主路径。
+pub async fn fetch_cached_torrent(info_hash: &str) -> Option<Vec<u8>> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .ok()?;
+
+    for template in TORRENT_CACHES {
+        let url = template.replace("{HASH}", &info_hash.to_ascii_uppercase());
+        let Ok(resp) = client.get(&url).send().await else {
+            continue;
+        };
+        if !resp.status().is_success() {
+            continue;
+        }
+        let Ok(body) = resp.bytes().await else {
+            continue;
+        };
+        // .torrent 是 bencode 字典，以 'd' 开头；缓存站出错时常返回 HTML。
+        if body.len() <= MAX_CACHED_TORRENT && body.first() == Some(&b'd') {
+            return Some(body.to_vec());
+        }
+    }
+    None
+}
+
 /// 结果标题是否和关键词相关。
 ///
 /// **有些索引器匹配不到时会返回自己的默认榜单**（实测 The Pirate Bay 搜中文
@@ -404,6 +449,40 @@ pub fn parse(xml: &str) -> Result<Vec<SearchResult>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn magnet_hash_is_extracted_and_lowercased() {
+        let h = "A9C2F4F5BF002FABE7B06C5DB27E0B5F40E51BD9";
+        assert_eq!(
+            magnet_info_hash(&format!("magnet:?xt=urn:btih:{h}&dn=x&tr=udp://a")).as_deref(),
+            Some(h.to_lowercase().as_str())
+        );
+        assert_eq!(
+            magnet_info_hash(&format!("magnet:?dn=x&xt=urn:btih:{h}")).as_deref(),
+            Some(h.to_lowercase().as_str())
+        );
+    }
+
+    #[test]
+    fn non_magnets_and_odd_hashes_have_no_hash() {
+        assert_eq!(magnet_info_hash("https://a/b.torrent"), None);
+        assert_eq!(magnet_info_hash("magnet:?xt=urn:btih:tooshort"), None);
+        // base32 写法（32 位）不走缓存回退。
+        assert_eq!(
+            magnet_info_hash("magnet:?xt=urn:btih:QHJ7VZ4T5LMVUCKKJC5PUVF4P3EZVUPK"),
+            None
+        );
+    }
+
+    /// 打真实网络，手动跑：cargo test --lib cached_torrent -- --ignored
+    #[tokio::test]
+    #[ignore]
+    async fn cached_torrent_is_fetched_for_a_real_hash() {
+        let b = fetch_cached_torrent("a9c2f4f5bf002fabe7b06c5db27e0b5f40e51bd9")
+            .await
+            .expect("itorrents 应该有这个种子");
+        assert!(b.len() > 1000);
+    }
 
     /// 一段真实形状的 Torznab 响应：既有 torznab:attr 里的 magneturl，
     /// 也有 enclosure 里的磁力链，还有一条只给 .torrent 的。
