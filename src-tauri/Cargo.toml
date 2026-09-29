@@ -1,6 +1,6 @@
 [package]
 name = "mydl"
-version = "0.14.8"
+version = "0.14.9"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
