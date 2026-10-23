@@ -488,6 +488,48 @@ fn attr(e: &quick_xml::events::BytesStart, key: &[u8]) -> Option<String> {
     })
 }
 
+/// 还原「UTF-8 被当成 Windows-1252 解了一遍」的标题。
+///
+/// 实测 Torrent Downloads 回的中文标题是这样的：「《I'm A-Lin 線上音樂會》」
+/// 变成 `ã€ŠI'm A-Lin ç·šä¸Š…`。站方把 UTF-8 字节按 1252 解码再存，
+/// Jackett 原样转发。
+///
+/// 做法：每个字符按 1252 反推回一个字节，拼出来是合法 UTF-8 就用还原后的；
+/// 有任何字符反推不了（真正的汉字、全角符号），或者拼出来不是合法 UTF-8
+/// （正常的 `Amélie`：`é` 单独一个 0xE9 不成 UTF-8），就原样返回。
+/// 正常文本碰巧拼成合法 UTF-8 的概率极低。
+fn fix_mojibake(s: &str) -> String {
+    if s.is_ascii() {
+        return s.to_string();
+    }
+
+    // 1252 在 0x80..=0x9F 区间和 Latin-1 不同的那些字符。
+    // 0x81 / 0x8D / 0x8F / 0x90 / 0x9D 在 1252 里没定义，常见解码器原样
+    // 映射成 U+0081 这类控制字符，走下面 Latin-1 那条分支就能还原。
+    const CP1252_HIGH: [(char, u8); 27] = [
+        ('€', 0x80), ('‚', 0x82), ('ƒ', 0x83), ('„', 0x84), ('…', 0x85),
+        ('†', 0x86), ('‡', 0x87), ('ˆ', 0x88), ('‰', 0x89), ('Š', 0x8A),
+        ('‹', 0x8B), ('Œ', 0x8C), ('Ž', 0x8E), ('‘', 0x91), ('’', 0x92),
+        ('“', 0x93), ('”', 0x94), ('•', 0x95), ('–', 0x96), ('—', 0x97),
+        ('˜', 0x98), ('™', 0x99), ('š', 0x9A), ('›', 0x9B), ('œ', 0x9C),
+        ('ž', 0x9E), ('Ÿ', 0x9F),
+    ];
+
+    let mut bytes = Vec::with_capacity(s.len());
+    for c in s.chars() {
+        let b = match u32::from(c) {
+            n @ 0..=0xFF => n as u8,
+            _ => match CP1252_HIGH.iter().find(|(ch, _)| *ch == c) {
+                Some(&(_, b)) => b,
+                None => return s.to_string(),
+            },
+        };
+        bytes.push(b);
+    }
+
+    String::from_utf8(bytes).unwrap_or_else(|_| s.to_string())
+}
+
 /// 解析 Torznab 的 RSS。
 ///
 /// 用 quick-xml 而不是复用 feed-rs：种子数、体积这些关键字段都在
@@ -579,7 +621,7 @@ pub fn parse(xml: &str) -> Result<Vec<SearchResult>> {
                     let text = field_buf.trim().to_string();
                     let Some(item) = cur.as_mut() else { continue };
                     match f.as_slice() {
-                        b"title" => item.title = text,
+                        b"title" => item.title = fix_mojibake(&text),
                         b"size" if item.size == 0 => item.size = text.parse().unwrap_or(0),
                         b"link" => {
                             if text.starts_with("magnet:") {
@@ -980,6 +1022,38 @@ mod tests {
         let msg = format!("{e:#}");
         assert!(msg.contains("连不上索引器"), "报错变了：{msg}");
         assert!(!msg.contains("SECRET123"), "apikey 漏进了报错：{msg}");
+    }
+
+    /// 实测 Torrent Downloads 回的标题：UTF-8 被当成 Windows-1252 解过一遍。
+    #[test]
+    fn repairs_cp1252_mojibake() {
+        assert_eq!(
+            fix_mojibake("ã€ŠI'm A-Lin ç·šä¸ŠéŸ³æ¨‚æœƒã€‹å®Œæ•´ç‰ˆ - TME live 20200411"),
+            "《I'm A-Lin 線上音樂會》完整版 - TME live 20200411"
+        );
+
+        // 正常的标题一个字都不能动
+        for ok in [
+            "The.Matrix.1999.1080p",
+            "碟中谍8：最终清算.2025",
+            "Amélie.2001.1080p",
+            "Pokémon – Café Mix",
+            "黄丽玲A-Lin.专辑合集",
+        ] {
+            assert_eq!(fix_mojibake(ok), ok);
+        }
+    }
+
+    /// 修复要落在解析阶段，关键词过滤才能看到真正的标题。
+    #[test]
+    fn parse_repairs_mojibake_title() {
+        let xml = r#"<rss><channel><item>
+            <title>ã€ŠI'm A-Lin ç·šä¸ŠéŸ³æ¨‚æœƒã€‹</title>
+            <link>magnet:?xt=urn:btih:a57b7f3548bcab81116f5bd282dce952b4215853</link>
+        </item></channel></rss>"#;
+        let r = parse(xml).unwrap();
+        assert_eq!(r[0].title, "《I'm A-Lin 線上音樂會》");
+        assert!(matches_query(&r[0].title, "線上音樂會"));
     }
 
     #[test]
