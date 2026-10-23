@@ -150,24 +150,42 @@ pub async fn fetch_cached_torrent(info_hash: &str) -> Option<Vec<u8>> {
 /// 写法都发了（见 [`query_variants`]），筛的时候不认的话，繁体那一路搜回来
 /// 的就全被这里扔掉了。
 ///
+/// 例外是**连字符连起来的拉丁词**（`A-Lin`、`X-Men`、`Spider-Man`）：它们是
+/// 一个名字，整体匹配，见 [`matches_compound`]。按普通规则切开的话 `A-Lin` 只
+/// 剩一个 `lin`，实测 Pirate Bay 回的上百条「Lia Lin」「Karina Lin」全都能过。
+///
 /// （RSS 订阅的「包含」仍按空白分词：那边的词是用户一个个敲进去的，
 /// 他写了什么就是什么，不该替他再切一刀。）
 pub fn matches_query(title: &str, query: &str) -> bool {
     let title = title.to_lowercase();
     let title_hans = hanconv::t2s(&title);
 
-    for token in query.split(|c: char| !c.is_alphanumeric()) {
-        let token = token.to_lowercase();
-        // 单字符的拉丁词没有区分度，跳过；中日韩单字有，所以只按字节长度判断
-        // 会误伤，这里用「是不是纯 ASCII 且只有一个字符」来区分。
-        if token.is_empty() || (token.len() == 1 && token.is_ascii()) {
+    // 先按「非字母数字、且不是连字符」切，留住 `A-Lin` 这样的整词。
+    for chunk in query.split(|c: char| !c.is_alphanumeric() && c != '-') {
+        let chunk = chunk.to_lowercase();
+        let parts: Vec<&str> = chunk.split('-').filter(|p| !p.is_empty()).collect();
+
+        if parts.len() >= 2 && parts.iter().all(|p| p.bytes().all(|b| b.is_ascii_alphanumeric())) {
+            if !matches_compound(&title, &parts) {
+                return false;
+            }
             continue;
         }
-        // 原文命中**或者**两边都转成简体后命中。不能只比简体：OpenCC 按词
-        // 转换，单独一个「乾」会转成「干」，而标题里的「乾隆」作为一个词
-        // 原样不动 —— 只比简体的话，搜「乾」反倒搜不到「乾隆王朝」。
-        if !title.contains(&token) && !title_hans.contains(&hanconv::t2s(&token)) {
-            return false;
+
+        // 不是拉丁连字符词（比如「碟中谍8-最终清算」）：连字符也当分隔符，
+        // 各段按普通规则判断。
+        for token in parts {
+            // 单字符的拉丁词没有区分度，跳过；中日韩单字有，所以只按字节长度判断
+            // 会误伤，这里用「是不是纯 ASCII 且只有一个字符」来区分。
+            if token.len() == 1 && token.is_ascii() {
+                continue;
+            }
+            // 原文命中**或者**两边都转成简体后命中。不能只比简体：OpenCC 按词
+            // 转换，单独一个「乾」会转成「干」，而标题里的「乾隆」作为一个词
+            // 原样不动 —— 只比简体的话，搜「乾」反倒搜不到「乾隆王朝」。
+            if !title.contains(token) && !title_hans.contains(&hanconv::t2s(token)) {
+                return false;
+            }
         }
     }
 
@@ -198,6 +216,55 @@ pub fn query_variants(query: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// 连字符词是否整体出现在标题里（`title` 已转小写）。
+///
+/// 各站对同一个名字的写法不统一：`A-Lin`、`A Lin`、`A.Lin`、`ALin` 都见过，
+/// 所以把标题切成一串拉丁字母数字词，找**相邻**的几个词拼起来正好等于
+/// `parts` 拼起来的情况。相邻是指中间只隔标点或空白 —— 隔了汉字就不算。
+///
+/// 两头必须是词边界：`Lia Lin` 里的 `a Lin` 不算 `A-Lin`。这正是要它的原因。
+fn matches_compound(title: &str, parts: &[&str]) -> bool {
+    let target: String = parts.concat();
+
+    // (词, 它和前一个词之间是否只有标点/空白)
+    let mut words: Vec<(&str, bool)> = Vec::new();
+    let mut gap_clean = true;
+    let mut start = None;
+    for (i, c) in title.char_indices() {
+        if c.is_ascii_alphanumeric() {
+            start.get_or_insert(i);
+            continue;
+        }
+        if let Some(s) = start.take() {
+            words.push((&title[s..i], gap_clean));
+            gap_clean = true;
+        }
+        if c.is_alphanumeric() {
+            gap_clean = false;
+        }
+    }
+    if let Some(s) = start {
+        words.push((&title[s..], gap_clean));
+    }
+
+    (0..words.len()).any(|i| {
+        let mut acc = String::new();
+        for (j, (w, clean)) in words[i..].iter().enumerate() {
+            if j > 0 && !clean {
+                return false;
+            }
+            acc.push_str(w);
+            if acc == target {
+                return true;
+            }
+            if !target.starts_with(acc.as_str()) {
+                return false;
+            }
+        }
+        false
+    })
 }
 
 /// 聚合地址（Jackett 的 `indexers/all`）要把所有索引器挨个问一遍才回，站点一多
@@ -728,6 +795,44 @@ mod tests {
         assert!(!matches_query("碟中谍7.致命清算.2023.1080p", q));
         // 默认榜单那种无关结果照样筛掉
         assert!(!matches_query("Disclosure.Day.2026.1080p.WEBRip", q));
+    }
+
+    /// 连字符词整体匹配。
+    ///
+    /// 实测：搜「A-Lin」时 Pirate Bay 回了 100 条，几乎全是「Lia Lin」「Karina
+    /// Lin」—— 切词后只剩一个 `lin`，全部放行。
+    #[test]
+    fn hyphenated_name_matches_as_whole() {
+        let q = "A-Lin";
+
+        // 各种写法都算
+        assert!(matches_query("《I'm A-Lin 線上音樂會》完整版 - TME live 20200411", q));
+        assert!(matches_query("A Lin - Best Collection [FLAC]", q));
+        assert!(matches_query("A.Lin.2015.Concert.1080p", q));
+        assert!(matches_query("ALin 2020 新歌+精选", q));
+        assert!(matches_query("黄丽玲A-Lin.专辑合集", q));
+
+        // 两头不是词边界的不算
+        assert!(!matches_query("PornWorld 26 08 06 Lia Lin And Clara Trinity", q));
+        assert!(!matches_query("[OnlyFans] Karina Lin (2026)", q));
+        assert!(!matches_query("A Linux Guide", q));
+        // 中间隔了汉字不算相邻
+        assert!(!matches_query("A林Lin", q));
+
+        assert!(matches_query("Spider-Man.No.Way.Home.2021", "spider-man"));
+        assert!(matches_query("SpiderMan 2002", "Spider-Man"));
+        assert!(!matches_query("Spider.2002", "Spider-Man"));
+
+        // 连字符词和普通词混用：都要命中
+        assert!(matches_query("X-Men.Days.of.Future.Past.2014", "X-Men future"));
+        assert!(!matches_query("X-Men.Apocalypse.2016", "X-Men future"));
+
+        // 中文里的连字符照旧当分隔符
+        assert!(matches_query("碟中谍8.最终清算.2025", "碟中谍8-最终清算"));
+
+        // 和简繁不敏感叠加：连字符词整体匹配，汉字部分照样不分简繁
+        assert!(matches_query("黃麗玲 A-Lin 專輯合集 FLAC", "A-Lin 黄丽玲"));
+        assert!(!matches_query("黃麗玲 Lia Lin 專輯合集", "A-Lin 黄丽玲"));
     }
 
     #[test]
