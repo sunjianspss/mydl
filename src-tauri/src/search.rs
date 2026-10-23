@@ -312,12 +312,19 @@ async fn fetch(client: &reqwest::Client, url: &str) -> Result<Vec<SearchResult>>
                      或者把地址换成单个索引器的"
                 )
             } else {
-                anyhow::Error::new(e).context("连不上索引器。检查地址对不对、服务在不在跑")
+                // without_url：reqwest 的报错文本带着完整请求地址，而地址里有
+                // apikey。这条报错会进日志、也会原样显示在界面上。
+                anyhow::Error::new(e.without_url())
+                    .context("连不上索引器。检查地址对不对、服务在不在跑")
             }
         })?;
 
     let status = resp.status();
-    let body = resp.text().await.context("读取索引器响应失败")?;
+    let body = resp
+        .text()
+        .await
+        .map_err(reqwest::Error::without_url)
+        .context("读取索引器响应失败")?;
 
     if !status.is_success() {
         // Torznab 出错时会回一段 XML 说明原因，比光看状态码有用。
@@ -856,6 +863,18 @@ mod tests {
         let (base, _) = fake_torznab(vec![]).await;
         let e = search(&base, "周杰伦").await.unwrap_err().to_string();
         assert!(e.contains("500") && e.contains("站点挂了"), "报错没带上索引器的原话：{e}");
+    }
+
+    /// 报错会进日志、也会显示在界面上，不能带出地址里的 apikey。
+    #[tokio::test]
+    async fn connection_error_hides_apikey() {
+        // 1 号端口在本机不会有服务，连接立刻被拒
+        let e = search("http://127.0.0.1:1/api?apikey=SECRET123", "周杰伦")
+            .await
+            .unwrap_err();
+        let msg = format!("{e:#}");
+        assert!(msg.contains("连不上索引器"), "报错变了：{msg}");
+        assert!(!msg.contains("SECRET123"), "apikey 漏进了报错：{msg}");
     }
 
     #[test]
