@@ -70,6 +70,23 @@ uTP 实现。现代客户端默认走 uTP（UDP 上的传输协议，NAT 穿透�
 `// TODO: once uTP is stable upgrade default to both` —— 我们是主动开启的，
 如果哪天 uTP 出问题，改回 `TcpOnly` 即可。
 
+**Windows 上 0.7.0 的 uTP 会在运行中永久挂掉**，所以 `Cargo.toml` 里用
+`[patch.crates-io]` 把 `librqbit-utp` 钉到了上游修复的提交上。起因是 Windows
+UDP 的老脾气：之前 `send_to` 的包被回了 ICMP「端口不可达」，下一次 `recv_from`
+就报 WSAECONNRESET（os error 10054）。这只说明那一个包没送到，socket 照常可用；
+0.7.0 的 dispatcher 却当致命错误直接退出。日志特征是先一条
+`error running dispatcher: error receiving: … (os error 10054)`，之后每 10 秒一条
+`error accepting uTP: dispatcher dead`，直到重启。
+
+dispatcher 负责这个 socket 上**所有**的收包，所以挂掉的不只是入站：主动发起的
+uTP 连接也收不到回包，等于整套 uTP 退化成没有 —— 正是上面说的「只能靠 uTP
+连上的做种者」全丢。在 BT 场景下给一堆 peer 发包、其中有的已经下线是常态，
+实测启动后不到一分钟就能触发。
+
+上游 [ikatson/librqbit-utp#4](https://github.com/ikatson/librqbit-utp/pull/4)
+（`f19f77e`）把 10040 / 10052 / 10054 当成单个数据报的错误跳过，是 0.7.0 之后
+唯一的提交。它发了新版以后删掉 patch 即可。
+
 ## 为什么是 librqbit
 
 BitTorrent 协议本身不难，难的是 DHT 健壮性、uTP、NAT 穿透和几百个并发连接的

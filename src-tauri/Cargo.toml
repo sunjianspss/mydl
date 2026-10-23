@@ -82,3 +82,14 @@ reqwest = { version = "0.12", default-features = false }
 zip = "8.6.0"
 futures = "0.3.33"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Windows 上 uTP 监听跑一会儿就永久挂掉：之前 send_to 的包被回了 ICMP「端口不可达」，
+# 下一次 recv_from 就报 WSAECONNRESET（os error 10054）。这只影响那一个数据报，
+# 0.7.0 的 dispatcher 却当成致命错误直接退出，日志里从此每 10 秒一条
+# 「error accepting uTP: dispatcher dead」，入站、出站的 uTP 全都不通。
+# 实测本机启动后不到一分钟就能触发。
+#
+# 上游 ikatson/librqbit-utp#4 修了（f19f77e，0.7.0 之后唯一的提交），但还没发版。
+# 上游发了 0.7.1 以后删掉这段。
+[patch.crates-io]
+librqbit-utp = { git = "https://github.com/ikatson/librqbit-utp", rev = "f19f77e38562e7e373bc58bbbb20b68e58c71fef" }
