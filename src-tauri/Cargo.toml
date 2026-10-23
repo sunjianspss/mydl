@@ -46,6 +46,10 @@ feed-rs = "2.4.0"
 reqwest = { version = "0.12", features = ["default-tls"] }
 tauri-plugin-clipboard-manager = "2.3.2"
 quick-xml = "0.41"
+# 搜索时简繁各搜一次、筛结果时简繁归一，见 search.rs 的 query_variants。
+# 选它是因为 MIT、只多带一个 ahash；同样基于 OpenCC 词典的 zhconv 是 GPL，
+# 不能进 MIT 项目，ferrous-opencc 则要拖进 rkyv / fst 一串。
+hanconv = "0.5"
 # API key 存系统钥匙串（macOS）/ 凭据管理器（Windows），见 secrets.rs。
 keyring = { version = "4.1.6", default-features = false, features = [
   "v1",

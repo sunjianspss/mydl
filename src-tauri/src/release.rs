@@ -245,8 +245,12 @@ pub fn parse(name: &str) -> ParsedName {
 ///
 /// 召回是宽的（只用核心标题搜），所以排序这一步必须严：按完整标题里的词
 /// 在候选标题里命中了多少来算。命中率一样时由调用方拿做种数做次级排序。
+///
+/// 简繁不敏感，和 `search::matches_query` 一样：原文或转成简体后命中都算。
+/// 搜索是简繁一起搜的，不认繁体的话那一路召回的候选会全落到及格线以下。
 pub fn relevance(candidate_title: &str, full_title: &str) -> f64 {
     let cand = candidate_title.to_lowercase();
+    let cand_hans = hanconv::t2s(&cand);
 
     // CJK 按 2-gram 切，ASCII 按词切 —— 中文没有词边界，整段比对太苛刻。
     let mut grams: Vec<String> = Vec::new();
@@ -271,7 +275,10 @@ pub fn relevance(candidate_title: &str, full_title: &str) -> f64 {
     if grams.is_empty() {
         return 0.0;
     }
-    let hit = grams.iter().filter(|g| cand.contains(g.as_str())).count();
+    let hit = grams
+        .iter()
+        .filter(|g| cand.contains(g.as_str()) || cand_hans.contains(&hanconv::t2s(g.as_str())))
+        .count();
     hit as f64 / grams.len() as f64
 }
 
@@ -478,6 +485,16 @@ mod tests {
         assert!(exact > partial, "完整命中该高于部分：{exact} vs {partial}");
         assert!(partial > wrong, "部分命中该高于无关：{partial} vs {wrong}");
         assert!(wrong < 0.2, "无关标题不该拿到 {wrong}");
+    }
+
+    /// 简繁一起搜之后，繁体标题的候选和简体的同等对待。
+    #[test]
+    fn relevance_ignores_script() {
+        let full = "碟中谍8：最终清算";
+        let simp = relevance("碟中谍8：最终清算 2160p WEB-DL", full);
+        let trad = relevance("碟中諜8：最終清算 2160p WEB-DL", full);
+        assert_eq!(simp, trad, "繁体标题不该比简体低分");
+        assert_eq!(relevance("周杰倫 十二新作", "周杰伦"), 1.0);
     }
 
     /// 这条正是 `matches_query` 会误杀、而打分能救回来的情况：

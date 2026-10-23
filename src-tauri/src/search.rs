@@ -146,10 +146,15 @@ pub async fn fetch_cached_torrent(info_hash: &str) -> Option<Vec<u8>> {
 /// 标题里只要把全角冒号写成点（「碟中谍8.最终清算」）就再也匹配不上 —— 而各站
 /// 的命名习惯本来就不统一。切开之后两段分别判断，既宽松够用又不会放进无关的。
 ///
+/// **简繁不敏感**：搜「周杰伦」的结果里留得住「周杰倫」。搜的时候简繁两种
+/// 写法都发了（见 [`query_variants`]），筛的时候不认的话，繁体那一路搜回来
+/// 的就全被这里扔掉了。
+///
 /// （RSS 订阅的「包含」仍按空白分词：那边的词是用户一个个敲进去的，
 /// 他写了什么就是什么，不该替他再切一刀。）
 pub fn matches_query(title: &str, query: &str) -> bool {
     let title = title.to_lowercase();
+    let title_hans = hanconv::t2s(&title);
 
     for token in query.split(|c: char| !c.is_alphanumeric()) {
         let token = token.to_lowercase();
@@ -158,7 +163,10 @@ pub fn matches_query(title: &str, query: &str) -> bool {
         if token.is_empty() || (token.len() == 1 && token.is_ascii()) {
             continue;
         }
-        if !title.contains(&token) {
+        // 原文命中**或者**两边都转成简体后命中。不能只比简体：OpenCC 按词
+        // 转换，单独一个「乾」会转成「干」，而标题里的「乾隆」作为一个词
+        // 原样不动 —— 只比简体的话，搜「乾」反倒搜不到「乾隆王朝」。
+        if !title.contains(&token) && !title_hans.contains(&hanconv::t2s(&token)) {
             return false;
         }
     }
@@ -166,6 +174,30 @@ pub fn matches_query(title: &str, query: &str) -> bool {
     // 走到这里说明所有有意义的词都命中了；关键词全是噪音（比如只输了个
     // "a"）时一个都没检查过，那就不筛，交给索引器判断。
     true
+}
+
+/// 同一个关键词要拿去搜的几种写法：原文、简体、繁体，去重后按这个顺序。
+///
+/// 索引器那头是逐字匹配的，「周杰伦」和「周杰倫」对它是两个不相干的词。
+/// 实测本机 Jackett：简体搜出 103 个种子、繁体 133 个，**一个都不重叠** ——
+/// 只搜一种写法，一大半就漏了。
+///
+/// 繁体用台湾写法（`s2tw`：為、裡、著、麵），不用 OpenCC 的标准繁体（`s2t`：
+/// 爲、裏、着、麪）—— 种子标题里的繁体绝大多数是台湾写法，按标准繁体搜
+/// 「为你写诗」会发出「爲你寫詩」，一条也对不上。也只换字形不换用词（不用
+/// `s2twp`），否则「软件」会被改成「軟體」，搜的就不是用户输入的词了。
+///
+/// 原文始终排第一：转换是查词典的，难免有转错的字（「钟」只会转成「鍾」，
+/// 不会是「鐘」），原文那一路兜底。没有汉字的关键词三种写法一模一样，
+/// 去重后只剩一条，不会多发请求。
+pub fn query_variants(query: &str) -> Vec<String> {
+    let mut out = vec![query.to_string()];
+    for v in [hanconv::t2s(query), hanconv::s2tw(query)] {
+        if !out.contains(&v) {
+            out.push(v);
+        }
+    }
+    out
 }
 
 /// 聚合地址（Jackett 的 `indexers/all`）要把所有索引器挨个问一遍才回，站点一多
@@ -178,6 +210,8 @@ const SEARCH_TIMEOUT_SECS: u64 = 60;
 /// `base` 是用户从 Prowlarr / Jackett 界面上复制的那条 Torznab 地址，
 /// 里面已经带了 apikey —— 我们只往后面拼查询参数，不去猜各家的路径结构
 /// （Prowlarr 和 Jackett 的前缀不一样，猜必错）。
+///
+/// 中文关键词会按简体、繁体各搜一次再合并，见 [`query_variants`]。
 pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
     let query = query.trim();
     if query.is_empty() {
@@ -189,15 +223,82 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
     }
 
     let sep = if base.contains('?') { '&' } else { '?' };
-    let url = format!(
-        "{base}{sep}t=search&q={}",
-        urlencoding_lite(query)
-    );
+    let variants = query_variants(query);
 
-    tracing::info!(query = %query, "搜索种子");
+    tracing::info!(query = %query, 写法 = ?variants, "搜索种子");
 
-    let resp = reqwest::Client::new()
-        .get(&url)
+    // 几种写法并发发出去。聚合查询一次就要几十秒，顺序发等于翻倍；实测两条
+    // 并发各自 27 秒左右，和单条差不多。按写法的顺序 await，合并顺序就不随
+    // 谁先回来而变。
+    let client = reqwest::Client::new();
+    let handles: Vec<_> = variants
+        .iter()
+        .map(|q| {
+            let client = client.clone();
+            let url = format!("{base}{sep}t=search&q={}", urlencoding_lite(q));
+            tokio::spawn(async move { fetch(&client, &url).await })
+        })
+        .collect();
+
+    let mut all = Vec::new();
+    let mut any_ok = false;
+    let mut first_err = None;
+    for (q, h) in variants.iter().zip(handles) {
+        match h.await.map_err(anyhow::Error::from).and_then(|r| r) {
+            Ok(items) => {
+                any_ok = true;
+                all.extend(items);
+            }
+            // 一路失败不拖垮整次搜索：繁体那一路超时了，简体的结果照样有用。
+            Err(e) => {
+                tracing::warn!(写法 = %q, "这一路搜索失败：{e:#}");
+                first_err.get_or_insert(e);
+            }
+        }
+    }
+    // 全失败才报错，报排在最前的那路（通常就是原文）。
+    if let Some(e) = first_err.filter(|_| !any_ok) {
+        return Err(e);
+    }
+
+    let total = all.len();
+
+    // 同一条结果可能被两种写法都搜到（标题里简繁都有，或者站点自己做了简繁
+    // 转换），按「站点 + info-hash」去重，没有磁力链的退回到下载地址。
+    // 不同站给的同一个种子照旧各占一行 —— 单一写法时本来就是这样。
+    let mut seen = std::collections::HashSet::new();
+    let mut kept: Vec<SearchResult> = all
+        .into_iter()
+        .filter(|r| matches_query(&r.title, query))
+        .filter(|r| {
+            let key = r
+                .magnet
+                .as_deref()
+                .and_then(magnet_info_hash)
+                .or_else(|| r.uri().map(str::to_string));
+            seen.insert((r.indexer.clone(), key))
+        })
+        .collect();
+
+    // 每一路在 `parse` 里各自排过序，合并后要重排。sort_by_key 是稳定的，
+    // 做种数相同的仍按写法顺序。
+    kept.sort_by_key(|r| std::cmp::Reverse(r.seeders.unwrap_or(0)));
+
+    if kept.len() != total {
+        tracing::info!(
+            总数 = total,
+            保留 = kept.len(),
+            "过滤掉与关键词无关和重复的结果（有些索引器匹配不到时会返回默认榜单）"
+        );
+    }
+
+    Ok(kept)
+}
+
+/// 发一次 Torznab 查询，返回解析好的结果（未筛选）。
+async fn fetch(client: &reqwest::Client, url: &str) -> Result<Vec<SearchResult>> {
+    let resp = client
+        .get(url)
         .timeout(std::time::Duration::from_secs(SEARCH_TIMEOUT_SECS))
         .send()
         .await
@@ -224,23 +325,7 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
         bail!("索引器返回 {status}：{hint}");
     }
 
-    let all = parse(&body)?;
-    let total = all.len();
-
-    let kept: Vec<SearchResult> = all
-        .into_iter()
-        .filter(|r| matches_query(&r.title, query))
-        .collect();
-
-    if kept.len() != total {
-        tracing::info!(
-            总数 = total,
-            保留 = kept.len(),
-            "过滤掉与关键词无关的结果（有些索引器匹配不到时会返回默认榜单）"
-        );
-    }
-
-    Ok(kept)
+    parse(&body)
 }
 
 /// 只转义查询串里会破坏 URL 的字符。不引 urlencoding 依赖 —— 这里只处理
@@ -636,6 +721,141 @@ mod tests {
         assert!(!matches_query("碟中谍7.致命清算.2023.1080p", q));
         // 默认榜单那种无关结果照样筛掉
         assert!(!matches_query("Disclosure.Day.2026.1080p.WEBRip", q));
+    }
+
+    #[test]
+    fn ignores_simplified_vs_traditional() {
+        // 两个方向都要认
+        assert!(matches_query("周杰倫歷年全部專輯", "周杰伦"));
+        assert!(matches_query("周杰伦 - 晴天.flac", "周杰倫"));
+        // 台湾写法、OpenCC 标准繁体写法都算
+        assert!(matches_query("為你寫詩", "为你写诗"));
+        assert!(matches_query("爲你寫詩", "为你写诗"));
+        // 混着写也行：每个词各自判断
+        assert!(matches_query("鄧紫棋.FLAC.分軌", "邓紫棋 flac"));
+
+        // 归一不能变成放水
+        assert!(!matches_query("林俊傑 江南", "周杰伦"));
+        assert!(!matches_query("Disclosure.Day.2026.1080p.WEBRip", "周杰倫"));
+    }
+
+    /// 只比简体会误杀：单独的「乾」转成「干」，标题里的「乾隆」却原样不动。
+    #[test]
+    fn script_folding_does_not_lose_raw_matches() {
+        assert_eq!(hanconv::t2s("乾"), "干", "前提变了，这个用例要重写");
+        assert!(matches_query("乾隆王朝.1080p", "乾"));
+    }
+
+    #[test]
+    fn variants_cover_both_scripts() {
+        assert_eq!(query_variants("周杰伦"), ["周杰伦", "周杰倫"]);
+        assert_eq!(query_variants("周杰倫"), ["周杰倫", "周杰伦"]);
+        // 繁体用台湾写法，不是 OpenCC 标准繁体的「爲」
+        assert_eq!(query_variants("为你写诗"), ["为你写诗", "為你寫詩"]);
+        // 只换字形不换用词
+        assert_eq!(query_variants("软件")[1], "軟件");
+        // 没有可转的字就只发一次
+        assert_eq!(query_variants("Jay Chou"), ["Jay Chou"]);
+        assert_eq!(query_variants("王菲"), ["王菲"]);
+    }
+
+    /// 本地起一个假的 Torznab：按 `q` 返回事先放好的响应，并记下收到了哪些 `q`。
+    /// 表里没有的 `q` 回 500。
+    async fn fake_torznab(
+        responses: Vec<(&'static str, String)>,
+    ) -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
+        use axum::extract::Query;
+        use std::collections::HashMap;
+        use std::sync::{Arc, Mutex};
+
+        let asked = Arc::new(Mutex::new(Vec::new()));
+        let responses: Arc<HashMap<&str, String>> = Arc::new(responses.into_iter().collect());
+        let app = axum::Router::new().route(
+            "/api",
+            axum::routing::get({
+                let asked = asked.clone();
+                move |Query(p): Query<HashMap<String, String>>| async move {
+                    let q = p.get("q").cloned().unwrap_or_default();
+                    asked.lock().unwrap().push(q.clone());
+                    match responses.get(q.as_str()) {
+                        Some(xml) => (axum::http::StatusCode::OK, xml.clone()),
+                        None => (
+                            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                            r#"<error code="900" description="站点挂了"/>"#.to_string(),
+                        ),
+                    }
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        (format!("http://{addr}/api?apikey=x"), asked)
+    }
+
+    fn torznab(items: &[(&str, char, u32)]) -> String {
+        let items: String = items
+            .iter()
+            .map(|(title, h, seeders)| {
+                let hash: String = std::iter::repeat_n(*h, 40).collect();
+                format!(
+                    r#"<item><title>{title}</title><jackettindexer>Site</jackettindexer>
+                    <enclosure url="magnet:?xt=urn:btih:{hash}" length="1"/>
+                    <torznab:attr name="seeders" value="{seeders}"/></item>"#
+                )
+            })
+            .collect();
+        format!(r#"<rss xmlns:torznab="http://torznab.com/schemas/2015/feed"><channel>{items}</channel></rss>"#)
+    }
+
+    #[tokio::test]
+    async fn searches_both_scripts_and_merges() {
+        let (base, asked) = fake_torznab(vec![
+            (
+                "周杰伦",
+                torznab(&[("周杰伦 - 晴天.flac", 'a', 3), ("周杰伦 周杰倫 合集", 'c', 9)]),
+            ),
+            (
+                "周杰倫",
+                torznab(&[
+                    ("周杰倫 歷年全部專輯", 'b', 5),
+                    // 同一站同一个种子，两种写法都搜到了，只该留一条
+                    ("周杰伦 周杰倫 合集", 'c', 9),
+                    // 默认榜单照样要筛掉
+                    ("Disclosure.Day.2026.1080p", 'd', 999),
+                ]),
+            ),
+        ])
+        .await;
+
+        let r = search(&base, "周杰伦").await.unwrap();
+
+        let mut q = asked.lock().unwrap().clone();
+        q.sort();
+        assert_eq!(q, ["周杰伦", "周杰倫"], "简繁各发一次，不多不少");
+
+        let titles: Vec<&str> = r.iter().map(|x| x.title.as_str()).collect();
+        assert_eq!(
+            titles,
+            ["周杰伦 周杰倫 合集", "周杰倫 歷年全部專輯", "周杰伦 - 晴天.flac"],
+            "合并、去重、筛掉无关，再按做种数重排"
+        );
+    }
+
+    #[tokio::test]
+    async fn one_failed_script_does_not_fail_search() {
+        // 只放了简体的响应，繁体那一路会拿到 500
+        let (base, _) =
+            fake_torznab(vec![("周杰伦", torznab(&[("周杰伦 - 晴天.flac", 'a', 3)]))]).await;
+        let r = search(&base, "周杰伦").await.unwrap();
+        assert_eq!(r.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn all_scripts_failing_reports_error() {
+        let (base, _) = fake_torznab(vec![]).await;
+        let e = search(&base, "周杰伦").await.unwrap_err().to_string();
+        assert!(e.contains("500") && e.contains("站点挂了"), "报错没带上索引器的原话：{e}");
     }
 
     #[test]
