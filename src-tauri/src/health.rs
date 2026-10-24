@@ -25,7 +25,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use tokio::net::UdpSocket;
 
 use crate::engine::Engine;
 use crate::settings::{SettingsStore, PUBLIC_TRACKERS};
@@ -421,7 +420,13 @@ fn udp_endpoint(tracker: &str) -> Option<&str> {
 
 /// 对单个 tracker 查一批 info-hash。`pub` 是为了能被集成测试直接打真实
 /// tracker —— 单测只能覆盖报文编解码，覆盖不到「对方到底认不认」。
-pub async fn scrape_one(tracker: &str, hashes: &[[u8; 20]]) -> Result<Vec<ScrapeEntry>> {
+///
+/// `device` 为 None 时走系统默认路由，见 [`scrape_many_via`]。
+pub async fn scrape_one(
+    tracker: &str,
+    hashes: &[[u8; 20]],
+    device: Option<&str>,
+) -> Result<Vec<ScrapeEntry>> {
     let endpoint = udp_endpoint(tracker).with_context(|| format!("看不懂的 tracker 地址 {tracker}"))?;
     let addr: SocketAddr = tokio::net::lookup_host(endpoint)
         .await
@@ -429,7 +434,9 @@ pub async fn scrape_one(tracker: &str, hashes: &[[u8; 20]]) -> Result<Vec<Scrape
         .find(|a| a.is_ipv4())
         .with_context(|| format!("{endpoint} 没有 IPv4 地址"))?;
 
-    let sock = UdpSocket::bind("0.0.0.0:0").await.context("绑定 UDP 端口失败")?;
+    let sock = crate::netif::udp_v4(device)
+        .await
+        .context("绑定 UDP 端口失败")?;
     sock.connect(addr).await.with_context(|| format!("连接 {addr} 失败"))?;
 
     let tid = rand::random::<u32>();
@@ -486,7 +493,18 @@ fn now_secs() -> i64 {
 /// 只有 2~3 个可达。
 ///
 /// `hashes` 是 `(小写十六进制, 20 字节)` 的列表；返回的键就是前者。
+///
+/// 走系统默认路由。只关心人数的地方（健康度采样、找替代源）用这个就够；
+/// 诊断要测的是 BT 那条路，用 [`scrape_many_via`] 绑上同一张网卡。
 pub async fn scrape_many(hashes: &[(String, [u8; 20])]) -> HashMap<String, (u32, u32, u8)> {
+    scrape_many_via(hashes, None).await
+}
+
+/// 同 [`scrape_many`]，但只从 `device` 这张网卡出去（None = 默认路由）。
+pub async fn scrape_many_via(
+    hashes: &[(String, [u8; 20])],
+    device: Option<&str>,
+) -> HashMap<String, (u32, u32, u8)> {
     let mut merged: HashMap<String, (u32, u32, u8)> =
         hashes.iter().map(|(k, _)| (k.clone(), (0, 0, 0))).collect();
     if hashes.is_empty() {
@@ -501,13 +519,14 @@ pub async fn scrape_many(hashes: &[(String, [u8; 20])]) -> HashMap<String, (u32,
     let mut set = tokio::task::JoinSet::new();
     for &tracker in PUBLIC_TRACKERS {
         let hashes = shared.clone();
+        let device = device.map(str::to_owned);
         set.spawn(async move {
             // 只带回「第几块 + 这块的结果」，合并留在外面做：任务里拿不到
             // merged 的可变借用。
             let mut got: Vec<(usize, Vec<ScrapeEntry>)> = Vec::new();
             for (i, chunk) in hashes.chunks(MAX_PER_SCRAPE).enumerate() {
                 let raw: Vec<[u8; 20]> = chunk.iter().map(|(_, h)| *h).collect();
-                match scrape_one(tracker, &raw).await {
+                match scrape_one(tracker, &raw, device.as_deref()).await {
                     Ok(entries) => got.push((i, entries)),
                     // 公共 tracker 连不上是常态，不值得上升到 warn。
                     Err(e) => tracing::debug!("scrape {tracker} 失败：{e:#}"),

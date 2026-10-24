@@ -1071,6 +1071,23 @@ MYDL_MEDIA_DIR=~/Downloads cargo test --test media_real -- --ignored --nocapture
 「物理网卡不可能撞上」，反向误判的代价大得多 —— 把物理网卡当成隧道，自动兜底
 会跳过它，BT 静默变成 0 peers。两个方向各有一个用例钉着。
 
+### 探测本身也得走 BT 那条路
+
+第 4~6 步（scrape、announce、握手、对照组）是 mydl 自己开的 socket，不经过
+librqbit 会话，`bind_device_name` 管不到。0.14.11 及以前它们没绑网卡，开着 VPN
+时走的是隧道，而 BT 走的是 `en0` —— 测的根本不是 BT 那条路。
+
+后果是结论跑偏：隧道那头会先替对方把 TCP 接下来、随后断开，握手全记成
+「被拒」；对照组同样走隧道，实测 4/16，于是报「问题在你的网络」。绑上 `en0`
+重测，同一个 swarm 是 0 做种，对照组 5/16、和走隧道时差不多。真正的答案是
+「这个资源没人了」。
+
+所以现在都用 `netif::udp_v4` / `tcp_v4` 建 socket，绑会话真正绑上的那张网卡
+（`session_status().bind_device`，已经过 `usable_bind_device` 解析）。添加
+失败时的 `swarm_forensics` 同理。绑定失败就报错，**不退回默认路由** —— 悄悄
+退回去正是要修的那个错。分辨办法也留在这：握手结果里「连不上」占多数是直连的
+正常样子，几乎全是「被拒」、一个「连不上」都没有，多半是在走隧道。
+
 ### 代价
 
 会真的发包：tracker announce + 对最多 16 个 peer 试握手 + 打一次对照 swarm。

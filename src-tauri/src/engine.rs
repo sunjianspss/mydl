@@ -214,7 +214,7 @@ fn magnet_info_hash(uri: &str) -> Option<[u8; 20]> {
 /// 之前这里只能靠磁力链带没带 tracker 猜一句「多半没人做种了」，而「资源死了」
 /// 「记录过期」「对方不搭理标准客户端」这三种情况的下一步动作完全不同 ——
 /// 数字就在手边，没有理由让用户自己去翻日志。
-async fn add_timeout_message(uri: &str) -> String {
+async fn add_timeout_message(uri: &str, device: Option<&str>) -> String {
     let secs = ADD_TIMEOUT.as_secs();
     if !uri.starts_with("magnet:") {
         return format!("添加超时（{secs} 秒）。种子地址可能打不开，或者网络有问题。");
@@ -231,7 +231,7 @@ async fn add_timeout_message(uri: &str) -> String {
 
     match tokio::time::timeout(
         FORENSICS_TIMEOUT,
-        crate::diagnose::swarm_forensics(info_hash),
+        crate::diagnose::swarm_forensics(info_hash, device),
     )
     .await
     {
@@ -454,7 +454,7 @@ impl Engine {
             Ok(r) => r,
             Err(_) => {
                 tracing::warn!(uri = %uri, "添加超时");
-                bail!("{}", add_timeout_message(uri).await)
+                bail!("{}", add_timeout_message(uri, self.bind_device.as_deref()).await)
             }
         }
     }
@@ -549,7 +549,7 @@ impl Engine {
             Some(Ok(r)) => r?,
             Some(Err(_)) => {
                 tracing::warn!(uri = %uri, "预览超时");
-                bail!("{}", add_timeout_message(uri).await)
+                bail!("{}", add_timeout_message(uri, self.bind_device.as_deref()).await)
             }
         };
 

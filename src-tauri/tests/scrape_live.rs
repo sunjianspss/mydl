@@ -33,7 +33,7 @@ async fn scrapes_real_trackers() {
 
     for tracker in PUBLIC_TRACKERS {
         // 故意一个包里塞两个：单个 hash 的话对齐错了也看不出来。
-        match scrape_one(tracker, &[ubuntu, nonsense]).await {
+        match scrape_one(tracker, &[ubuntu, nonsense], None).await {
             Ok(entries) => {
                 reachable += 1;
                 eprintln!("[{tracker}] {entries:?}");

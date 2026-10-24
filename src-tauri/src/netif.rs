@@ -181,6 +181,80 @@ pub fn exists(name: &str) -> bool {
     list().iter().any(|i| i.name == name)
 }
 
+/// 建一个 IPv4 UDP socket；给了网卡就只从那张网卡出去。
+///
+/// 给 mydl 自己发的 tracker 探测用（诊断、取证）。它们不经过 librqbit 的
+/// 会话，`bind_device_name` 管不到 —— 不手动绑的话，开着 VPN 时探测走的是
+/// 隧道，而 BT 走的是 `en0`，测出来的根本不是 BT 那条路。
+pub async fn udp_v4(device: Option<&str>) -> std::io::Result<tokio::net::UdpSocket> {
+    let sock = tokio::net::UdpSocket::bind("0.0.0.0:0").await?;
+    if let Some(dev) = device {
+        bind_to_device(&sock, dev)?;
+    }
+    Ok(sock)
+}
+
+/// 同 [`udp_v4`]，TCP 版。返回还没连出去的 socket，调用方自己 `connect`。
+pub fn tcp_v4(device: Option<&str>) -> std::io::Result<tokio::net::TcpSocket> {
+    let sock = tokio::net::TcpSocket::new_v4()?;
+    if let Some(dev) = device {
+        bind_to_device(&sock, dev)?;
+    }
+    Ok(sock)
+}
+
+/// 和 librqbit 的 `BindDevice::bind_sref` 同一套做法：macOS 用 `IP_BOUND_IF`
+/// （按网卡序号），Linux 用 `SO_BINDTODEVICE`（按名字）。必须在 connect /
+/// 第一次发包之前调。
+///
+/// 失败就报错，**不退回默认路由** —— 悄悄退回去正是这个函数要修的那个错：
+/// 测了隧道，却当成 BT 那条路的结论报给用户。
+#[cfg(target_os = "macos")]
+fn bind_to_device(sock: &impl std::os::fd::AsRawFd, name: &str) -> std::io::Result<()> {
+    let cname = std::ffi::CString::new(name)
+        .map_err(|_| std::io::Error::from(std::io::ErrorKind::InvalidInput))?;
+    let index = unsafe { libc::if_nametoindex(cname.as_ptr()) };
+    if index == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    let rc = unsafe {
+        libc::setsockopt(
+            sock.as_raw_fd(),
+            libc::IPPROTO_IP,
+            libc::IP_BOUND_IF,
+            &index as *const _ as *const libc::c_void,
+            std::mem::size_of_val(&index) as libc::socklen_t,
+        )
+    };
+    if rc != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
+fn bind_to_device(sock: &impl std::os::fd::AsRawFd, name: &str) -> std::io::Result<()> {
+    let rc = unsafe {
+        libc::setsockopt(
+            sock.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_BINDTODEVICE,
+            name.as_ptr() as *const libc::c_void,
+            name.len() as libc::socklen_t,
+        )
+    };
+    if rc != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+/// Windows 上引擎根本不绑网卡（见 `engine::usable_bind_device`），走不到这里。
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "android")))]
+fn bind_to_device<S>(_sock: &S, _name: &str) -> std::io::Result<()> {
+    Err(std::io::Error::from(std::io::ErrorKind::Unsupported))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

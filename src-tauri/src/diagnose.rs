@@ -128,9 +128,12 @@ pub fn default_route_interface() -> Option<String> {
 ///
 /// 和 `health::scrape_many` 的区别：scrape 只给**人数**，announce 给**地址**。
 /// 要测握手就必须有地址。
-async fn announce(tracker: &str, info_hash: [u8; 20]) -> anyhow::Result<Vec<SocketAddr>> {
+async fn announce(
+    tracker: &str,
+    info_hash: [u8; 20],
+    device: Option<&str>,
+) -> anyhow::Result<Vec<SocketAddr>> {
     use anyhow::Context;
-    use tokio::net::UdpSocket;
 
     let endpoint = tracker
         .strip_prefix("udp://")
@@ -143,7 +146,7 @@ async fn announce(tracker: &str, info_hash: [u8; 20]) -> anyhow::Result<Vec<Sock
         .find(|a| a.is_ipv4())
         .context("没有 IPv4 地址")?;
 
-    let sock = UdpSocket::bind("0.0.0.0:0").await?;
+    let sock = netif::udp_v4(device).await?;
     sock.connect(addr).await?;
 
     // connect
@@ -218,12 +221,13 @@ enum Handshake {
 /// 对一个 peer 走一遍 BEP3 明文握手。
 ///
 /// 只是握手，不交换任何数据。目的是回答「对方愿不愿意跟我们说话」。
-async fn handshake(peer: SocketAddr, info_hash: [u8; 20]) -> Handshake {
+async fn handshake(peer: SocketAddr, info_hash: [u8; 20], device: Option<&str>) -> Handshake {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let Ok(Ok(mut stream)) =
-        tokio::time::timeout(IO_TIMEOUT, tokio::net::TcpStream::connect(peer)).await
-    else {
+    let Ok(sock) = netif::tcp_v4(device) else {
+        return Handshake::NoTcp;
+    };
+    let Ok(Ok(mut stream)) = tokio::time::timeout(IO_TIMEOUT, sock.connect(peer)).await else {
         return Handshake::NoTcp;
     };
 
@@ -251,13 +255,18 @@ async fn handshake(peer: SocketAddr, info_hash: [u8; 20]) -> Handshake {
 }
 
 /// 对一批 peer 并发握手，返回 (成功, 连不上, 被拒)。
-async fn probe_peers(peers: &[SocketAddr], info_hash: [u8; 20]) -> (usize, usize, usize) {
+async fn probe_peers(
+    peers: &[SocketAddr],
+    info_hash: [u8; 20],
+    device: Option<&str>,
+) -> (usize, usize, usize) {
     // 用 tokio 自带的 JoinSet 而不是 futures::join_all —— futures 目前只是
     // dev-dependency，为一个并发原语把它提成正式依赖不值得。
     let mut set = tokio::task::JoinSet::new();
     for p in peers.iter().take(PROBE_PEERS) {
         let peer = *p;
-        set.spawn(async move { handshake(peer, info_hash).await });
+        let device = device.map(str::to_owned);
+        set.spawn(async move { handshake(peer, info_hash, device.as_deref()).await });
     }
 
     let mut counts = (0, 0, 0);
@@ -278,11 +287,12 @@ async fn probe_peers(peers: &[SocketAddr], info_hash: [u8; 20]) -> (usize, usize
 /// 用户正在等的 —— 添加失败后的那条报错要是自己先超时，就等于什么都没说。
 /// （之前还有个「凑够 PROBE_PEERS 就 break」的省事逻辑，并发之后它一秒都
 /// 省不下来，反而让 `peers_found` 报不出真实总数，一并去掉。）
-async fn gather_peers(info_hash: [u8; 20]) -> Vec<SocketAddr> {
+async fn gather_peers(info_hash: [u8; 20], device: Option<&str>) -> Vec<SocketAddr> {
     let mut set = tokio::task::JoinSet::new();
     for (i, &tracker) in PUBLIC_TRACKERS.iter().enumerate() {
+        let device = device.map(str::to_owned);
         set.spawn(async move {
-            match announce(tracker, info_hash).await {
+            match announce(tracker, info_hash, device.as_deref()).await {
                 Ok(peers) => (i, peers),
                 Err(e) => {
                     tracing::debug!("announce {tracker} 失败：{e:#}");
@@ -338,7 +348,9 @@ pub struct SwarmForensics {
 /// 跑一次单点取证。**只用公共 tracker** —— 磁力链自带的 tracker 多半是
 /// http:// 的，而 [`announce`] 只说 BEP15（UDP）；为一条错误信息去实现
 /// HTTP announce 不划算，公共 tracker 已经足够区分那几种情况。
-pub async fn swarm_forensics(info_hash: [u8; 20]) -> SwarmForensics {
+///
+/// `device` 传会话真正绑上的那张网卡，理由同 [`run`]。
+pub async fn swarm_forensics(info_hash: [u8; 20], device: Option<&str>) -> SwarmForensics {
     let hex = info_hash.iter().map(|b| format!("{b:02x}")).collect::<String>();
 
     let mut out = SwarmForensics::default();
@@ -347,7 +359,10 @@ pub async fn swarm_forensics(info_hash: [u8; 20]) -> SwarmForensics {
     // 一倍时间。
     // 单独绑一下：join! 里直接写字面量数组的话，那个临时值活不过这条语句。
     let one = [(hex.clone(), info_hash)];
-    let (scraped, peers) = tokio::join!(health::scrape_many(&one), gather_peers(info_hash));
+    let (scraped, peers) = tokio::join!(
+        health::scrape_many_via(&one, device),
+        gather_peers(info_hash, device)
+    );
 
     if let Some((s, l, ok)) = scraped.get(&hex) {
         if *ok > 0 {
@@ -358,7 +373,7 @@ pub async fn swarm_forensics(info_hash: [u8; 20]) -> SwarmForensics {
 
     out.peers_found = peers.len();
     if !peers.is_empty() {
-        out.probe = Some(probe_peers(&peers, info_hash).await);
+        out.probe = Some(probe_peers(&peers, info_hash, device).await);
     }
     out
 }
@@ -831,7 +846,15 @@ pub async fn run(info_hash: &str, subject: Subject) -> Report {
         };
     }
 
-    let scraped = health::scrape_many(&[(info_hash.to_ascii_lowercase(), raw_hash)]).await;
+    // 4~6 步的探测全部绑到 BT 那张网卡上。不绑的话开着 VPN 时测的是隧道：
+    // 隧道那头替你应答 TCP、随后断开，握手全记成「被拒」，再拿去和同样走
+    // 隧道的对照组比 —— 结论成了「问题在你的网络」，而 BT 根本不走那条路。
+    let device = bind_device.as_deref();
+    let scraped = health::scrape_many_via(
+        &[(info_hash.to_ascii_lowercase(), raw_hash)],
+        device,
+    )
+    .await;
     if let Some((s, l, ok)) = scraped.get(&info_hash.to_ascii_lowercase()) {
         if *ok > 0 {
             f.seeders = Some(*s);
@@ -864,11 +887,11 @@ pub async fn run(info_hash: &str, subject: Subject) -> Report {
     }
 
     // 5. 握手
-    let peers = gather_peers(raw_hash).await;
+    let peers = gather_peers(raw_hash, device).await;
     if peers.is_empty() {
         steps.push(step("和 peer 握手", Outcome::Skipped, "没拿到 peer 地址"));
     } else {
-        let counts = probe_peers(&peers, raw_hash).await;
+        let counts = probe_peers(&peers, raw_hash, device).await;
         f.probe = Some(counts);
         let total = counts.0 + counts.1 + counts.2;
         let detail = format!(
@@ -889,11 +912,11 @@ pub async fn run(info_hash: &str, subject: Subject) -> Report {
     // 6. 对照组 —— 只在目标 swarm 握手不理想时才跑，省时间。
     if f.probe.and_then(rate).unwrap_or(0.0) < 0.3 {
         if let Some(control_hash) = health::parse_info_hash(CONTROL_INFO_HASH) {
-            let control_peers = gather_peers(control_hash).await;
+            let control_peers = gather_peers(control_hash, device).await;
             if control_peers.is_empty() {
                 steps.push(step("对照组", Outcome::Skipped, "对照组也拿不到 peer 地址"));
             } else {
-                let counts = probe_peers(&control_peers, control_hash).await;
+                let counts = probe_peers(&control_peers, control_hash, device).await;
                 f.control = Some(counts);
                 let total = counts.0 + counts.1 + counts.2;
                 steps.push(step(
