@@ -21,8 +21,8 @@ const MARK: Record<DiagOutcome, string> = {
  * 任务卡住时，六种完全不同的原因表现一模一样：进度不动、0 peers。这个按钮
  * 把手工要跑两天的取证阶梯压成几十秒，见 `diagnose.rs`。
  *
- * 会真的发包（tracker announce + 试握手 + 打一个对照 swarm），所以只在点了
- * 才跑，不做后台巡检 —— 后台偷偷连一堆 peer 是很不礼貌的。
+ * 会真的发包（tracker announce + 试握手，必要时再真下十几 MB 对照种子），
+ * 所以只在点了才跑，不做后台巡检 —— 后台偷偷连一堆 peer 是很不礼貌的。
  */
 export default function Diagnose({ torrentId, onError }: Props) {
   const [report, setReport] = useState<DiagReport | null>(null);

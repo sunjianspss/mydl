@@ -39,3 +39,35 @@ async fn runs_end_to_end() {
     assert!(!r.steps.is_empty(), "一步都没跑");
     assert!(!r.verdict.is_empty(), "没给出结论");
 }
+
+/// 单独跑对照组：开隔离实例真下一小会儿 Ubuntu 官方种子。
+///
+/// ```
+/// MYDL_DIAG_BIND=en0 cargo test --test diagnose_live control -- --ignored --nocapture
+/// ```
+///
+/// 不断言下了多少 —— 那是网络测量。只保证它真的跑起来了、跑完把临时目录
+/// 删干净了。
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "需要外网，会实际下载十几 MB，最长约 40 秒"]
+async fn control_download_runs() {
+    let bind = std::env::var("MYDL_DIAG_BIND").ok();
+    let before = leftover_dirs();
+
+    let t0 = std::time::Instant::now();
+    let c = diagnose::control_download(bind.as_deref()).await;
+    eprintln!("绑定网卡={bind:?}  用时 {:.1}s  {c:?}", t0.elapsed().as_secs_f64());
+
+    assert!(c.is_some(), "对照组没跑起来");
+    assert_eq!(leftover_dirs(), before, "临时目录没删干净");
+}
+
+fn leftover_dirs() -> usize {
+    std::fs::read_dir(std::env::temp_dir())
+        .map(|it| {
+            it.filter_map(Result::ok)
+                .filter(|e| e.file_name().to_string_lossy().starts_with("mydl-diag-control-"))
+                .count()
+        })
+        .unwrap_or(0)
+}

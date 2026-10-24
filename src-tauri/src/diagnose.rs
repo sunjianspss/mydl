@@ -17,7 +17,7 @@
 //! 3. BT 实际走哪条路 —— 走隧道的话后面全都不用看了，这就是答案
 //! 4. tracker 上有没有源 —— 0 做种就是真没了，跟你的网络无关
 //! 5. 能不能和这些 peer 握上手
-//! 6. **对照组**：同样的握手打一个必然健康的 swarm
+//! 6. **对照组**：开一个隔离实例，真下十几秒必然健康的 swarm
 //!
 //! 第 6 步是整套东西的关键。只测自己那个 swarm 永远分不清「这个资源不行」和
 //! 「你的网络不行」—— 而这两个结论指向完全相反的行动。
@@ -43,14 +43,32 @@ const IO_TIMEOUT: Duration = Duration::from_secs(6);
 /// 最多探几个 peer。样本够judge成功率就行，不必打满。
 const PROBE_PEERS: usize = 16;
 
-/// 对照用的 swarm：Ubuntu 24.04.4 官方种子。
+/// 对照用的 swarm：Ubuntu 24.04.4 官方 server 镜像（info-hash `62a4d9e1…`）。
 ///
 /// 选它是因为**由官方服务器做种、常年几十个 seeder、不会屏蔽任何人**。
-/// 如果连它都握不上手，问题一定在本地网络而不是你要下的那个资源。
+/// 如果连它都下不动，问题一定在本地网络而不是你要下的那个资源。
 ///
-/// 哪天这个版本下架了，`control` 那一步会变成「跳过」而不是给出错误结论 ——
-/// 见 [`Step::Skipped`]。到时候换个更新的官方种子即可。
-const CONTROL_INFO_HASH: &str = "62a4d9e139f3315f8716bcccca0cc984a9809da1";
+/// 用 .torrent 地址而不是磁力链：省掉向 peer 要元信息那一步，量的只是
+/// 「能不能下」。哪天这个版本下架了，对照组那一步会变成「跳过」而不是
+/// 给出错误结论 —— 见 [`Step::Skipped`]。到时候换个更新的官方种子即可。
+const CONTROL_TORRENT: &str =
+    "https://releases.ubuntu.com/24.04/ubuntu-24.04.4-live-server-amd64.iso.torrent";
+
+/// 对照组最多下多久。
+const CONTROL_WINDOW: Duration = Duration::from_secs(20);
+
+/// 下到这么多就足以说明网络没问题，提前收工 —— 不必白占带宽和磁盘。
+const CONTROL_ENOUGH_BYTES: u64 = 16 << 20;
+
+/// 「对照组正常」的门槛：窗口内至少下到这么多。
+///
+/// 两头差得很远，门槛放哪都不敏感：本机绑物理网卡 45 秒能下 464 MB，而
+/// 当年走被屏蔽的隧道 45 秒只有 0.5 MB。4 MiB / 20 秒约合 1.6 Mbps，
+/// 再慢的家用宽带也过得去。
+const CONTROL_OK_BYTES: u64 = 4 << 20;
+
+/// 拿对照组种子文件、建任务的上限。超时就当对照组没跑成。
+const CONTROL_ADD_TIMEOUT: Duration = Duration::from_secs(20);
 
 // ---------------------------------------------------------------------------
 // 结果
@@ -324,6 +342,91 @@ async fn gather_peers(info_hash: [u8; 20], device: Option<&str>) -> Vec<SocketAd
 }
 
 // ---------------------------------------------------------------------------
+// 探测：对照组
+// ---------------------------------------------------------------------------
+
+/// 开一个隔离实例，真下一小会儿 [`CONTROL_TORRENT`]。None = 没跑起来。
+///
+/// 为什么不再用握手当对照：握手只测 TCP 明文，真实下载大量走 uTP。实测
+/// 本机对 Ubuntu 种子 TCP 握手只有 2/16，同一时刻真下却有 10 MB/s，拿握手
+/// 判就成了「问题在你的网络」。所以对照组不测「能不能握手」，测「能不能下」。
+///
+/// 隔离实例：随机端口、临时目录、不共用 DHT 缓存、不做 UPnP（见
+/// `Engine::new` 的 `state_dir`），绑同一张网卡。下够
+/// [`CONTROL_ENOUGH_BYTES`] 就收工，最多 [`CONTROL_WINDOW`]，跑完连目录
+/// 一起删掉。
+///
+/// `pub` 是为了能被集成测试单独跑 —— 目标 swarm 握手正常时 [`run`] 不会走到
+/// 这一步，想真机验证它得能直接调。
+pub async fn control_download(device: Option<&str>) -> Option<ControlRun> {
+    use crate::engine::{Engine, SessionSetup};
+
+    let tmp = std::env::temp_dir().join(format!(
+        "mydl-diag-control-{}-{:08x}",
+        std::process::id(),
+        rand::random::<u32>()
+    ));
+
+    let engine = match Engine::new(
+        tmp.join("dl"),
+        Some(tmp.join("state")),
+        tmp.join("state"),
+        SessionSetup {
+            bind_device: device.map(str::to_owned),
+            ..Default::default()
+        },
+    )
+    .await
+    {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::warn!("对照组建不起隔离实例：{e:#}");
+            let _ = std::fs::remove_dir_all(&tmp);
+            return None;
+        }
+    };
+
+    // 超时只包住「添加」：丢掉 add 的 future 是安全的（`Engine::add` 自己超时
+    // 也是这么做的），而丢掉整个实例不行 —— 没 stop 的会话会在后台接着下。
+    let run = async {
+        let id = match tokio::time::timeout(CONTROL_ADD_TIMEOUT, engine.add(CONTROL_TORRENT, None))
+            .await
+        {
+            Ok(Ok(id)) => id,
+            Ok(Err(e)) => {
+                tracing::warn!("对照组添加失败：{e:#}");
+                return None;
+            }
+            Err(_) => {
+                tracing::warn!("对照组添加超时");
+                return None;
+            }
+        };
+
+        let started = std::time::Instant::now();
+        let mut c = ControlRun::default();
+        while started.elapsed() < CONTROL_WINDOW && c.bytes < CONTROL_ENOUGH_BYTES {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            if let Some(v) = engine.list().into_iter().find(|t| t.id == id) {
+                c.peak_peers = c.peak_peers.max(v.peers_live);
+                c.bytes = v.progress_bytes;
+            }
+        }
+        c.secs = started.elapsed().as_secs_f64();
+        Some(c)
+    };
+    let out = run.await;
+
+    engine.shutdown().await;
+    drop(engine);
+    if let Err(e) = std::fs::remove_dir_all(&tmp) {
+        tracing::warn!("对照组的临时目录没删掉 {}：{e}", tmp.display());
+    }
+    tracing::info!(?out, "诊断对照组");
+    out
+}
+
+// ---------------------------------------------------------------------------
 // 单点取证：添加磁力链失败时用
 // ---------------------------------------------------------------------------
 
@@ -456,8 +559,46 @@ pub struct Facts {
     pub leechers: Option<u32>,
     /// 目标 swarm 的握手结果 (成功, 连不上, 被拒)。
     pub probe: Option<(usize, usize, usize)>,
-    /// 对照组的握手结果。None = 对照组本身没跑成，不能拿来比。
-    pub control: Option<(usize, usize, usize)>,
+    /// 对照组真下的结果。None = 对照组本身没跑成，不能拿来比。
+    pub control: Option<ControlRun>,
+}
+
+/// 对照组：用隔离实例真下一小会儿 Ubuntu 官方种子。
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct ControlRun {
+    /// 窗口内同时连着的 peer 数峰值。
+    pub peak_peers: usize,
+    /// 下到并校验过的字节数。
+    pub bytes: u64,
+    /// 实际跑了多久。下够了会提前收工，不一定跑满 [`CONTROL_WINDOW`]。
+    pub secs: f64,
+}
+
+impl ControlRun {
+    fn healthy(&self) -> bool {
+        self.bytes >= CONTROL_OK_BYTES
+    }
+
+    /// 「8 秒下了 16.0 MiB，最多 31 个 peer」
+    fn summary(&self) -> String {
+        format!(
+            "{:.0} 秒下了 {}，最多 {} 个 peer",
+            self.secs,
+            format_size(self.bytes),
+            self.peak_peers
+        )
+    }
+}
+
+fn format_size(bytes: u64) -> String {
+    let b = bytes as f64;
+    if b >= 1024.0 * 1024.0 {
+        format!("{:.1} MiB", b / 1024.0 / 1024.0)
+    } else if b >= 1024.0 {
+        format!("{:.0} KiB", b / 1024.0)
+    } else {
+        format!("{bytes} B")
+    }
 }
 
 fn rate(counts: (usize, usize, usize)) -> Option<f64> {
@@ -626,17 +767,16 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
 
     // 握手成功率很低。对照组是唯一能分清「这个资源」和「你的网络」的东西。
     //
-    // 但**不能只看对照组过没过阈值**：目标 25%、对照组 37% 这种差距在噪声
-    // 范围内，据此断言「不是你的网络」是过度自信。要求对照组明显更好才敢
-    // 归咎于这个资源，否则老实说「两边都不理想」。
-    let probe_pct = probe_rate * 100.0;
-    match f.control.and_then(rate) {
-        Some(control_rate) if control_rate >= 0.3 && control_rate >= probe_rate * 2.0 => {
+    // 对照组看的是**真下了多少**，不是握手成功率。握手只测 TCP 明文，而真实
+    // 下载大量走 uTP：实测本机对 Ubuntu 种子 TCP 握手只有 2/16，同一时刻真下
+    // 却有 10 MB/s。拿握手率当对照，结论正好反过来。
+    match f.control {
+        Some(c) if c.healthy() => {
             let measured = format!(
-                "公开样本 {}/{} 握手成功，而对照组（Ubuntu 官方种子）{:.0}% 正常。",
+                "公开样本 {}/{} 握手成功，而对照组（Ubuntu 官方种子）{}，网络是好的。",
                 probe.0,
                 probe.0 + probe.1 + probe.2,
-                control_rate * 100.0
+                c.summary()
             );
             let verdict = match live_activity(f) {
                 Some(live) => format!(
@@ -651,23 +791,24 @@ pub fn conclude(f: &Facts) -> (String, Option<String>) {
                 Some("这些公开 peer 多半已经离线或在拒绝连接。本地设置修不好，换个源更快。".into()),
             )
         }
-        // 对照组也不好 —— 本地网络的问题。
-        Some(control_rate) if control_rate < 0.3 => (
+        // 对照组一个 peer 都连不上。
+        Some(c) if c.peak_peers == 0 => (
             format!(
-                "连对照组（Ubuntu 官方种子）都握不上手（{:.0}%），\
-                 问题在你的网络，不在这个资源。",
-                control_rate * 100.0
+                "连对照组（Ubuntu 官方种子）都一个 peer 也连不上、{:.0} 秒一个字节都没下到 \
+                 —— 问题在你的网络，不在这个资源。",
+                c.secs
             ),
             Some(network_side_advice(f)),
         ),
-        // 对照组过了阈值，但没有明显好过目标 —— 差距在噪声里，不下结论。
-        Some(control_rate) => (
+        // 连得上但下不动。官方种子常年几十个服务器在做种，正常网络几秒钟就是
+        // 几十 MB —— 慢成这样只能是这一侧的路有问题。
+        Some(c) => (
             format!(
-                "握手成功率偏低（这个 swarm {probe_pct:.0}%，对照组 {:.0}%），\
-                 但两边差不多 —— 分不清是这个资源的 peer 在拒绝你，还是你的网络整体不好。",
-                control_rate * 100.0
+                "对照组（Ubuntu 官方种子）{}，正常网络几秒钟就是几十 MB \
+                 —— 问题在你的网络，不在这个资源。",
+                c.summary()
             ),
-            Some("多试几次；如果每次对照组都不高，那更可能是网络这一侧。".into()),
+            Some(network_side_advice(f)),
         ),
         // 对照组没跑成就别下这个结论 —— 它是整套判断的支点。
         None => (
@@ -911,24 +1052,20 @@ pub async fn run(info_hash: &str, subject: Subject) -> Report {
 
     // 6. 对照组 —— 只在目标 swarm 握手不理想时才跑，省时间。
     if f.probe.and_then(rate).unwrap_or(0.0) < 0.3 {
-        if let Some(control_hash) = health::parse_info_hash(CONTROL_INFO_HASH) {
-            let control_peers = gather_peers(control_hash, device).await;
-            if control_peers.is_empty() {
-                steps.push(step("对照组", Outcome::Skipped, "对照组也拿不到 peer 地址"));
-            } else {
-                let counts = probe_peers(&control_peers, control_hash, device).await;
-                f.control = Some(counts);
-                let total = counts.0 + counts.1 + counts.2;
+        match control_download(device).await {
+            Some(c) => {
+                f.control = Some(c);
                 steps.push(step(
                     "对照组（Ubuntu 官方种子）",
-                    if rate(counts).unwrap_or(0.0) >= 0.3 {
-                        Outcome::Ok
-                    } else {
-                        Outcome::Bad
-                    },
-                    format!("{}/{} 成功", counts.0, total),
+                    if c.healthy() { Outcome::Ok } else { Outcome::Bad },
+                    c.summary(),
                 ));
             }
+            None => steps.push(step(
+                "对照组",
+                Outcome::Skipped,
+                "没跑起来（拿不到 Ubuntu 的种子文件）",
+            )),
         }
     } else {
         steps.push(step(
@@ -949,6 +1086,24 @@ pub async fn run(info_hash: &str, subject: Subject) -> Report {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 正常网络下对照组的样子：几秒就下够、提前收工。
+    fn fast_control() -> ControlRun {
+        ControlRun {
+            peak_peers: 31,
+            bytes: CONTROL_ENOUGH_BYTES,
+            secs: 4.0,
+        }
+    }
+
+    /// 一个 peer 都没连上、跑满窗口。
+    fn dead_control() -> ControlRun {
+        ControlRun {
+            peak_peers: 0,
+            bytes: 0,
+            secs: 20.0,
+        }
+    }
 
     fn facts() -> Facts {
         Facts {
@@ -1049,15 +1204,33 @@ mod tests {
         assert!(v.contains("查不到"), "实际：{v}");
     }
 
-    /// 握手基本失败但对照组正常 -> 是这个资源的问题。
+    /// 握手基本失败但对照组下得动 -> 是这个资源的问题。
     #[test]
     fn bad_probe_good_control_blames_the_swarm() {
         let f = Facts {
             probe: Some((0, 4, 12)),
-            control: Some((10, 2, 4)),
+            control: Some(fast_control()),
             ..facts()
         };
         let (v, _) = conclude(&f);
+        assert!(v.contains("不是你的网络"), "实际：{v}");
+        assert!(v.contains("16.0 MiB"), "该带上对照组实测的量：{v}");
+    }
+
+    /// 0.14.12 实测的那一幕：「流金十载」唯一的做种者 TCP 连不上（0/3），
+    /// 对照组 TCP 握手只有 2/16 —— 旧规则据此报「问题在你的网络」，可同一时刻
+    /// 真下 Ubuntu 有 10 MB/s。对照组看下载量之后，结论必须指向资源。
+    #[test]
+    fn tcp_only_failures_with_fast_real_download_blame_the_swarm() {
+        let f = Facts {
+            seeders: Some(1),
+            leechers: Some(1),
+            probe: Some((0, 3, 0)),
+            control: Some(fast_control()),
+            ..facts()
+        };
+        let (v, _) = conclude(&f);
+        assert!(!v.contains("问题在你的网络"), "实际：{v}");
         assert!(v.contains("不是你的网络"), "实际：{v}");
     }
 
@@ -1069,7 +1242,7 @@ mod tests {
             peers_live: 1,
             download_speed_bps: 94.0 * 1024.0,
             probe: Some((0, 12, 1)),
-            control: Some((7, 5, 4)),
+            control: Some(fast_control()),
             ..facts()
         };
         let (v, advice) = conclude(&f);
@@ -1086,7 +1259,7 @@ mod tests {
     fn bad_probe_bad_control_blames_the_network() {
         let f = Facts {
             probe: Some((0, 4, 12)),
-            control: Some((0, 8, 8)),
+            control: Some(dead_control()),
             ..facts()
         };
         let (v, advice) = conclude(&f);
@@ -1101,7 +1274,7 @@ mod tests {
         let f = Facts {
             proxy_configured: true,
             probe: Some((0, 4, 12)),
-            control: Some((0, 8, 8)),
+            control: Some(dead_control()),
             ..facts()
         };
         let (v, advice) = conclude(&f);
@@ -1155,34 +1328,41 @@ mod tests {
             assert!(netif::exists(&dev), "选路探测给出了不存在的网卡：{dev}");
         }
     }
-    /// 目标 25% vs 对照组 37% —— 这点差距在噪声范围内，不该拿来断言
-    /// 「不是你的网络」。实测就出现过这一幕。
+    /// 连得上但下不动 —— 当年走被屏蔽的隧道就是这样（1 个 peer、45 秒
+    /// 0.5 MB）。要归到网络这一侧，并且把实测的量说出来。
     #[test]
-    fn similar_rates_do_not_blame_either_side() {
+    fn slow_control_blames_the_network_with_numbers() {
         let f = Facts {
-            probe: Some((4, 0, 12)),   // 25%
-            control: Some((6, 0, 10)), // 37.5%
+            probe: Some((0, 4, 12)),
+            control: Some(ControlRun {
+                peak_peers: 1,
+                bytes: 300 * 1024,
+                secs: 20.0,
+            }),
             ..facts()
         };
-        let (v, _) = conclude(&f);
-        assert!(v.contains("差不多"), "实际：{v}");
-        assert!(
-            !v.contains("不是你的网络"),
-            "差距在噪声里不该下这个结论：{v}"
-        );
-        assert!(!v.contains("问题在你的网络"));
+        let (v, advice) = conclude(&f);
+        assert!(v.contains("问题在你的网络"), "实际：{v}");
+        assert!(v.contains("300 KiB") && v.contains("1 个 peer"), "实际：{v}");
+        assert!(advice.unwrap().contains("VPN"));
     }
 
-    /// 对照组明显更好（两倍以上）才敢归咎于这个资源。
+    /// 门槛两侧结论相反，钉住它，免得哪天改常量时悄悄翻了方向。
     #[test]
-    fn clearly_better_control_blames_the_swarm() {
-        let f = Facts {
-            probe: Some((1, 0, 15)),   // 6%
-            control: Some((12, 0, 4)), // 75%
+    fn control_threshold_is_inclusive() {
+        let at = |bytes| Facts {
+            probe: Some((0, 4, 12)),
+            control: Some(ControlRun {
+                peak_peers: 5,
+                bytes,
+                secs: 20.0,
+            }),
             ..facts()
         };
-        let (v, _) = conclude(&f);
+        let (v, _) = conclude(&at(CONTROL_OK_BYTES));
         assert!(v.contains("不是你的网络"), "实际：{v}");
+        let (v, _) = conclude(&at(CONTROL_OK_BYTES - 1));
+        assert!(v.contains("问题在你的网络"), "实际：{v}");
     }
 
     // -----------------------------------------------------------------------
