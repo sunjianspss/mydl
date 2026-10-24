@@ -272,6 +272,10 @@ fn matches_compound(title: &str, parts: &[&str]) -> bool {
 /// 索引器明明正常返回了，却每次都被我们自己掐断。
 const SEARCH_TIMEOUT_SECS: u64 = 60;
 
+/// 一个索引器至少给了这么多条，才敢说「做种数全都一样」是占位值。一两条
+/// 碰巧相同太常见了。
+const PLACEHOLDER_MIN_ITEMS: usize = 3;
+
 /// 请求索引器并解析结果。
 ///
 /// `base` 是用户从 Prowlarr / Jackett 界面上复制的那条 Torznab 地址，
@@ -334,9 +338,8 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
     // 转换），按「站点 + info-hash」去重，没有磁力链的退回到下载地址。
     // 不同站给的同一个种子照旧各占一行 —— 单一写法时本来就是这样。
     let mut seen = std::collections::HashSet::new();
-    let mut kept: Vec<SearchResult> = all
+    let mut deduped: Vec<SearchResult> = all
         .into_iter()
-        .filter(|r| matches_query(&r.title, query))
         .filter(|r| {
             let key = r
                 .magnet
@@ -345,6 +348,15 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
                 .or_else(|| r.uri().map(str::to_string));
             seen.insert((r.indexer.clone(), key))
         })
+        .collect();
+
+    // 在去重之后、按关键词筛之前判：去重前同一条被简繁两路各搜到一次，会把
+    // 两条凑成四条；筛掉的默认榜单也是这个索引器给的，样本越多判得越准。
+    clear_placeholder_counts(&mut deduped);
+
+    let mut kept: Vec<SearchResult> = deduped
+        .into_iter()
+        .filter(|r| matches_query(&r.title, query))
         .collect();
 
     // 每一路在 `parse` 里各自排过序，合并后要重排。sort_by_key 是稳定的，
@@ -360,6 +372,62 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
     }
 
     Ok(kept)
+}
+
+/// 把占位的做种数清成「未知」。
+///
+/// 有些索引器根本不知道真实人数，就给**每一条**填同一个数：实测 Jackett 里
+/// MagnetDownload 全是 1 做种 / 2 peers，TorrentKitty 全是 1 / 1。照着显示
+/// 「种子 1」，用户会以为有源，加进来才发现一动不动 —— 2026-10 的三张专辑
+/// 就是这么加进来的，真实做种数是 0。
+///
+/// 判据：同一个索引器这次至少给了 [`PLACEHOLDER_MIN_ITEMS`] 条，做种数和
+/// 下载者数**全部相同**，且做种数大于 0。真实数据几乎不可能这么整齐。
+/// 全是 0 的不算：「0 做种」不会把人骗去点，清掉反而丢了信息。
+///
+/// 清成 None 之后，界面显示「做种数未知」，排序和 AI 也都当它是未知。
+fn clear_placeholder_counts(results: &mut [SearchResult]) {
+    use std::collections::{HashMap, HashSet};
+
+    /// (做种, 下载者)
+    type Counts = (Option<u32>, Option<u32>);
+    // 每个索引器：(条数, 第一条的人数, 到目前为止是否全都一样)
+    let mut by_indexer: HashMap<Option<String>, (usize, Counts, bool)> = HashMap::new();
+    for r in results.iter() {
+        let counts = (r.seeders, r.leechers);
+        by_indexer
+            .entry(r.indexer.clone())
+            .and_modify(|(n, first, same)| {
+                *n += 1;
+                *same &= *first == counts;
+            })
+            .or_insert((1, counts, true));
+    }
+
+    let placeholder: HashSet<Option<String>> = by_indexer
+        .into_iter()
+        .filter(|(_, (n, (seeders, _), same))| {
+            *same && *n >= PLACEHOLDER_MIN_ITEMS && seeders.is_some_and(|s| s > 0)
+        })
+        .map(|(indexer, (n, (seeders, leechers), _))| {
+            tracing::info!(
+                索引器 = indexer.as_deref().unwrap_or("?"),
+                条数 = n,
+                做种 = ?seeders,
+                下载者 = ?leechers,
+                "这个索引器每条的做种数都一样，是占位值，按未知处理"
+            );
+            indexer
+        })
+        .collect();
+
+    for r in results
+        .iter_mut()
+        .filter(|r| placeholder.contains(&r.indexer))
+    {
+        r.seeders = None;
+        r.leechers = None;
+    }
 }
 
 /// 发一次 Torznab 查询，返回解析好的结果（未筛选）。
@@ -994,6 +1062,75 @@ mod tests {
             ["周杰伦 周杰倫 合集", "周杰倫 歷年全部專輯", "周杰伦 - 晴天.flac"],
             "合并、去重、筛掉无关，再按做种数重排"
         );
+    }
+
+    fn counted(indexer: &str, seeders: u32, leechers: u32) -> SearchResult {
+        SearchResult {
+            indexer: Some(indexer.into()),
+            seeders: Some(seeders),
+            leechers: Some(leechers),
+            ..Default::default()
+        }
+    }
+
+    /// 实测 Jackett 的形状：MagnetDownload 每条都是 1 / 2，FileMood 是真数。
+    #[test]
+    fn uniform_seed_counts_are_cleared_as_placeholders() {
+        let mut r = vec![
+            counted("MagnetDownload", 1, 2),
+            counted("FileMood", 0, 1),
+            counted("MagnetDownload", 1, 2),
+            counted("FileMood", 6, 7),
+            counted("MagnetDownload", 1, 2),
+            counted("FileMood", 0, 0),
+        ];
+        clear_placeholder_counts(&mut r);
+
+        let seeders: Vec<Option<u32>> = r.iter().map(|x| x.seeders).collect();
+        assert_eq!(
+            seeders,
+            [None, Some(0), None, Some(6), None, Some(0)],
+            "只清 MagnetDownload，FileMood 一条都不能动"
+        );
+        assert!(
+            r.iter()
+                .filter(|x| x.indexer.as_deref() == Some("MagnetDownload"))
+                .all(|x| x.leechers.is_none()),
+            "下载者数是同一套占位值，也得清"
+        );
+    }
+
+    #[test]
+    fn real_looking_counts_are_kept() {
+        let mut r = vec![
+            // 全是 0：不会骗人去点，留着
+            counted("A", 0, 0),
+            counted("A", 0, 0),
+            counted("A", 0, 0),
+            // 只有两条，碰巧相同不说明问题
+            counted("B", 1, 1),
+            counted("B", 1, 1),
+            // 做种数一样但下载者不一样，是真数据
+            counted("C", 1, 3),
+            counted("C", 1, 5),
+            counted("C", 1, 2),
+        ];
+        let before: Vec<_> = r.iter().map(|x| (x.seeders, x.leechers)).collect();
+        clear_placeholder_counts(&mut r);
+        let after: Vec<_> = r.iter().map(|x| (x.seeders, x.leechers)).collect();
+        assert_eq!(before, after);
+    }
+
+    /// 简繁两路各搜到同样两条：去重前是四条，够门槛了；去重后只有两条，不够。
+    /// 必须按去重后的算，否则两条真实数据会被误判成占位值。
+    #[tokio::test]
+    async fn duplicates_across_scripts_do_not_count_as_placeholder_evidence() {
+        let both = torznab(&[("周杰伦 - 晴天.flac", 'a', 1), ("周杰伦 合集", 'b', 1)]);
+        let (base, _) = fake_torznab(vec![("周杰伦", both.clone()), ("周杰倫", both)]).await;
+
+        let r = search(&base, "周杰伦").await.unwrap();
+        assert_eq!(r.len(), 2);
+        assert!(r.iter().all(|x| x.seeders == Some(1)), "{r:?}");
     }
 
     #[tokio::test]

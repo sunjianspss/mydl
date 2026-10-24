@@ -148,7 +148,18 @@ export default function SearchDialog({ onPick, onClose, configured, aiEnabled }:
                     </span>
                     <span className="search-meta">
                       <span>{formatBytes(r.size)}</span>
-                      {r.seeders != null && <span>种子 {r.seeders}</span>}
+                      {/* 后端会把占位的做种数（某些站每条都填 1）清成 null，
+                          这里得明说「未知」，光是不显示会被当成没留意。 */}
+                      {r.seeders != null ? (
+                        <span>种子 {r.seeders}</span>
+                      ) : (
+                        <span
+                          className="source-unknown"
+                          title="索引器没给真实做种数，加进来之前没法知道有没有源"
+                        >
+                          做种数未知
+                        </span>
+                      )}
                       {r.leechers != null && <span>下载者 {r.leechers}</span>}
                       {r.indexer && <span>{r.indexer}</span>}
                       {!r.magnet && <span className="search-warn">仅 .torrent</span>}
