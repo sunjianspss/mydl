@@ -301,7 +301,23 @@ pub async fn search(base: &str, query: &str) -> Result<Vec<SearchResult>> {
     // 几种写法并发发出去。聚合查询一次就要几十秒，顺序发等于翻倍；实测两条
     // 并发各自 27 秒左右，和单条差不多。按写法的顺序 await，合并顺序就不随
     // 谁先回来而变。
-    let client = reqwest::Client::new();
+    // reqwest 会读取 macOS 的系统代理，但不会读取它的代理例外列表。
+    // 本机 Jackett / Prowlarr 直接连接，远程索引器仍用默认代理设置。
+    let parsed_base = reqwest::Url::parse(base).ok();
+    let host = parsed_base
+        .as_ref()
+        .and_then(reqwest::Url::host_str)
+        .unwrap_or_default();
+    let loopback = matches!(host, "localhost" | "localhost.")
+        || host
+            .trim_matches(['[', ']'])
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.to_canonical().is_loopback());
+    let mut builder = reqwest::Client::builder();
+    if loopback {
+        builder = builder.no_proxy();
+    }
+    let client = builder.build().context("创建索引器 HTTP 客户端失败")?;
     let handles: Vec<_> = variants
         .iter()
         .map(|q| {
@@ -1028,6 +1044,54 @@ mod tests {
             })
             .collect();
         format!(r#"<rss xmlns:torznab="http://torznab.com/schemas/2015/feed"><channel>{items}</channel></rss>"#)
+    }
+
+    #[tokio::test]
+    async fn loopback_search_bypasses_proxy() {
+        const CHILD: &str = "MYDL_SEARCH_PROXY_TEST_CHILD";
+        const TEST_NAME: &str = "search::tests::loopback_search_bypasses_proxy";
+
+        if std::env::var_os(CHILD).is_none() {
+            let (proxy, _) =
+                fake_torznab(vec![("Ubuntu", torznab(&[("Ubuntu via proxy", 'b', 1)]))]).await;
+            let proxy = reqwest::Url::parse(&proxy)
+                .unwrap()
+                .origin()
+                .ascii_serialization();
+            // 代理环境变量只对子进程生效，避免影响并行运行的其他 HTTP 测试。
+            let output = tokio::task::spawn_blocking(move || {
+                std::process::Command::new(std::env::current_exe().unwrap())
+                    .args(["--exact", TEST_NAME, "--nocapture"])
+                    .env(CHILD, "1")
+                    .env("HTTP_PROXY", proxy)
+                    .env("NO_PROXY", "")
+                    .env_remove("no_proxy")
+                    .output()
+                    .unwrap()
+            })
+            .await
+            .unwrap();
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            assert!(
+                output.status.success() && stdout.contains(&format!("test {TEST_NAME} ... ok")),
+                "{stdout}\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+
+        let (base, _) = fake_torznab(vec![(
+            "Ubuntu",
+            torznab(&[("Ubuntu via loopback", 'a', 1)]),
+        )])
+        .await;
+        let local = search(&base, "Ubuntu").await.unwrap();
+        assert_eq!(local[0].title, "Ubuntu via loopback");
+
+        let remote = search("http://indexer.invalid/api?apikey=x", "Ubuntu")
+            .await
+            .unwrap();
+        assert_eq!(remote[0].title, "Ubuntu via proxy");
     }
 
     #[tokio::test]
